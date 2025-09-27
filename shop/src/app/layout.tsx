@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Providers } from './providers';
+import { ThemeProvider } from './theme-provider';
 import "./globals.css";
 
 // Base HTML wrapper for non-locale routes (redirected by middleware)
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

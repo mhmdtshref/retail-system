@@ -61,10 +61,20 @@ export default function POSPage() {
 
       <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
         <span className="font-semibold">{t('pos.total')}: {total.toFixed(2)}</span>
+        <div className="flex gap-2">
         <button className="px-4 py-2 rounded bg-emerald-600 text-white" onClick={async () => {
           await startSale();
           await addPayment('cash', total);
         }}>{t('pos.pay')}</button>
+        <button className="px-3 py-2 rounded border" onClick={() => {
+          const popup = window.open('', '_blank');
+          if (!popup) return;
+          popup.document.write(`<pre>${JSON.stringify({ lines, total }, null, 2)}</pre>`);
+          popup.document.close();
+          popup.focus();
+          popup.print();
+        }}>{t('pos.receipt')}</button>
+        </div>
       </div>
     </main>
   );
