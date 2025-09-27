@@ -1,0 +1,42 @@
+{
+  "name": "shop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack && tsx scripts/build-sw.ts",
+    "start": "next start",
+    "lint": "eslint",
+    "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
+  },
+  "dependencies": {
+    "dexie": "^4.2.0",
+    "mongoose": "^8.18.2",
+    "next": "15.5.4",
+    "next-intl": "^4.3.9",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "workbox-background-sync": "^7.3.0",
+    "workbox-build": "^7.3.0",
+    "workbox-core": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0",
+    "workbox-window": "^7.3.0",
+    "zod": "^4.1.11",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.4",
+    "esbuild": "^0.23.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}
