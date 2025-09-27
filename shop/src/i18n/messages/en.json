@@ -1,16 +1,26 @@
 {
-  "app.title": "Clothing Shop",
-  "nav.pos": "POS",
-  "nav.products": "Products",
-  "nav.customers": "Customers",
-  "nav.sales": "Sales",
-  "nav.settings": "Settings",
-  "pos.cart": "Cart",
-  "pos.pay": "Pay",
-  "pos.total": "Total",
-  "pos.receipt": "Receipt",
-  "pos.offline": "You are offline. Actions will sync when online.",
-  "offline.fallback.title": "No connection",
-  "offline.fallback.body": "Some pages require internet. You can use the POS offline."
+  "app": {
+    "title": "Clothing Shop"
+  },
+  "nav": {
+    "pos": "POS",
+    "products": "Products",
+    "customers": "Customers",
+    "sales": "Sales",
+    "settings": "Settings"
+  },
+  "pos": {
+    "cart": "Cart",
+    "pay": "Pay",
+    "total": "Total",
+    "receipt": "Receipt",
+    "offline": "You are offline. Actions will sync when online."
+  },
+  "offline": {
+    "fallback": {
+      "title": "No connection",
+      "body": "Some pages require internet. You can use the POS offline."
+    }
+  }
 }
 

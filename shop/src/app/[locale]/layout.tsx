@@ -22,20 +22,11 @@ export default async function LocaleLayout(props: any) {
   const dir = isRTL(locale) ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir}>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="theme-color" content="#111827" />
-        <link rel="manifest" href="/manifest.webmanifest" />
-      </head>
-      <body className={`${tajawal.variable} ${cairo.variable} antialiased`}>        
-        <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
+      <div dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
+        {children}
+      </div>
+    </NextIntlClientProvider>
   );
 }
 
