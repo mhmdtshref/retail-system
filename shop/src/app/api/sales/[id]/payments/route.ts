@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
 
-const SaleSchema = z.object({
-  lines: z.array(z.object({ sku: z.string(), qty: z.number().positive(), price: z.number().nonnegative() })),
-  customerId: z.string().optional(),
-  total: z.number().nonnegative()
+const PaymentSchema = z.object({
+  method: z.enum(['cash', 'card', 'partial']),
+  amount: z.number().positive(),
+  seq: z.number().int().nonnegative()
 });
 
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   if (mockDb.has(idempotencyKey)) {
@@ -16,11 +16,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const parsed = SaleSchema.safeParse(body);
+  const parsed = PaymentSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const doc = mockDb.createSale(parsed.data.lines, parsed.data.total);
-  const result = { saleId: String(doc._id) };
+  const result = mockDb.addPayment({ saleId: params.id, ...parsed.data });
   mockDb.set(idempotencyKey, result);
   return NextResponse.json(result);
 }

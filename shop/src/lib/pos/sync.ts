@@ -26,10 +26,10 @@ async function processItem(item: OutboxItem) {
       return;
     }
     const saleId = map.value;
-    const res = await fetch('/api/payments', {
+    const res = await fetch(`/api/sales/${saleId}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
-      body: JSON.stringify({ saleId, method: p.method, amount: p.amount, seq: p.seq })
+      body: JSON.stringify({ method: p.method, amount: p.amount, seq: p.seq })
     });
     if (!res.ok) throw new Error('PAYMENT_ADD failed');
     await posDb.outbox.delete(item.id);

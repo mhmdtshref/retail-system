@@ -2,16 +2,22 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { usePosStore } from '@/lib/store/posStore';
-
-type CartLine = { sku: string; name: string; qty: number; price: number };
+import { posDb } from '@/lib/db/posDexie';
+import { Search } from '@/components/pos/Search';
+import { Cart } from '@/components/pos/Cart';
+import { PayModal } from '@/components/pos/PayModal';
+import { Receipt } from '@/components/pos/Receipt';
 
 export default function POSPage() {
   const t = useTranslations();
-  const lines = usePosStore((s) => s.lines);
-  const addLineStore = usePosStore((s) => s.addLine);
-  const startSale = usePosStore((s) => s.startSale);
-  const addPayment = usePosStore((s) => s.addPayment);
+  const lines = usePosStore((s: any) => s.lines);
+  const addLineStore = usePosStore((s: any) => s.addLine);
+  const startSale = usePosStore((s: any) => s.startSale);
+  const addPayment = usePosStore((s: any) => s.addPayment);
+  const lastReceipt = usePosStore((s: any) => s.lastReceipt);
   const [offline, setOffline] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
+  const [showPay, setShowPay] = useState(false);
 
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
@@ -24,14 +30,29 @@ export default function POSPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const count = await posDb.products.count();
+      if (count === 0) {
+        try {
+          const res = await fetch('/api/pos/bootstrap');
+          if (res.ok) {
+            const data = await res.json();
+            await posDb.products.bulkPut(data.products);
+            await posDb.availabilitySnapshot.bulkPut(data.availability);
+          }
+        } catch {}
+      }
+      if (!cancelled) setBootstrapped(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const total = useMemo(
-    () => lines.reduce((sum, l) => sum + l.qty * l.price, 0),
+    () => (lines as any[]).reduce((sum: number, l: any) => sum + l.qty * l.price, 0),
     [lines]
   );
-
-  function addDemo() {
-    addLineStore({ sku: 'SKU-001', name: 'تيشيرت', price: 50 });
-  }
 
   return (
     <main className="p-4 flex flex-col gap-3">
@@ -41,40 +62,42 @@ export default function POSPage() {
         </div>
       )}
       <div className="flex items-center gap-2">
-        <button className="px-3 py-2 rounded bg-blue-600 text-white" onClick={addDemo}>
-          +
-        </button>
         <span className="font-medium">{t('pos.cart')}</span>
       </div>
 
-      <ul className="divide-y rounded border">
-        {lines.map((l, i) => (
-          <li key={i} className="flex justify-between p-2">
-            <span className="truncate max-w-[60%]">{l.name}</span>
-            <span>{l.qty} × {l.price.toFixed(2)}</span>
-          </li>
-        ))}
-        {lines.length === 0 && (
-          <li className="p-2 text-muted-foreground">—</li>
-        )}
-      </ul>
+      <Search onAdd={(line) => addLineStore(line)} />
+
+      <Cart />
 
       <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
         <span className="font-semibold">{t('pos.total')}: {total.toFixed(2)}</span>
         <div className="flex gap-2">
-        <button className="px-4 py-2 rounded bg-emerald-600 text-white" onClick={async () => {
-          await startSale();
-          await addPayment('cash', total);
-        }}>{t('pos.pay')}</button>
-        <button className="px-3 py-2 rounded border" onClick={() => {
-          const popup = window.open('', '_blank');
-          if (!popup) return;
-          popup.document.write(`<pre>${JSON.stringify({ lines, total }, null, 2)}</pre>`);
-          popup.document.close();
-          popup.focus();
-          popup.print();
-        }}>{t('pos.receipt')}</button>
+          <button className="px-4 py-2 rounded bg-emerald-600 text-white disabled:opacity-50" disabled={lines.length===0} onClick={() => setShowPay(true)}>{t('pos.pay')}</button>
+          <button className="px-3 py-2 rounded border disabled:opacity-50" disabled={!lastReceipt} onClick={() => {
+            if (!lastReceipt) return;
+            const popup = window.open('', '_blank');
+            if (!popup) return;
+            popup.document.write(`<link rel=\"stylesheet\" href=\"/styles/receipt.css\" />`);
+            popup.document.write(document.querySelector('#__receipt_print')?.innerHTML || '');
+            popup.document.close();
+            popup.focus();
+            popup.print();
+          }}>{t('pos.receipt')}</button>
         </div>
+      </div>
+
+      {showPay && (
+        <PayModal
+          total={total}
+          onClose={() => setShowPay(false)}
+          onConfirmCash={async (amount, meta) => { await startSale(); await addPayment('cash', amount, meta); setShowPay(false); }}
+          onConfirmCard={async (amount, meta) => { await startSale(); await addPayment('card', amount, meta); setShowPay(false); }}
+          onConfirmPartial={async (amount, meta) => { await startSale(); await addPayment('partial', amount, meta); setShowPay(false); }}
+        />
+      )}
+
+      <div id="__receipt_print" className="hidden print:block">
+        {lastReceipt && <Receipt data={lastReceipt} />}
       </div>
     </main>
   );

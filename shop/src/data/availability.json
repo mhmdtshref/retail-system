@@ -1,0 +1,8 @@
+[
+  { "sku": "TSHIRT-001-BLK-M", "onHand": 40, "reserved": 2, "available": 38, "asOf": 0 },
+  { "sku": "TSHIRT-001-BLK-L", "onHand": 30, "reserved": 1, "available": 29, "asOf": 0 },
+  { "sku": "TSHIRT-001-WHT-M", "onHand": 25, "reserved": 0, "available": 25, "asOf": 0 },
+  { "sku": "PANTS-010-NVY-32", "onHand": 15, "reserved": 1, "available": 14, "asOf": 0 },
+  { "sku": "DRESS-200-RED-S", "onHand": 10, "reserved": 0, "available": 10, "asOf": 0 }
+]
+

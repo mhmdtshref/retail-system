@@ -14,7 +14,28 @@
     "pay": "الدفع",
     "total": "الإجمالي",
     "receipt": "الإيصال",
+    "search": "بحث المنتجات",
+    "searchPlaceholder": "ابحث بالباركود/رقم الصنف/الاسم (F2)",
+    "pickVariant": "اختر المقاس/اللون",
+    "noResults": "لا نتائج",
+    "cash": "نقدًا",
+    "card": "بطاقة",
+    "partial": "تقسيط",
+    "amount": "المبلغ",
+    "cardLast4": "آخر 4 أرقام",
+    "authCode": "رمز التفويض",
+    "minDownPayment": "الدفعة الأدنى 10%",
+    "downPayment": "الدفعة المقدمة",
+    "reservationNote": "ملاحظة الحجز",
+    "size": "المقاس",
+    "color": "اللون",
+    "subtotal": "الإجمالي الفرعي",
     "offline": "أنت غير متصل. سيتم مزامنة العمليات عند توفر الإنترنت."
+  },
+  "common": {
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "remove": "حذف"
   },
   "offline": {
     "fallback": {

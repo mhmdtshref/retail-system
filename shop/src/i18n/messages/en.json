@@ -14,7 +14,28 @@
     "pay": "Pay",
     "total": "Total",
     "receipt": "Receipt",
+    "search": "Search products",
+    "searchPlaceholder": "Search by barcode/SKU/name (F2)",
+    "pickVariant": "Pick size/color",
+    "noResults": "No results",
+    "cash": "Cash",
+    "card": "Card",
+    "partial": "Partial",
+    "amount": "Amount",
+    "cardLast4": "Card last 4",
+    "authCode": "Auth code",
+    "minDownPayment": "Min down payment 10%",
+    "downPayment": "Down payment",
+    "reservationNote": "Reservation note",
+    "size": "Size",
+    "color": "Color",
+    "subtotal": "Subtotal",
     "offline": "You are offline. Actions will sync when online."
+  },
+  "common": {
+    "confirm": "Confirm",
+    "close": "Close",
+    "remove": "Remove"
   },
   "offline": {
     "fallback": {

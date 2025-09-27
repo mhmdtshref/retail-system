@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
+import products from '@/data/products.json';
+import availability from '@/data/availability.json';
 
 export async function GET() {
-  // Return minimal catalogs for offline bootstrapping (stubbed)
   return NextResponse.json({
-    products: [
-      { sku: 'SKU-001', productCode: 'TSHIRT-001', name_ar: 'تيشيرت', name_en: 'T-Shirt', retailPrice: 50, version: 1 },
-    ],
-    availability: [
-      { sku: 'SKU-001', onHand: 100, reserved: 0, available: 100, asOf: Date.now() }
-    ],
-    topSkus: ['SKU-001'],
+    products,
+    availability,
+    topSkus: (products as any[]).slice(0, 8).map((p) => p.sku),
     translations: { ar: {}, en: {} }
   });
 }

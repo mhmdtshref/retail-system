@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import availability from '@/data/availability.json';
 
-export async function POST(req: Request) {
-  const { skus } = await req.json();
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const skusParams = url.searchParams.getAll('skus[]');
+  const skusSingle = url.searchParams.getAll('skus');
+  const skus = (skusParams.length ? skusParams : skusSingle).filter(Boolean);
   const now = Date.now();
   const map = new Map((availability as any[]).map((a) => [a.sku, a]));
   const out = (skus as string[]).map((sku) => {

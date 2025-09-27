@@ -1,0 +1,8 @@
+.receipt {
+  font-family: Tahoma, Arial, sans-serif;
+}
+@media print {
+  body { padding: 0; margin: 0; }
+  .receipt { width: 80mm; }
+}
+
