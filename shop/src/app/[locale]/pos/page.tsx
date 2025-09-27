@@ -1,12 +1,16 @@
 "use client";
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import { usePosStore } from '@/lib/store/posStore';
 
 type CartLine = { sku: string; name: string; qty: number; price: number };
 
 export default function POSPage() {
   const t = useTranslations();
-  const [lines, setLines] = useState<CartLine[]>([]);
+  const lines = usePosStore((s) => s.lines);
+  const addLineStore = usePosStore((s) => s.addLine);
+  const startSale = usePosStore((s) => s.startSale);
+  const addPayment = usePosStore((s) => s.addPayment);
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -26,10 +30,7 @@ export default function POSPage() {
   );
 
   function addDemo() {
-    setLines((prev) => [
-      ...prev,
-      { sku: 'SKU-001', name: 'تيشيرت', qty: 1, price: 50 },
-    ]);
+    addLineStore({ sku: 'SKU-001', name: 'تيشيرت', price: 50 });
   }
 
   return (
@@ -60,9 +61,10 @@ export default function POSPage() {
 
       <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
         <span className="font-semibold">{t('pos.total')}: {total.toFixed(2)}</span>
-        <button className="px-4 py-2 rounded bg-emerald-600 text-white">
-          {t('pos.pay')}
-        </button>
+        <button className="px-4 py-2 rounded bg-emerald-600 text-white" onClick={async () => {
+          await startSale();
+          await addPayment('cash', total);
+        }}>{t('pos.pay')}</button>
       </div>
     </main>
   );

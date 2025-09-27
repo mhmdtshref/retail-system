@@ -36,13 +36,13 @@ const paymentsQueue = new BackgroundSyncPlugin('paymentsQueue', { maxRetentionTi
 
 registerRoute(
   ({ url, request }) => request.method === 'POST' && /\/api\/sales/.test(url.pathname),
-  new StaleWhileRevalidate({ cacheName: 'post-sales', plugins: [salesQueue] }),
+  new (class extends StaleWhileRevalidate { })({ cacheName: 'post-sales', plugins: [salesQueue] }),
   'POST'
 );
 
 registerRoute(
   ({ url, request }) => request.method === 'POST' && /\/api\/payments/.test(url.pathname),
-  new StaleWhileRevalidate({ cacheName: 'post-payments', plugins: [paymentsQueue] }),
+  new (class extends StaleWhileRevalidate { })({ cacheName: 'post-payments', plugins: [paymentsQueue] }),
   'POST'
 );
 

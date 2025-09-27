@@ -7,10 +7,11 @@
     "build": "next build --turbopack && tsx scripts/build-sw.ts",
     "start": "next start",
     "lint": "eslint",
-    "pwa:analyze": "node -e \"const fs=require('fs');const m=fs.existsSync('public/sw.js');console.log('SW exists:',m);\""
+    "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
   },
   "dependencies": {
     "dexie": "^4.2.0",
+    "mongoose": "^8.18.2",
     "next": "15.5.4",
     "next-intl": "^4.3.9",
     "react": "19.1.0",
