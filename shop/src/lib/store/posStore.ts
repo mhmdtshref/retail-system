@@ -35,13 +35,13 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
 
   addLine: (line) =>
     set((s: any) => {
-      const existingIdx = s.lines.findIndex((l) => l.sku === line.sku);
+      const existingIdx = (s.lines as PosCartLine[]).findIndex((l: PosCartLine) => l.sku === line.sku);
       if (existingIdx >= 0) {
-        const copy = [...s.lines];
-        copy[existingIdx] = { ...copy[existingIdx], qty: copy[existingIdx].qty + (line.qty ?? 1) };
+        const copy: PosCartLine[] = [...(s.lines as PosCartLine[])];
+        copy[existingIdx] = { ...copy[existingIdx], qty: copy[existingIdx].qty + (line.qty ?? 1) } as PosCartLine;
         return { lines: copy, total: totalOf(copy) } as Partial<State> as State;
       }
-      const next = [...s.lines, { ...line, qty: line.qty ?? 1 } as PosCartLine];
+      const next: PosCartLine[] = [...(s.lines as PosCartLine[]), { ...line, qty: line.qty ?? 1 } as PosCartLine];
       return { lines: next, total: totalOf(next) } as Partial<State> as State;
     }),
 
@@ -56,7 +56,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const draft = {
       localSaleId,
       createdAt: Date.now(),
-      lines: s.lines.map((l) => ({ sku: l.sku, qty: l.qty, price: l.price })),
+      lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
       totals: { subtotal, tax: 0, grand, discountValue },
       discount: s.discount || undefined,
     };
@@ -92,15 +92,15 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   },
 
   updateQty: (sku, qty) => set((s: any) => {
-    const idx = s.lines.findIndex((l) => l.sku === sku);
+    const idx = (s.lines as PosCartLine[]).findIndex((l: PosCartLine) => l.sku === sku);
     if (idx < 0) return s;
-    const copy = [...s.lines];
-    copy[idx] = { ...copy[idx], qty };
+    const copy: PosCartLine[] = [...(s.lines as PosCartLine[])];
+    copy[idx] = { ...copy[idx], qty } as PosCartLine;
     return { lines: copy, total: totalOf(copy) } as Partial<State> as State;
   }),
 
   removeLine: (sku) => set((s: any) => {
-    const next = s.lines.filter((l) => l.sku !== sku);
+    const next: PosCartLine[] = (s.lines as PosCartLine[]).filter((l: PosCartLine) => l.sku !== sku);
     return { lines: next, total: totalOf(next) } as Partial<State> as State;
   }),
 
