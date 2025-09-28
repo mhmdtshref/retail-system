@@ -61,7 +61,7 @@ export class POSDexie extends Dexie {
   syncLog!: Table<SyncLog, string>; // key: key
 
   constructor() {
-    super('pos-local');
+    super('pos-db-v1');
     this.version(1).stores({
       products: 'sku, productCode, barcode',
       availabilitySnapshot: 'sku, asOf',

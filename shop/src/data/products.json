@@ -1,0 +1,58 @@
+[
+  {
+    "sku": "TSHIRT-001-BLK-M",
+    "productCode": "TSHIRT-001",
+    "name_ar": "تيشيرت قطن",
+    "name_en": "Cotton T-Shirt",
+    "size": "M",
+    "color": "أسود",
+    "retailPrice": 50,
+    "barcode": "123456789001",
+    "version": 1
+  },
+  {
+    "sku": "TSHIRT-001-BLK-L",
+    "productCode": "TSHIRT-001",
+    "name_ar": "تيشيرت قطن",
+    "name_en": "Cotton T-Shirt",
+    "size": "L",
+    "color": "أسود",
+    "retailPrice": 50,
+    "barcode": "123456789002",
+    "version": 1
+  },
+  {
+    "sku": "TSHIRT-001-WHT-M",
+    "productCode": "TSHIRT-001",
+    "name_ar": "تيشيرت قطن",
+    "name_en": "Cotton T-Shirt",
+    "size": "M",
+    "color": "أبيض",
+    "retailPrice": 50,
+    "barcode": "123456789003",
+    "version": 1
+  },
+  {
+    "sku": "PANTS-010-NVY-32",
+    "productCode": "PANTS-010",
+    "name_ar": "بنطال كلاسيك",
+    "name_en": "Classic Pants",
+    "size": "32",
+    "color": "كحلي",
+    "retailPrice": 120,
+    "barcode": "123456789101",
+    "version": 1
+  },
+  {
+    "sku": "DRESS-200-RED-S",
+    "productCode": "DRESS-200",
+    "name_ar": "فستان صيفي",
+    "name_en": "Summer Dress",
+    "size": "S",
+    "color": "أحمر",
+    "retailPrice": 180,
+    "barcode": "123456789201",
+    "version": 1
+  }
+]
+

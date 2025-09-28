@@ -7,6 +7,7 @@
     "build": "next build --turbopack && tsx scripts/build-sw.ts",
     "start": "next start",
     "lint": "eslint",
+    "test": "node ./tests/smoke.js",
     "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
   },
   "dependencies": {
