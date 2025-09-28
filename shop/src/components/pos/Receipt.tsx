@@ -21,7 +21,7 @@ export function Receipt({ data }: { data: ReceiptData }) {
           <div key={p.seq} className="flex items-center justify-between text-xs">
             <div>
               {p.method === 'cash' && 'دفع نقدًا'}
-              {p.method === 'card' && `دفع بالبطاقة ${p.meta?.cardLast4 ? `(**** ${p.meta.cardLast4})` : ''}${p.meta?.authCode ? ` - ${p.meta.authCode}` : ''}`}
+              {p.method === 'card' && `طريقة الدفع: بطاقة`}
               {p.method === 'partial' && `دفعة مقدّمة (${p.meta?.reservationNote || 'حجز'})`}
             </div>
             <div>{p.amount.toFixed(2)}</div>
@@ -29,9 +29,23 @@ export function Receipt({ data }: { data: ReceiptData }) {
         ))}
       </div>
       <hr className="my-2" />
-      <div className="flex items-center justify-between">
-        <div className="font-medium">الإجمالي</div>
-        <div className="font-medium">{data.totals.grand.toFixed(2)}</div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <div>الإجمالي قبل الخصم</div>
+          <div>{data.totals.subtotal.toFixed(2)}</div>
+        </div>
+        {(data.totals.discountValue || 0) > 0 && (
+          <div className="flex items-center justify-between">
+            <div>
+              الخصم{data.discount?.type === 'percent' ? ` (%${data.discount.value})` : ''}
+            </div>
+            <div>-{(data.totals.discountValue || 0).toFixed(2)}</div>
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <div className="font-medium">الإجمالي النهائي</div>
+          <div className="font-medium">{data.totals.grand.toFixed(2)}</div>
+        </div>
       </div>
       {data.offlinePending && (
         <div className="mt-2 text-amber-700">سيتم مزامنة الفاتورة عند توفر الاتصال</div>

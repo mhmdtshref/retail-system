@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 type Props = {
   total: number;
   onConfirmCash: (amount: number, meta?: { receivedCash?: number }) => void;
-  onConfirmCard: (amount: number, meta: { cardLast4: string; authCode: string }) => void;
+  onConfirmCard: (amount: number) => void;
   onConfirmPartial: (amount: number, meta: { reservationNote?: string }) => void;
   onClose: () => void;
 };
@@ -15,14 +15,12 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
   const [tab, setTab] = useState<'cash'|'card'|'partial'>('cash');
   const [cash, setCash] = useState(total);
   const [cardAmount, setCardAmount] = useState(total);
-  const [last4, setLast4] = useState('');
-  const [auth, setAuth] = useState('');
   const [partial, setPartial] = useState(Math.max(1, Math.round(total * 0.1)));
   const [note, setNote] = useState('');
   const minPartial = Math.ceil(total * 0.1);
 
   const validCash = cash >= total && cash > 0;
-  const validCard = cardAmount > 0 && last4.length === 4 && auth.length >= 4;
+  const validCard = cardAmount > 0;
   const validPartial = partial >= minPartial;
 
   return (
@@ -48,9 +46,7 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
         {tab === 'card' && (
           <div className="space-y-3">
             <input type="number" value={cardAmount} onChange={(e)=> setCardAmount(Number(e.target.value))} className="w-full border rounded px-3 py-2" dir="ltr" placeholder={t('pos.amount') || 'المبلغ'} />
-            <input value={last4} onChange={(e)=> setLast4(e.target.value.slice(0,4))} className="w-full border rounded px-3 py-2" dir="ltr" placeholder={t('pos.cardLast4') || 'آخر 4 أرقام'} />
-            <input value={auth} onChange={(e)=> setAuth(e.target.value)} className="w-full border rounded px-3 py-2" dir="ltr" placeholder={t('pos.authCode') || 'رمز التفويض'} />
-            <button disabled={!validCard} className={`px-4 py-2 rounded ${validCard?'bg-emerald-600 text-white':'bg-gray-200 text-gray-500'}`} onClick={()=> onConfirmCard(cardAmount, { cardLast4: last4, authCode: auth })}>
+            <button disabled={!validCard} className={`px-4 py-2 rounded ${validCard?'bg-emerald-600 text-white':'bg-gray-200 text-gray-500'}`} onClick={()=> onConfirmCard(cardAmount)}>
               {t('common.confirm') || 'تأكيد'}
             </button>
           </div>

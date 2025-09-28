@@ -30,7 +30,16 @@
     "size": "المقاس",
     "color": "اللون",
     "subtotal": "الإجمالي الفرعي",
-    "offline": "أنت غير متصل. سيتم مزامنة العمليات عند توفر الإنترنت."
+    "offline": "أنت غير متصل. سيتم مزامنة العمليات عند توفر الإنترنت.",
+    "discount": "الخصم",
+    "discountType": "نوع الخصم",
+    "percent": "نسبة %",
+    "fixed": "قيمة ثابتة",
+    "preDiscountTotal": "الإجمالي قبل الخصم",
+    "discountValue": "قيمة الخصم",
+    "grandTotal": "الإجمالي النهائي",
+    "percentBetweenZeroAndHundred": "النسبة يجب أن تكون بين 0 و 100.",
+    "discountExceedsSubtotal": "لا يمكن أن يتجاوز الخصم قيمة الإجمالي."
   },
   "common": {
     "confirm": "تأكيد",
