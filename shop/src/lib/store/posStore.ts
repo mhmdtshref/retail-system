@@ -1,7 +1,7 @@
 "use client";
 import { create } from 'zustand';
 import { posDb } from '@/lib/db/posDexie';
-import { PosCartLine, PosPayment, ReceiptData } from '@/lib/pos/types';
+import { Discount, PosCartLine, PosPayment, ReceiptData } from '@/lib/pos/types';
 import { makePaymentKey, makeSaleKey, uuid } from '@/lib/pos/idempotency';
 
 type State = {
@@ -11,6 +11,7 @@ type State = {
   localSaleId: string | null;
   total: number;
   lastReceipt: ReceiptData | null;
+  discount: Discount | null;
 };
 
 type Actions = {
@@ -20,6 +21,7 @@ type Actions = {
   clear: () => void;
   startSale: () => Promise<string>; // localSaleId
   addPayment: (method: PosPayment['method'], amount: number, meta?: PosPayment['meta']) => Promise<void>;
+  setDiscount: (d: Discount | null) => void;
 };
 
 export const usePosStore = create<State & Actions>((set: any, get: any) => ({
@@ -29,6 +31,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   localSaleId: null,
   total: 0,
   lastReceipt: null,
+  discount: null,
 
   addLine: (line) =>
     set((s: any) => {
@@ -42,16 +45,20 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       return { lines: next, total: totalOf(next) } as Partial<State> as State;
     }),
 
-  clear: () => set({ lines: [], payments: [], localSaleId: null, total: 0 }),
+  clear: () => set({ lines: [], payments: [], localSaleId: null, total: 0, discount: null }),
 
   startSale: async () => {
     const s = get();
     const localSaleId = uuid();
+    const subtotal = s.total;
+    const discountValue = calcDiscountValue(subtotal, s.discount);
+    const grand = Math.max(0, subtotal - discountValue);
     const draft = {
       localSaleId,
       createdAt: Date.now(),
       lines: s.lines.map((l) => ({ sku: l.sku, qty: l.qty, price: l.price })),
-      totals: { subtotal: s.total, tax: 0, grand: s.total },
+      totals: { subtotal, tax: 0, grand, discountValue },
+      discount: s.discount || undefined,
     };
     await posDb.draftSales.put(draft);
     const saleKey = makeSaleKey(s.storeId, localSaleId);
@@ -69,15 +76,19 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const payment: PosPayment = { method, amount, seq, meta };
     await posDb.outbox.add({ id: uuid(), type: 'PAYMENT_ADD', payload: { localSaleId, ...payment }, idempotencyKey: makePaymentKey(saleKey, seq), createdAt: Date.now(), retryCount: 0 });
     const payments = [...s.payments, payment];
+    const subtotal = s.total;
+    const discountValue = calcDiscountValue(subtotal, s.discount);
+    const grand = Math.max(0, subtotal - discountValue);
     const receipt: ReceiptData = {
       localSaleId,
       createdAt: Date.now(),
       lines: s.lines,
       payments,
-      totals: { subtotal: s.total, tax: 0, grand: s.total },
+      totals: { subtotal, tax: 0, grand, discountValue },
+      discount: s.discount || undefined,
       offlinePending: !navigator.onLine,
     };
-    set({ payments, lastReceipt: receipt, lines: [], total: 0, localSaleId: null });
+    set({ payments, lastReceipt: receipt, lines: [], total: 0, localSaleId: null, discount: null });
   },
 
   updateQty: (sku, qty) => set((s: any) => {
@@ -92,9 +103,23 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const next = s.lines.filter((l) => l.sku !== sku);
     return { lines: next, total: totalOf(next) } as Partial<State> as State;
   }),
+
+  setDiscount: (d) => set({ discount: d }),
 }));
 
 function totalOf(lines: PosCartLine[]): number {
   return lines.reduce((acc, l) => acc + l.qty * l.price, 0);
+}
+
+function calcDiscountValue(subtotal: number, discount: Discount | null): number {
+  if (!discount) return 0;
+  if (discount.type === 'percent') {
+    const percent = Math.min(100, Math.max(0, discount.value));
+    return (subtotal * percent) / 100;
+  }
+  if (discount.type === 'fixed') {
+    return Math.min(Math.max(0, discount.value), subtotal);
+  }
+  return 0;
 }
 

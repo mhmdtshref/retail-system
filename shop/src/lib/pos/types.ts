@@ -7,6 +7,16 @@ export type PosCartLine = {
   color?: string;
 };
 
+export type Discount =
+  | { type: 'percent'; value: number }
+  | { type: 'fixed'; value: number };
+
+export type CartTotals = {
+  subtotal: number;
+  discountValue: number;
+  grandTotal: number;
+};
+
 export type PosPayment = {
   method: 'cash' | 'card' | 'partial';
   amount: number;
@@ -29,7 +39,8 @@ export type ReceiptData = {
   createdAt: number;
   lines: PosCartLine[];
   payments: PosPayment[];
-  totals: { subtotal: number; tax: number; grand: number };
+  totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
+  discount?: Discount;
   offlinePending: boolean;
 };
 

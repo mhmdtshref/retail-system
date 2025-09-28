@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import type { Discount } from '@/lib/pos/types';
 
 export type ProductLite = {
   sku: string;
@@ -34,7 +35,8 @@ export type DraftSale = {
   createdAt: number;
   lines: Array<{ sku: string; qty: number; price: number }>; 
   customerLocalId?: string;
-  totals: { subtotal: number; tax: number; grand: number };
+  totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
+  discount?: Discount;
 };
 
 export type OutboxItem = {
