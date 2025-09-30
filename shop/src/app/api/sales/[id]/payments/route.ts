@@ -8,7 +8,7 @@ const PaymentSchema = z.object({
   seq: z.number().int().nonnegative()
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   if (mockDb.has(idempotencyKey)) {
@@ -19,7 +19,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const parsed = PaymentSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const result = mockDb.addPayment({ saleId: params.id, ...parsed.data });
+  const { id } = await context.params;
+  const result = mockDb.addPayment({ saleId: id, ...parsed.data });
   mockDb.set(idempotencyKey, result);
   return NextResponse.json(result);
 }

@@ -10,11 +10,12 @@ const BodySchema = z.object({
   }))
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const body = await req.json();
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const po = mockDb.getPO(params.id);
+  const { id } = await context.params;
+  const po = mockDb.getPO(id);
   if (!po) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   let anyReceived = false;

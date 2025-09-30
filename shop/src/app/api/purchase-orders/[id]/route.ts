@@ -16,17 +16,19 @@ const PatchSchema = z.object({
   status: z.enum(['draft','partial','received','cancelled']).optional()
 });
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const po = mockDb.getPO(params.id);
+export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const po = mockDb.getPO(id);
   if (!po) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ purchaseOrder: po });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   const body = await req.json();
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const po = mockDb.updatePO(params.id, parsed.data as any);
+  const { id } = await context.params;
+  const po = mockDb.updatePO(id, parsed.data as any);
   if (!po) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

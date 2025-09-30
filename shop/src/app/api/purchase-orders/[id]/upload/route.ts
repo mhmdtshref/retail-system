@@ -4,7 +4,7 @@ import { parseRawText, PARSER_VERSION } from '@/lib/ocr/parser';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const contentType = req.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
     return NextResponse.json({ error: 'Expected multipart/form-data' }, { status: 400 });
@@ -24,9 +24,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const text = await file.text().catch(() => '');
   const rawText = text && text.trim().length > 0 ? text : '';
 
-  mockDb.addPOAttachment(params.id, fakeUrl);
+  const { id } = await context.params;
+  mockDb.addPOAttachment(id, fakeUrl);
   if (rawText) {
-    mockDb.setPOOcr(params.id, rawText, PARSER_VERSION);
+    mockDb.setPOOcr(id, rawText, PARSER_VERSION);
   }
   const parsed = rawText ? parseRawText(rawText) : [];
   return NextResponse.json({ fileUrl: fakeUrl, rawText, parsed });
