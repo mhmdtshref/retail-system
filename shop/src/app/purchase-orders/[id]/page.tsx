@@ -1,15 +1,15 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 type ParsedLine = { code?: string; name?: string; size?: string; color?: string; quantity?: number; unitCost?: number; total?: number; raw?: string };
 
-export default function POPage({ params }: { params: { id: string } }) {
+export default function POPage({ params }: { params: Promise<{ id: string }> }) {
   const [po, setPo] = useState<any | null>(null);
   const [tab, setTab] = useState<'attachments'|'ocr'|'lines'>('attachments');
   const [review, setReview] = useState<Array<{ sku?: string; size?: string; color?: string; quantity: number; unitCost: number }>>([]);
   const [rawText, setRawText] = useState('');
-  const id = params.id;
+  const { id } = use(params);
 
   async function load() {
     const res = await fetch(`/api/purchase-orders/${id}`, { cache: 'no-store' });

@@ -26,7 +26,7 @@ export default async function PurchaseOrdersPage({ searchParams }: { searchParam
     <div className="p-4" dir="rtl">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">أوامر الشراء</h1>
-        <Link href="new" className="px-3 py-2 rounded bg-emerald-600 text-white">جديد</Link>
+        <Link href="/purchase-orders/new" className="px-3 py-2 rounded bg-emerald-600 text-white">جديد</Link>
       </div>
       <div className="overflow-auto border rounded">
         <table className="min-w-full text-right">
