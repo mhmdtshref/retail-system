@@ -1,10 +1,10 @@
-const http = require('http');
+import http from 'http';
 
 function get(path) {
   return new Promise((resolve, reject) => {
     const req = http.request({ hostname: 'localhost', port: 3000, path, method: 'GET' }, (res) => {
       let data = '';
-      res.on('data', (c) => (data += c));
+      res.on('data', (c) => (data += String(c)));
       res.on('end', () => resolve({ status: res.statusCode, data }));
     });
     req.on('error', reject);
