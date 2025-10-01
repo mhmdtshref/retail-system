@@ -8,8 +8,13 @@ async function processItem(item: OutboxItem) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
       body: JSON.stringify({
+        mode: draft.mode || 'cash',
         lines: draft.lines,
-        total: draft.totals.grand
+        total: draft.totals.grand,
+        downPayment: draft.downPayment,
+        schedule: draft.schedule,
+        expiresAt: draft.expiresAt,
+        minDownPercent: draft.minDownPercent
       })
     });
     if (!res.ok) throw new Error('SALE_CREATE failed');
@@ -20,18 +25,35 @@ async function processItem(item: OutboxItem) {
   }
   if (item.type === 'PAYMENT_ADD') {
     const p = item.payload as any;
-    const map = await posDb.syncLog.get({ key: `sale:${p.localSaleId}` } as any);
-    if (!map) {
-      // Wait until sale synced
-      return;
+    let saleId = p.saleId as string | undefined;
+    if (!saleId) {
+      const map = await posDb.syncLog.get({ key: `sale:${p.localSaleId}` } as any);
+      if (!map) {
+        // Wait until sale synced
+        return;
+      }
+      saleId = map.value;
     }
-    const saleId = map.value;
     const res = await fetch(`/api/sales/${saleId}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
       body: JSON.stringify({ method: p.method, amount: p.amount, seq: p.seq })
     });
     if (!res.ok) throw new Error('PAYMENT_ADD failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'LAYAWAY_CANCEL') {
+    const p = item.payload as any;
+    const map = p.saleId ? { value: p.saleId } : await posDb.syncLog.get({ key: `sale:${p.localSaleId}` } as any);
+    if (!map) return;
+    const saleId = map.value;
+    const res = await fetch(`/api/sales/${saleId}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({})
+    });
+    if (!res.ok) throw new Error('RESERVATION_RELEASE failed');
     await posDb.outbox.delete(item.id);
     return;
   }

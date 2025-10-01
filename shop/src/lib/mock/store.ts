@@ -1,5 +1,18 @@
-type Sale = { _id: string; lines: { sku: string; qty: number; price: number }[]; total: number; paid: number; status: 'OPEN'|'PAID'|'PARTIAL' };
-type Payment = { saleId: string; method: 'cash'|'card'|'partial'; amount: number; seq: number };
+type Installment = { seq: number; dueDate: string; amount: number; paidAt?: string };
+type Reservation = { sku: string; qty: number; heldAt: string; expiresAt?: string };
+type PaymentPlan = { mode: 'partial'; downPayment: number; remaining: number; minDownPercent: number; schedule?: Installment[]; expiresAt?: string };
+type Sale = {
+  _id: string;
+  lines: { sku: string; qty: number; price: number }[];
+  total: number;
+  paid: number;
+  status: 'open'|'partially_paid'|'paid'|'cancelled';
+  paymentPlan?: PaymentPlan;
+  reservations?: Reservation[];
+  customerId?: string;
+  createdAt?: number;
+};
+type Payment = { saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'; amount: number; seq: number };
 
 export type Supplier = {
   _id: string;
@@ -81,16 +94,95 @@ export const mockDb = {
   },
   createSale(lines: Sale['lines'], total: number) {
     const id = uuid();
-    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'OPEN' };
+    const now = Date.now();
+    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'open', createdAt: now };
     sales.set(id, sale);
+    return sale;
+  },
+  createPartialSale(input: { lines: Sale['lines']; total: number; downPayment: number; minDownPercent?: number; schedule?: Installment[]; expiresAt?: string; customerId?: string }) {
+    const id = uuid();
+    const now = Date.now();
+    const minPct = input.minDownPercent ?? 10;
+    const minAmount = Math.ceil((input.total * minPct) / 100);
+    if (input.downPayment < minAmount) {
+      throw new Error('Down payment below minimum');
+    }
+    const reservations: Reservation[] = input.lines.map((l) => ({ sku: l.sku, qty: l.qty, heldAt: new Date(now).toISOString(), expiresAt: input.expiresAt }));
+    // movements: reservation_hold (positive quantity reserved)
+    for (const r of reservations) {
+      movements.push({ _id: uuid(), sku: r.sku, type: 'reservation_hold', quantity: r.qty, refType: 'Reservation', refId: id, occurredAt: now });
+    }
+    const remaining = Math.max(0, input.total - input.downPayment);
+    const sale: Sale = {
+      _id: id,
+      lines: input.lines,
+      total: input.total,
+      paid: input.downPayment,
+      status: remaining > 0 ? 'partially_paid' : 'paid',
+      paymentPlan: { mode: 'partial', downPayment: input.downPayment, remaining, minDownPercent: minPct, schedule: input.schedule || [], expiresAt: input.expiresAt },
+      reservations,
+      customerId: input.customerId,
+      createdAt: now
+    };
+    sales.set(id, sale);
+    if (remaining === 0) {
+      // finalize immediately: convert holds to sale_out and clear reservations
+      for (const r of reservations) {
+        movements.push({ _id: uuid(), sku: r.sku, type: 'sale_out', quantity: r.qty, refType: 'Sale', refId: id, occurredAt: now });
+        // release reservation implicitly by consuming; keep audit by leaving reservation entries
+      }
+    }
     return sale;
   },
   addPayment(p: Payment) {
     const s = sales.get(p.saleId);
     if (!s) throw new Error('Sale not found');
     s.paid += p.amount;
-    s.status = s.paid >= s.total ? 'PAID' : 'PARTIAL';
-    return { ok: true, paid: s.paid, status: s.status };
+    const remainingBefore = s.paymentPlan?.remaining ?? Math.max(0, s.total - (s.paymentPlan?.downPayment ?? 0));
+    const remainingAfter = Math.max(0, (s.total - s.paid));
+    if (s.paymentPlan) {
+      s.paymentPlan.remaining = remainingAfter;
+      // mark earliest unpaid installment as paid
+      const inst = (s.paymentPlan.schedule || []).find((i) => !i.paidAt);
+      if (inst) inst.paidAt = new Date().toISOString();
+    }
+    if (s.paid >= s.total) {
+      s.status = 'paid';
+      // convert holds into sale_out if any
+      if (s.reservations && s.reservations.length) {
+        for (const r of s.reservations) {
+          movements.push({ _id: uuid(), sku: r.sku, type: 'sale_out', quantity: r.qty, refType: 'Sale', refId: s._id, occurredAt: Date.now() });
+        }
+      }
+    } else {
+      s.status = 'partially_paid';
+    }
+    return { ok: true, paid: s.paid, status: s.status, remaining: remainingAfter, remainingBefore };
+  },
+  cancelLayaway(id: string) {
+    const s = sales.get(id);
+    if (!s) throw new Error('Sale not found');
+    if (s.status === 'paid') return { ok: false, error: 'Already paid' } as const;
+    const now = Date.now();
+    if (s.reservations) {
+      for (const r of s.reservations) {
+        movements.push({ _id: uuid(), sku: r.sku, type: 'reservation_release', quantity: r.qty, refId: id, refType: 'Reservation', occurredAt: now });
+      }
+    }
+    s.status = 'cancelled';
+    return { ok: true } as const;
+  },
+  getSale(id: string) {
+    return sales.get(id) || null;
+  },
+  listLayaway(filter?: { status?: Sale['status']; customerId?: string; dateFrom?: number; dateTo?: number }) {
+    let arr = Array.from(sales.values());
+    arr = arr.filter((s) => !!s.paymentPlan && (s.status === 'partially_paid' || s.status === 'paid' || s.status === 'cancelled'));
+    if (filter?.status) arr = arr.filter((s) => s.status === filter.status);
+    if (filter?.customerId) arr = arr.filter((s) => s.customerId === filter.customerId);
+    if (filter?.dateFrom) arr = arr.filter((s) => (s.createdAt || 0) >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((s) => (s.createdAt || 0) <= filter.dateTo!);
+    return arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
   // Suppliers
   listSuppliers() {

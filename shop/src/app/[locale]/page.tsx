@@ -13,6 +13,7 @@ export default function Home() {
         <Link className="underline" href={`/${locale}/products`}>{t('nav.products')}</Link>
         <Link className="underline" href={`/${locale}/customers`}>{t('nav.customers')}</Link>
         <Link className="underline" href={`/${locale}/sales`}>{t('nav.sales')}</Link>
+        <Link className="underline" href={`/${locale}/sales/layaway`}>{t('layaway.title') || 'تقسيط/الحجوزات'}</Link>
         <Link className="underline" href={`/${locale}/settings`}>{t('nav.settings')}</Link>
       </nav>
     </main>
