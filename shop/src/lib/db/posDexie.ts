@@ -37,11 +37,16 @@ export type DraftSale = {
   customerLocalId?: string;
   totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
   discount?: Discount;
+  mode?: 'cash'|'card'|'partial';
+  downPayment?: number;
+  schedule?: Array<{ seq: number; dueDate: string; amount: number }>;
+  expiresAt?: string;
+  minDownPercent?: number;
 };
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'PARTIAL_PLAN' | 'RESERVATION_RELEASE';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;

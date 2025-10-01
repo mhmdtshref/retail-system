@@ -14,6 +14,7 @@ export default function POSPage() {
   const lines = usePosStore((s: any) => s.lines);
   const addLineStore = usePosStore((s: any) => s.addLine);
   const startSale = usePosStore((s: any) => s.startSale);
+  const startPartialSale = usePosStore((s: any) => s.startPartialSale);
   const addPayment = usePosStore((s: any) => s.addPayment);
   const lastReceipt = usePosStore((s: any) => s.lastReceipt);
   const [offline, setOffline] = useState(false);
@@ -117,7 +118,7 @@ export default function POSPage() {
           onClose={() => setShowPay(false)}
           onConfirmCash={async (amount, meta) => { await startSale(); await addPayment('cash', amount, meta); setShowPay(false); }}
           onConfirmCard={async (amount) => { await startSale(); await addPayment('card', amount, {} as any); setShowPay(false); }}
-          onConfirmPartial={async (amount, meta) => { await startSale(); await addPayment('partial', amount, meta); setShowPay(false); }}
+          onConfirmPartial={async (amount, meta) => { await startPartialSale(amount, { schedule: meta.plan?.schedule, minDownPercent: 10, note: meta.reservationNote }); setShowPay(false); }}
         />
       )}
 

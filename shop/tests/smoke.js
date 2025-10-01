@@ -17,6 +17,9 @@ function get(path) {
     const res = await get('/api/pos/bootstrap');
     if (res.status !== 200) throw new Error('bootstrap failed');
     console.log('bootstrap ok');
+    const res2 = await get('/api/sales/layaway');
+    if (res2.status !== 200) throw new Error('layaway list failed');
+    console.log('layaway list ok');
     process.exit(0);
   } catch (e) {
     console.error(e);

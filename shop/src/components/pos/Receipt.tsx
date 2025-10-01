@@ -22,7 +22,9 @@ export function Receipt({ data }: { data: ReceiptData }) {
             <div>
               {p.method === 'cash' && 'دفع نقدًا'}
               {p.method === 'card' && `طريقة الدفع: بطاقة`}
-              {p.method === 'partial' && `دفعة مقدّمة (${p.meta?.reservationNote || 'حجز'})`}
+              {p.method === 'transfer' && `حوالة بنكية`}
+              {p.method === 'cod_remit' && `سداد وكاش عند التسليم`}
+              {p.meta?.reservationNote ? ` (${p.meta?.reservationNote})` : ''}
             </div>
             <div>{p.amount.toFixed(2)}</div>
           </div>
@@ -47,6 +49,33 @@ export function Receipt({ data }: { data: ReceiptData }) {
           <div className="font-medium">{data.totals.grand.toFixed(2)}</div>
         </div>
       </div>
+      {data.paymentPlan?.mode === 'partial' && (
+        <div className="mt-2">
+          <div className="font-medium">تفاصيل التقسيط</div>
+          <div className="flex items-center justify-between text-xs">
+            <div>الدفعة المقدمة</div>
+            <div>{data.paymentPlan.downPayment.toFixed(2)}</div>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <div>المتبقي</div>
+            <div>{data.paymentPlan.remaining.toFixed(2)}</div>
+          </div>
+          {data.paymentPlan.expiresAt && (
+            <div className="text-xs">البضاعة محجوزة حتى {new Date(data.paymentPlan.expiresAt).toLocaleDateString()}</div>
+          )}
+          {data.paymentPlan.schedule && data.paymentPlan.schedule.length > 0 && (
+            <div className="mt-1 border rounded p-1 text-[11px]">
+              {data.paymentPlan.schedule.map((s) => (
+                <div key={s.seq} className="flex justify-between">
+                  <div>#{s.seq}</div>
+                  <div dir="ltr">{new Date(s.dueDate).toLocaleDateString()}</div>
+                  <div>{s.amount.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {data.offlinePending && (
         <div className="mt-2 text-amber-700">سيتم مزامنة الفاتورة عند توفر الاتصال</div>
       )}

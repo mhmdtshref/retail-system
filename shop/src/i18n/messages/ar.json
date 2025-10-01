@@ -28,6 +28,11 @@
     "minDownPayment": "الدفعة الأدنى 10%",
     "downPayment": "الدفعة المقدمة",
     "reservationNote": "ملاحظة الحجز",
+    "installmentsCount": "عدد الأقساط",
+    "intervalDays": "فاصل الأيام",
+    "generatePlan": "توليد خطة",
+    "installments": "أقساط",
+    "noPlan": "بدون خطة",
     "size": "المقاس",
     "color": "اللون",
     "subtotal": "الإجمالي الفرعي",
@@ -41,6 +46,17 @@
     "grandTotal": "الإجمالي النهائي",
     "percentBetweenZeroAndHundred": "النسبة يجب أن تكون بين 0 و 100.",
     "discountExceedsSubtotal": "لا يمكن أن يتجاوز الخصم قيمة الإجمالي."
+  },
+  "layaway": {
+    "title": "تقسيط/الحجوزات",
+    "customer": "العميل",
+    "remaining": "المتبقي",
+    "nextDue": "الاستحقاق التالي",
+    "overdueDays": "العمر",
+    "status": "الحالة",
+    "collect": "تحصيل دفعة",
+    "cancel": "إلغاء الحجز",
+    "over30": "أكثر من 30"
   },
   "common": {
     "confirm": "تأكيد",

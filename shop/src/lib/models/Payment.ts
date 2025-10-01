@@ -2,9 +2,10 @@ import { Schema, model, models, Types } from 'mongoose';
 
 const PaymentSchema = new Schema({
   saleId: { type: Types.ObjectId, ref: 'Sale', index: true },
-  method: { type: String, enum: ['cash', 'card', 'partial'], required: true },
+  method: { type: String, enum: ['cash', 'card', 'transfer', 'cod_remit'], required: true },
   amount: { type: Number, required: true },
   seq: { type: Number, required: true },
+  receivedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 export const Payment = models.Payment || model('Payment', PaymentSchema);

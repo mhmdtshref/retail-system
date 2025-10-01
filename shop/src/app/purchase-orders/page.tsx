@@ -17,7 +17,7 @@ export default async function PurchaseOrdersPage({ searchParams }: { searchParam
   const sp = await searchParams;
   const status = typeof sp.status === 'string' ? sp.status : undefined;
   const search = typeof sp.q === 'string' ? sp.q : undefined;
-  const h = headers();
+  const h = await headers();
   const host = h.get('host') || 'localhost:3000';
   const proto = host.includes('localhost') || host.startsWith('127.') ? 'http' : 'https';
   const baseUrl = `${proto}://${host}`;

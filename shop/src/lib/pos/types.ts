@@ -18,7 +18,7 @@ export type CartTotals = {
 };
 
 export type PosPayment = {
-  method: 'cash' | 'card' | 'partial';
+  method: 'cash' | 'card' | 'transfer' | 'cod_remit';
   amount: number;
   seq: number;
   meta?: {
@@ -42,5 +42,13 @@ export type ReceiptData = {
   totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
   discount?: Discount;
   offlinePending: boolean;
+  paymentPlan?: {
+    mode: 'partial';
+    downPayment: number;
+    remaining: number;
+    minDownPercent: number;
+    schedule?: Array<{ seq: number; dueDate: string; amount: number; paidAt?: string }>;
+    expiresAt?: string;
+  };
 };
 

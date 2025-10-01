@@ -20,6 +20,7 @@ type Actions = {
   removeLine: (sku: string) => void;
   clear: () => void;
   startSale: () => Promise<string>; // localSaleId
+  startPartialSale: (downPayment: number, plan?: { schedule?: Array<{ seq: number; dueDate: string; amount: number }>; expiresAt?: string; minDownPercent?: number; note?: string }) => Promise<string>;
   addPayment: (method: PosPayment['method'], amount: number, meta?: PosPayment['meta']) => Promise<void>;
   setDiscount: (d: Discount | null) => void;
 };
@@ -59,11 +60,48 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
       totals: { subtotal, tax: 0, grand, discountValue },
       discount: s.discount || undefined,
+      mode: 'cash' as const,
     };
     await posDb.draftSales.put(draft);
     const saleKey = makeSaleKey(s.storeId, localSaleId);
     await posDb.outbox.add({ id: uuid(), type: 'SALE_CREATE', payload: draft, idempotencyKey: saleKey, createdAt: Date.now(), retryCount: 0 });
     set({ localSaleId });
+    return localSaleId;
+  },
+
+  startPartialSale: async (downPayment, plan) => {
+    const s = get();
+    const localSaleId = uuid();
+    const subtotal = s.total;
+    const discountValue = calcDiscountValue(subtotal, s.discount);
+    const grand = Math.max(0, subtotal - discountValue);
+    const draft = {
+      localSaleId,
+      createdAt: Date.now(),
+      lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
+      totals: { subtotal, tax: 0, grand, discountValue },
+      discount: s.discount || undefined,
+      mode: 'partial' as const,
+      downPayment,
+      schedule: plan?.schedule,
+      expiresAt: plan?.expiresAt,
+      minDownPercent: plan?.minDownPercent ?? 10,
+    };
+    await posDb.draftSales.put(draft);
+    const saleKey = makeSaleKey(s.storeId, localSaleId);
+    await posDb.outbox.add({ id: uuid(), type: 'SALE_CREATE', payload: draft, idempotencyKey: saleKey, createdAt: Date.now(), retryCount: 0 });
+    const remaining = Math.max(0, grand - downPayment);
+    const receipt: ReceiptData = {
+      localSaleId,
+      createdAt: Date.now(),
+      lines: s.lines,
+      payments: [{ method: 'cash', amount: downPayment, seq: 1, meta: { reservationNote: plan?.note } }],
+      totals: { subtotal, tax: 0, grand, discountValue },
+      discount: s.discount || undefined,
+      offlinePending: !navigator.onLine,
+      paymentPlan: { mode: 'partial', downPayment, remaining, minDownPercent: draft.minDownPercent!, schedule: plan?.schedule, expiresAt: plan?.expiresAt }
+    };
+    set({ localSaleId: null, lastReceipt: receipt, lines: [], payments: [], total: 0, discount: null });
     return localSaleId;
   },
 
