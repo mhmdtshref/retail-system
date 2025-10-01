@@ -1,6 +1,14 @@
 type Installment = { seq: number; dueDate: string; amount: number; paidAt?: string };
 type Reservation = { sku: string; qty: number; heldAt: string; expiresAt?: string };
 type PaymentPlan = { mode: 'partial'; downPayment: number; remaining: number; minDownPercent: number; schedule?: Installment[]; expiresAt?: string };
+type Customer = {
+  _id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: { city?: string; street?: string; building?: string; notes?: string } | string;
+  createdAt: number;
+};
 type Sale = {
   _id: string;
   lines: { sku: string; qty: number; price: number }[];
@@ -10,9 +18,28 @@ type Sale = {
   paymentPlan?: PaymentPlan;
   reservations?: Reservation[];
   customerId?: string;
+  channel?: 'retail'|'online';
+  deliveryShipmentId?: string;
   createdAt?: number;
 };
-type Payment = { saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'; amount: number; seq: number };
+type Payment = { _id: string; saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'; amount: number; seq: number; status?: 'pending'|'confirmed'|'failed'; receivedAt?: number; externalRef?: string };
+type DeliveryShipment = {
+  _id: string;
+  saleId: string;
+  provider: string;
+  externalId: string;
+  labelUrl?: string;
+  policyUrl?: string;
+  status: 'created'|'in_transit'|'out_for_delivery'|'delivered'|'failed'|'returned';
+  toAddress?: { city?: string; street?: string; building?: string; notes?: string } | string;
+  items: Array<{ sku: string; qty: number; name?: string }>;
+  moneyStatus: 'pending'|'with_delivery_company'|'remitted_to_shop';
+  events: Array<{ ts: string; status: string; payload?: any }>;
+  lastCheckedAt?: string;
+  webhookSignatureSecret: string;
+  createdAt: number;
+  updatedAt: number;
+};
 
 export type Supplier = {
   _id: string;
@@ -57,6 +84,9 @@ export type Movement = {
 type MockState = {
   idempotency: Map<string, any>;
   sales: Map<string, Sale>;
+  payments: Map<string, Payment>;
+  deliveries: Map<string, DeliveryShipment>;
+  customers: Map<string, Customer>;
   suppliers: Map<string, Supplier>;
   purchaseOrders: Map<string, PurchaseOrder>;
   movements: Movement[];
@@ -67,12 +97,15 @@ if (!g.__mockState) {
   g.__mockState = {
     idempotency: new Map<string, any>(),
     sales: new Map<string, Sale>(),
+    payments: new Map<string, Payment>(),
+    deliveries: new Map<string, DeliveryShipment>(),
+    customers: new Map<string, Customer>(),
     suppliers: new Map<string, Supplier>(),
     purchaseOrders: new Map<string, PurchaseOrder>(),
     movements: []
   };
 }
-const { idempotency, sales, suppliers, purchaseOrders, movements } = g.__mockState!;
+const { idempotency, sales, payments, deliveries, customers, suppliers, purchaseOrders, movements } = g.__mockState!;
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -92,10 +125,29 @@ export const mockDb = {
   set(resultKey: string, value: any) {
     idempotency.set(resultKey, value);
   },
+  // Customers
+  upsertCustomer(input: Omit<Customer, '_id'|'createdAt'> & { _id?: string }) {
+    const id = input._id || uuid();
+    const doc: Customer = { _id: id, name: input.name, phone: input.phone, email: input.email, address: input.address as any, createdAt: Date.now() };
+    customers.set(id, doc);
+    return doc;
+  },
+  getCustomer(id: string) {
+    return customers.get(id) || null;
+  },
+  // Sales
   createSale(lines: Sale['lines'], total: number) {
     const id = uuid();
     const now = Date.now();
-    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'open', createdAt: now };
+    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'open', channel: 'retail', createdAt: now };
+    sales.set(id, sale);
+    return sale;
+  },
+  createOnlineSale(input: { customer: { name: string; phone?: string; email?: string; address?: any }; items: Sale['lines']; total: number }) {
+    const cust = (customers.get((input as any).customerId) || mockDb.upsertCustomer({ name: input.customer.name, phone: input.customer.phone, email: input.customer.email, address: input.customer.address })) as Customer;
+    const id = uuid();
+    const now = Date.now();
+    const sale: Sale = { _id: id, lines: input.items, total: input.total, paid: 0, status: 'open', channel: 'online', customerId: cust._id, createdAt: now };
     sales.set(id, sale);
     return sale;
   },
@@ -134,10 +186,20 @@ export const mockDb = {
     }
     return sale;
   },
-  addPayment(p: Payment) {
-    const s = sales.get(p.saleId);
+  // Payments
+  addPayment(p: Partial<Payment> & { saleId: string; method: Payment['method']; amount: number; seq: number }) {
+    const id = p._id || uuid();
+    const payment: Payment = { _id: id, saleId: p.saleId, method: p.method, amount: p.amount, seq: p.seq, status: p.status || 'confirmed', receivedAt: p.receivedAt || Date.now(), externalRef: p.externalRef } as Payment;
+    payments.set(id, payment);
+    const s = sales.get(payment.saleId);
     if (!s) throw new Error('Sale not found');
-    s.paid += p.amount;
+    if (payment.method === 'cod_remit') {
+      if (payment.status === 'confirmed') {
+        s.paid += payment.amount;
+      }
+    } else {
+      s.paid += payment.amount;
+    }
     const remainingBefore = s.paymentPlan?.remaining ?? Math.max(0, s.total - (s.paymentPlan?.downPayment ?? 0));
     const remainingAfter = Math.max(0, (s.total - s.paid));
     if (s.paymentPlan) {
@@ -157,7 +219,32 @@ export const mockDb = {
     } else {
       s.status = 'partially_paid';
     }
-    return { ok: true, paid: s.paid, status: s.status, remaining: remainingAfter, remainingBefore };
+    return { ok: true, paid: s.paid, status: s.status, remaining: remainingAfter, remainingBefore, payment };
+  },
+  createCodPendingPayment(input: { saleId: string; amount: number; seq?: number }) {
+    return mockDb.addPayment({ saleId: input.saleId, method: 'cod_remit', amount: input.amount, seq: input.seq ?? 0, status: 'pending' } as any);
+  },
+  confirmCodPaymentForSale(saleId: string) {
+    const s = sales.get(saleId);
+    if (!s) throw new Error('Sale not found');
+    const cods = Array.from(payments.values()).filter((p) => p.saleId === saleId && p.method === 'cod_remit' && p.status === 'pending');
+    let updated = 0;
+    for (const p of cods) {
+      p.status = 'confirmed';
+      s.paid += p.amount;
+      updated += p.amount;
+    }
+    if (s.paid >= s.total) {
+      s.status = 'paid';
+      if (s.reservations && s.reservations.length) {
+        for (const r of s.reservations) {
+          movements.push({ _id: uuid(), sku: r.sku, type: 'sale_out', quantity: r.qty, refType: 'Sale', refId: s._id, occurredAt: Date.now() });
+        }
+      }
+    } else if (updated > 0) {
+      s.status = 'partially_paid';
+    }
+    return { ok: true, paid: s.paid, status: s.status, updated } as const;
   },
   cancelLayaway(id: string) {
     const s = sales.get(id);
@@ -174,6 +261,110 @@ export const mockDb = {
   },
   getSale(id: string) {
     return sales.get(id) || null;
+  },
+  // Delivery Shipments
+  createShipment(input: { saleId: string; provider: string; externalId: string; labelUrl?: string; policyUrl?: string; toAddress?: any; items: Array<{ sku: string; qty: number; name?: string }>; webhookSignatureSecret: string }) {
+    const id = uuid();
+    const now = Date.now();
+    const shipment: DeliveryShipment = {
+      _id: id,
+      saleId: input.saleId,
+      provider: input.provider,
+      externalId: input.externalId,
+      labelUrl: input.labelUrl,
+      policyUrl: input.policyUrl,
+      status: 'created',
+      toAddress: input.toAddress,
+      items: input.items,
+      moneyStatus: 'pending',
+      events: [{ ts: new Date(now).toISOString(), status: 'created' }],
+      lastCheckedAt: new Date(now).toISOString(),
+      webhookSignatureSecret: input.webhookSignatureSecret,
+      createdAt: now,
+      updatedAt: now
+    };
+    deliveries.set(id, shipment);
+    const s = sales.get(input.saleId);
+    if (s) {
+      s.deliveryShipmentId = id;
+    }
+    return shipment;
+  },
+  updateShipmentStatusByExternalId(externalId: string, status: DeliveryShipment['status'], payload?: any) {
+    const sh = Array.from(deliveries.values()).find((d) => d.externalId === externalId);
+    if (!sh) return null;
+    sh.status = status;
+    sh.updatedAt = Date.now();
+    sh.events.push({ ts: new Date().toISOString(), status, payload });
+    if (status === 'delivered') {
+      // create pending COD remittance
+      const s = sales.get(sh.saleId);
+      if (s) {
+        const remaining = Math.max(0, s.total - s.paid);
+        if (remaining > 0) mockDb.createCodPendingPayment({ saleId: s._id, amount: remaining });
+      }
+      sh.moneyStatus = 'with_delivery_company';
+    }
+    return sh;
+  },
+  updateShipmentStatusById(id: string, status: DeliveryShipment['status'], payload?: any) {
+    const sh = deliveries.get(id);
+    if (!sh) return null;
+    return mockDb.updateShipmentStatusByExternalId(sh.externalId, status, payload);
+  },
+  listShipments(filter?: { status?: DeliveryShipment['status'][]; dateFrom?: number; dateTo?: number; search?: string }) {
+    let arr = Array.from(deliveries.values());
+    if (filter?.status && filter.status.length) arr = arr.filter((d) => filter.status!.includes(d.status));
+    if (filter?.dateFrom) arr = arr.filter((d) => d.createdAt >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((d) => d.createdAt <= filter.dateTo!);
+    if (filter?.search) {
+      const q = filter.search.toLowerCase();
+      arr = arr.filter((d) => {
+        const s = sales.get(d.saleId);
+        const c = s?.customerId ? customers.get(s.customerId) : undefined;
+        return (
+          d.externalId.toLowerCase().includes(q) ||
+          (c?.name || '').toLowerCase().includes(q) ||
+          (c?.phone || '').toLowerCase().includes(q)
+        );
+      });
+    }
+    return arr.sort((a, b) => b.createdAt - a.createdAt);
+  },
+  getShipment(id: string) {
+    return deliveries.get(id) || null;
+  },
+  getShipmentByExternalId(externalId: string) {
+    return Array.from(deliveries.values()).find((d) => d.externalId === externalId) || null;
+  },
+  markShipmentRemitted(id: string) {
+    const sh = deliveries.get(id);
+    if (!sh) throw new Error('Shipment not found');
+    const s = sales.get(sh.saleId);
+    if (!s) throw new Error('Sale not found');
+    const result = mockDb.confirmCodPaymentForSale(s._id);
+    sh.moneyStatus = 'remitted_to_shop';
+    sh.updatedAt = Date.now();
+    sh.events.push({ ts: new Date().toISOString(), status: 'remitted_to_shop' });
+    return { shipment: sh, sale: s, paymentResult: result };
+  },
+  refreshNonTerminalShipments(updater: (externalId: string) => Promise<{ status: DeliveryShipment['status']; payload?: any }>): Promise<{ updated: number }> {
+    const list = Array.from(deliveries.values()).filter((d) => !['delivered','failed','returned'].includes(d.status));
+    return (async () => {
+      let updated = 0;
+      for (const d of list) {
+        try {
+          const res = await updater(d.externalId);
+          if (res && res.status && res.status !== d.status) {
+            mockDb.updateShipmentStatusByExternalId(d.externalId, res.status, res.payload);
+            updated++;
+          } else {
+            d.lastCheckedAt = new Date().toISOString();
+          }
+        } catch {}
+      }
+      return { updated };
+    })();
   },
   listLayaway(filter?: { status?: Sale['status']; customerId?: string; dateFrom?: number; dateTo?: number }) {
     let arr = Array.from(sales.values());

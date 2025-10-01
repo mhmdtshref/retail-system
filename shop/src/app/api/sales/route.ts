@@ -16,6 +16,21 @@ const SaleSchema = z.object({
   minDownPercent: z.number().min(0).max(100).optional()
 });
 
+const OnlineSaleSchema = z.object({
+  channel: z.literal('online'),
+  customer: z.object({
+    name: z.string().min(1),
+    phone: z.string().optional(),
+    email: z.string().email().optional(),
+    address: z.union([
+      z.string(),
+      z.object({ city: z.string().optional(), street: z.string().optional(), building: z.string().optional(), notes: z.string().optional() })
+    ]).optional()
+  }),
+  items: z.array(LineSchema),
+  totals: z.object({ grand: z.number().nonnegative() })
+});
+
 export async function POST(req: Request) {
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
@@ -24,6 +39,18 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
+
+  // online sale flow
+  if (body && body.channel === 'online') {
+    const parsedOnline = OnlineSaleSchema.safeParse(body);
+    if (!parsedOnline.success) return NextResponse.json({ error: parsedOnline.error.flatten() }, { status: 400 });
+    const data = parsedOnline.data;
+    const sale = mockDb.createOnlineSale({ customer: data.customer, items: data.items, total: data.totals.grand });
+    const result = { saleId: sale._id, channel: 'online' };
+    mockDb.set(idempotencyKey, result);
+    return NextResponse.json(result);
+  }
+
   const parsed = SaleSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const input = parsed.data;
