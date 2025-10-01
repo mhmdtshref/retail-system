@@ -2,6 +2,29 @@
   "app": {
     "title": "Clothing Shop"
   },
+  "delivery": {
+    "title": "Delivery Board",
+    "createShipment": "Create Shipment",
+    "label": "Shipping Label",
+    "refresh": "Refresh Status",
+    "delivered": "Delivered",
+    "withCourier": "Money with courier",
+    "markRemitted": "Mark remitted",
+    "returned": "Returned",
+    "failed": "Delivery failed",
+    "inTransit": "In transit",
+    "outForDelivery": "Out for delivery",
+    "new": "New",
+    "customer": "Customer",
+    "city": "City",
+    "createdAt": "Created",
+    "status": "Status",
+    "moneyStatus": "Money status",
+    "actions": "Actions",
+    "viewOrder": "View order",
+    "searchPlaceholder": "Search name/phone/id",
+    "filter": "Filter"
+  },
   "nav": {
     "pos": "POS",
     "purchaseOrders": "Purchase Orders",

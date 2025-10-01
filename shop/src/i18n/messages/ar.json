@@ -2,6 +2,29 @@
   "app": {
     "title": "متجر الملابس"
   },
+  "delivery": {
+    "title": "لوحة التوصيل",
+    "createShipment": "أنشئ شحنة",
+    "label": "ملصق الشحن",
+    "refresh": "تحديث الحالة",
+    "delivered": "تم التسليم",
+    "withCourier": "المبلغ لدى شركة التوصيل",
+    "markRemitted": "تسليم المبلغ",
+    "returned": "مُرتجع",
+    "failed": "فشل التسليم",
+    "inTransit": "قيد النقل",
+    "outForDelivery": "خارج للتسليم",
+    "new": "جديدة",
+    "customer": "العميل",
+    "city": "المدينة",
+    "createdAt": "تاريخ الإنشاء",
+    "status": "الحالة",
+    "moneyStatus": "حالة المبلغ",
+    "actions": "إجراءات",
+    "viewOrder": "عرض الطلب",
+    "searchPlaceholder": "ابحث بالاسم/الهاتف/المعرف",
+    "filter": "تصفية"
+  },
   "nav": {
     "pos": "نقطة البيع",
     "purchaseOrders": "أوامر الشراء",
