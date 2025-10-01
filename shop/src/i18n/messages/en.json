@@ -4,6 +4,7 @@
   },
   "nav": {
     "pos": "POS",
+    "purchaseOrders": "Purchase Orders",
     "products": "Products",
     "customers": "Customers",
     "sales": "Sales",

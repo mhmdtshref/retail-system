@@ -9,6 +9,7 @@ export default function Home() {
       <h1 className="text-2xl font-semibold">{t('app.title')}</h1>
       <nav className="flex gap-4">
         <Link className="underline" href={`/${locale}/pos`}>{t('nav.pos')}</Link>
+        <Link className="underline" href={`/${locale}/purchase-orders`}>{t('nav.purchaseOrders') || 'أوامر الشراء'}</Link>
         <Link className="underline" href={`/${locale}/products`}>{t('nav.products')}</Link>
         <Link className="underline" href={`/${locale}/customers`}>{t('nav.customers')}</Link>
         <Link className="underline" href={`/${locale}/sales`}>{t('nav.sales')}</Link>

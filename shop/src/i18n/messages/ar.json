@@ -4,6 +4,7 @@
   },
   "nav": {
     "pos": "نقطة البيع",
+    "purchaseOrders": "أوامر الشراء",
     "products": "المنتجات",
     "customers": "العملاء",
     "sales": "المبيعات",
