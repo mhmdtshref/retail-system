@@ -11,7 +11,12 @@ const cairo = Cairo({ subsets: ['arabic'], weight: ['400','700'], variable: '--f
 export const metadata: Metadata = {
   title: 'Clothing Shop',
   description: 'PWA POS with offline-first design',
-  manifest: '/manifest.webmanifest'
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Clothing Shop'
+  },
 };
 
 export default async function LocaleLayout(props: any) {
@@ -24,6 +29,8 @@ export default async function LocaleLayout(props: any) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
       <div dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         {children}
       </div>
     </NextIntlClientProvider>

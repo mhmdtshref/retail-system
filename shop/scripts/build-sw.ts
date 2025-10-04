@@ -33,6 +33,11 @@ async function build() {
     globPatterns: [
       '**/*.{js,css,html,ico,png,svg,woff2}',
     ],
+    additionalManifestEntries: [
+      { url: '/offline.html', revision: '1' },
+      { url: '/manifest.webmanifest', revision: '1' },
+      { url: '/favicon.ico', revision: '1' },
+    ],
     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
     modifyURLPrefix: {
       // Next outputs assets under /_next

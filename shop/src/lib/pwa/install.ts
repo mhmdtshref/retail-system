@@ -29,9 +29,15 @@ export function useInstallPrompt() {
 
 export function isIosStandalone() {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  // @ts-ignore
   const standalone = (window.navigator as any).standalone;
   return isIOS && standalone;
+}
+
+export function isIosSafari() {
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isSafari = /safari/.test(ua) && !/crios|fxios|edgios/.test(ua);
+  return isIOS && isSafari;
 }
 
 
