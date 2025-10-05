@@ -22,7 +22,7 @@ type Sale = {
   deliveryShipmentId?: string;
   createdAt?: number;
 };
-type Payment = { _id: string; saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'; amount: number; seq: number; status?: 'pending'|'confirmed'|'failed'; receivedAt?: number; externalRef?: string };
+type Payment = { _id: string; saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'|'store_credit'; amount: number; seq: number; status?: 'pending'|'confirmed'|'failed'; receivedAt?: number; externalRef?: string };
 type DeliveryShipment = {
   _id: string;
   saleId: string;
@@ -81,15 +81,48 @@ export type Movement = {
   note?: string;
 };
 
+// Refunds & Store Credit
+export type Refund = {
+  _id: string;
+  origin: { type: 'return'|'exchange'|'sale_adjustment'|'manual'; refId?: string };
+  customerId?: string;
+  method: 'cash'|'card'|'transfer'|'store_credit';
+  amount: number;
+  status: 'pending'|'confirmed'|'failed';
+  createdBy?: string;
+  createdAt: number;
+  confirmedAt?: number;
+  notes?: string;
+  externalRef?: string;
+};
+
+export type StoreCredit = {
+  _id: string;
+  customerId: string;
+  code: string; // human friendly unique
+  status: 'active'|'redeemed'|'expired'|'void';
+  issuedAmount: number;
+  remainingAmount: number;
+  issuedAt: number;
+  expiresAt?: number; // epoch ms
+  issuedOrigin: { type: 'return'|'exchange'|'manual'; refId?: string };
+  ledger: Array<{ ts: number; type: 'issue'|'redeem'|'expire'|'void'; amount: number; ref?: string; note?: string }>;
+};
+
 type MockState = {
   idempotency: Map<string, any>;
   sales: Map<string, Sale>;
   payments: Map<string, Payment>;
+  returns: Map<string, any>;
+  exchanges: Map<string, any>;
   deliveries: Map<string, DeliveryShipment>;
   customers: Map<string, Customer>;
   suppliers: Map<string, Supplier>;
   purchaseOrders: Map<string, PurchaseOrder>;
   movements: Movement[];
+  refunds: Map<string, Refund>;
+  storeCredits: Map<string, StoreCredit>;
+  codeIndex: Map<string, string>; // code -> creditId
 };
 
 const g = globalThis as unknown as { __mockState?: MockState };
@@ -98,14 +131,19 @@ if (!g.__mockState) {
     idempotency: new Map<string, any>(),
     sales: new Map<string, Sale>(),
     payments: new Map<string, Payment>(),
+    returns: new Map<string, any>(),
+    exchanges: new Map<string, any>(),
     deliveries: new Map<string, DeliveryShipment>(),
     customers: new Map<string, Customer>(),
     suppliers: new Map<string, Supplier>(),
     purchaseOrders: new Map<string, PurchaseOrder>(),
-    movements: []
+    movements: [],
+    refunds: new Map<string, Refund>(),
+    storeCredits: new Map<string, StoreCredit>(),
+    codeIndex: new Map<string, string>()
   };
 }
-const { idempotency, sales, payments, deliveries, customers, suppliers, purchaseOrders, movements } = g.__mockState!;
+const { idempotency, sales, payments, returns, exchanges, deliveries, customers, suppliers, purchaseOrders, movements, refunds, storeCredits, codeIndex } = g.__mockState!;
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -124,6 +162,16 @@ export const mockDb = {
   },
   set(resultKey: string, value: any) {
     idempotency.set(resultKey, value);
+  },
+  // Sales listing/search helpers
+  listSales(filter?: { customerId?: string; dateFrom?: number; dateTo?: number; receipt?: string }) {
+    let arr = Array.from(sales.values());
+    if (filter?.customerId) arr = arr.filter((s) => s.customerId === filter.customerId);
+    if (filter?.dateFrom) arr = arr.filter((s) => (s.createdAt || 0) >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((s) => (s.createdAt || 0) <= filter.dateTo!);
+    // Simple receiptNo mock: use last 6 of id
+    if (filter?.receipt) arr = arr.filter((s) => s._id.slice(-6) === filter.receipt);
+    return arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
   // Customers
   upsertCustomer(input: Omit<Customer, '_id'|'createdAt'> & { _id?: string }) {
@@ -261,6 +309,189 @@ export const mockDb = {
   },
   getSale(id: string) {
     return sales.get(id) || null;
+  },
+  // Refunds
+  createRefund(input: Omit<Refund, '_id'|'createdAt'|'confirmedAt'|'status'> & { status?: Refund['status'] }) {
+    const id = uuid();
+    const now = Date.now();
+    let status: Refund['status'] = input.status || (input.method === 'cash' ? 'confirmed' : input.method === 'store_credit' ? 'confirmed' : 'pending');
+    // If store_credit, ensure we have issued a credit instrument
+    if (input.method === 'store_credit') {
+      if (!input.customerId) throw new Error('customerId required for store credit refund');
+      const credit = mockDb.issueStoreCredit({ customerId: input.customerId, amount: input.amount, origin: { type: input.origin.type === 'manual' ? 'manual' : (input.origin.type as any), refId: input.origin.refId }, note: input.notes });
+      // Link via notes externalRef
+      const refund: Refund = { _id: id, origin: input.origin, customerId: input.customerId, method: input.method, amount: input.amount, status, createdBy: input.createdBy, createdAt: now, confirmedAt: now, notes: `credit:${credit._id}` };
+      refunds.set(id, refund);
+      return refund;
+    }
+    const refund: Refund = { _id: id, origin: input.origin, customerId: input.customerId, method: input.method, amount: input.amount, status, createdBy: input.createdBy, createdAt: now, confirmedAt: status === 'confirmed' ? now : undefined, notes: input.notes, externalRef: input.externalRef };
+    refunds.set(id, refund);
+    return refund;
+  },
+  listRefunds(filter?: { dateFrom?: number; dateTo?: number; method?: Refund['method']; status?: Refund['status']; customerId?: string }) {
+    let arr = Array.from(refunds.values());
+    if (filter?.dateFrom) arr = arr.filter((r) => r.createdAt >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((r) => r.createdAt <= filter.dateTo!);
+    if (filter?.method) arr = arr.filter((r) => r.method === filter.method);
+    if (filter?.status) arr = arr.filter((r) => r.status === filter.status);
+    if (filter?.customerId) arr = arr.filter((r) => r.customerId === filter.customerId);
+    return arr.sort((a, b) => b.createdAt - a.createdAt);
+  },
+  getRefund(id: string) {
+    return refunds.get(id) || null;
+  },
+  confirmRefund(id: string) {
+    const r = refunds.get(id);
+    if (!r) return null;
+    r.status = 'confirmed';
+    r.confirmedAt = Date.now();
+    refunds.set(id, r);
+    return r;
+  },
+  voidRefund(id: string) {
+    const r = refunds.get(id);
+    if (!r) return null;
+    r.status = 'failed';
+    refunds.set(id, r);
+    return r;
+  },
+  // Store Credit
+  issueStoreCredit(input: { customerId: string; amount: number; expiresAt?: number; note?: string; origin: { type: 'return'|'exchange'|'manual'; refId?: string } }) {
+    const id = uuid();
+    const code = genCreditCode();
+    const doc: StoreCredit = {
+      _id: id,
+      customerId: input.customerId,
+      code,
+      status: 'active',
+      issuedAmount: input.amount,
+      remainingAmount: input.amount,
+      issuedAt: Date.now(),
+      expiresAt: input.expiresAt,
+      issuedOrigin: input.origin,
+      ledger: [{ ts: Date.now(), type: 'issue', amount: input.amount, note: input.note }]
+    };
+    storeCredits.set(id, doc);
+    codeIndex.set(code, id);
+    return doc;
+  },
+  getCreditById(id: string) {
+    return storeCredits.get(id) || null;
+  },
+  getCreditByCode(code: string) {
+    const id = codeIndex.get(code);
+    if (!id) return null;
+    return storeCredits.get(id) || null;
+  },
+  listCreditsByCustomer(customerId: string) {
+    return Array.from(storeCredits.values()).filter((c) => c.customerId === customerId).sort((a, b) => (b.issuedAt - a.issuedAt));
+  },
+  getCustomerCreditSummary(customerId: string) {
+    const list = mockDb.listCreditsByCustomer(customerId);
+    const balance = list.filter((c) => c.status === 'active').reduce((s, c) => s + c.remainingAmount, 0);
+    return { balance, credits: list } as const;
+  },
+  redeemStoreCredit(input: { creditIdOrCode: string; customerId: string; amount: number; saleId?: string; idempotencyKey?: string }) {
+    const credit = (storeCredits.get(input.creditIdOrCode) || mockDb.getCreditByCode(input.creditIdOrCode));
+    if (!credit) throw new Error('Credit not found');
+    if (credit.customerId !== input.customerId) throw new Error('Customer mismatch');
+    if (credit.status !== 'active') throw new Error('Credit not active');
+    if (credit.expiresAt && credit.expiresAt < Date.now()) throw new Error('Credit expired');
+    if (input.amount > credit.remainingAmount) throw new Error('Over redemption');
+    // idempotent by ref
+    if (input.idempotencyKey && credit.ledger.some((e) => e.type === 'redeem' && e.ref === input.idempotencyKey)) {
+      return { credit, remainingAmount: credit.remainingAmount } as const;
+    }
+    credit.remainingAmount = Math.round((credit.remainingAmount - input.amount) * 100) / 100;
+    credit.ledger.push({ ts: Date.now(), type: 'redeem', amount: input.amount, ref: input.idempotencyKey, note: input.saleId ? `sale:${input.saleId}` : undefined });
+    if (credit.remainingAmount <= 0) {
+      credit.status = 'redeemed';
+    }
+    storeCredits.set(credit._id, credit);
+    return { credit, remainingAmount: credit.remainingAmount } as const;
+  },
+  expireCredits(now?: number) {
+    const ts = now || Date.now();
+    let count = 0;
+    for (const c of storeCredits.values()) {
+      if (c.status === 'active' && c.expiresAt && c.expiresAt < ts) {
+        c.status = 'expired';
+        c.ledger.push({ ts, type: 'expire', amount: c.remainingAmount });
+        c.remainingAmount = 0;
+        storeCredits.set(c._id, c);
+        count++;
+      }
+    }
+    return { expired: count } as const;
+  },
+  // Returns
+  createReturn(input: { saleId: string; lines: Array<{ sku: string; qty: number; unitPrice: number; reason: string; condition?: string }>; refund: { method: 'cash'|'card'|'store_credit'; amount: number; status?: 'confirmed'|'pending' }; notes?: string }) {
+    const id = uuid();
+    const now = Date.now();
+    const rma = `RMA-${now.toString().slice(-6)}`;
+    const refMovementIds: string[] = [];
+    for (const l of input.lines) {
+      const m = mockDb.addMovement({ sku: l.sku, type: 'return_in', quantity: l.qty, refType: 'Return', refId: id, note: input.notes });
+      refMovementIds.push(m._id);
+    }
+    const ret = { _id: id, saleId: input.saleId, rma, lines: input.lines, refund: { ...input.refund, status: input.refund.status || 'confirmed' }, posted: true, postedAt: now, createdBy: 'mock', notes: input.notes, refMovementIds, createdAt: now, updatedAt: now };
+    returns.set(id, ret);
+    if (input.refund.amount > 0) {
+      // Create refund record; if store_credit, issue instrument
+      const sale = sales.get(input.saleId);
+      const customerId = sale?.customerId;
+      mockDb.createRefund({ origin: { type: 'return', refId: id }, method: input.refund.method as any, amount: input.refund.amount, customerId: customerId || undefined, notes: input.notes });
+    }
+    return ret;
+  },
+  getReturn(id: string) {
+    return returns.get(id) || null;
+  },
+  listReturns(filter?: { dateFrom?: number; dateTo?: number; customerId?: string }) {
+    let arr = Array.from(returns.values());
+    if (filter?.dateFrom) arr = arr.filter((r) => (r.createdAt || 0) >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((r) => (r.createdAt || 0) <= filter.dateTo!);
+    return arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  },
+  sumReturnedQtyForSaleSku(saleId: string, sku: string) {
+    const arr = Array.from(returns.values()).filter((r) => r.saleId === saleId);
+    let sum = 0;
+    for (const r of arr) {
+      for (const l of r.lines as any[]) if (l.sku === sku) sum += l.qty;
+    }
+    return sum;
+  },
+  // Exchanges
+  createExchange(input: { originalSaleId: string; returnLines: Array<{ sku: string; qty: number; unitPrice: number; reason: string }>; newLines: Array<{ sku: string; qty: number; unitPrice: number }>; settlement: { customerOwes: number; shopOwes: number; paidMethod?: 'cash'|'card'; refundMethod?: 'cash'|'card'|'store_credit' }; notes?: string }) {
+    const id = uuid();
+    const now = Date.now();
+    const refMovementIds: string[] = [];
+    for (const l of input.returnLines) {
+      const m = mockDb.addMovement({ sku: l.sku, type: 'return_in', quantity: l.qty, refType: 'Exchange', refId: id, note: input.notes });
+      refMovementIds.push(m._id);
+    }
+    for (const l of input.newLines) {
+      const m = mockDb.addMovement({ sku: l.sku, type: 'sale_out', quantity: l.qty, refType: 'Exchange', refId: id, note: input.notes });
+      refMovementIds.push(m._id);
+    }
+    const ex = { _id: id, originalSaleId: input.originalSaleId, returnLines: input.returnLines, newLines: input.newLines, settlement: input.settlement, posted: true, postedAt: now, createdBy: 'mock', notes: input.notes, refMovementIds, createdAt: now, updatedAt: now };
+    exchanges.set(id, ex);
+    // Create refund for shop owed part
+    if (input.settlement.shopOwes > 0 && input.settlement.refundMethod) {
+      const sale = sales.get(input.originalSaleId);
+      const customerId = sale?.customerId;
+      mockDb.createRefund({ origin: { type: 'exchange', refId: id }, method: input.settlement.refundMethod as any, amount: input.settlement.shopOwes, customerId: customerId || undefined, notes: input.notes });
+    }
+    return ex;
+  },
+  getExchange(id: string) {
+    return exchanges.get(id) || null;
+  },
+  listExchanges(filter?: { dateFrom?: number; dateTo?: number; customerId?: string }) {
+    let arr = Array.from(exchanges.values());
+    if (filter?.dateFrom) arr = arr.filter((r) => (r.createdAt || 0) >= filter.dateFrom!);
+    if (filter?.dateTo) arr = arr.filter((r) => (r.createdAt || 0) <= filter.dateTo!);
+    return arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
   // Delivery Shipments
   createShipment(input: { saleId: string; provider: string; externalId: string; labelUrl?: string; policyUrl?: string; toAddress?: any; items: Array<{ sku: string; qty: number; name?: string }>; webhookSignatureSecret: string }) {

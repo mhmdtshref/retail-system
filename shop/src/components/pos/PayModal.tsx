@@ -12,7 +12,7 @@ type Props = {
 
 export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial, onClose }: Props) {
   const t = useTranslations();
-  const [tab, setTab] = useState<'cash'|'card'|'partial'>('cash');
+  const [tab, setTab] = useState<'cash'|'card'|'partial'|'store_credit'>('cash');
   const [cash, setCash] = useState(total);
   const [cardAmount, setCardAmount] = useState(total);
   const [partial, setPartial] = useState(Math.max(1, Math.round(total * 0.1)));
@@ -20,11 +20,15 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
   const [installments, setInstallments] = useState(2);
   const [intervalDays, setIntervalDays] = useState(14);
   const [schedule, setSchedule] = useState<Array<{ seq: number; dueDate: string; amount: number }>>([]);
+  const [storeCreditAmount, setStoreCreditAmount] = useState(0);
+  const [availableCredit, setAvailableCredit] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const minPartial = Math.ceil(total * 0.1);
 
   const validCash = cash >= total && cash > 0;
   const validCard = cardAmount > 0;
   const validPartial = partial >= minPartial && partial < total;
+  const validStoreCredit = storeCreditAmount > 0 && storeCreditAmount <= (availableCredit ?? 0) && storeCreditAmount <= total;
 
   const generateSchedule = () => {
     const remaining = Math.max(0, total - partial);
@@ -49,6 +53,7 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
           <button className={`px-3 py-1 rounded ${tab==='cash'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('cash')}>{t('pos.cash') || 'نقدًا'}</button>
           <button className={`px-3 py-1 rounded ${tab==='card'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('card')}>{t('pos.card') || 'بطاقة'}</button>
           <button className={`px-3 py-1 rounded ${tab==='partial'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('partial')}>{t('pos.partial') || 'تقسيط'}</button>
+          <button className={`px-3 py-1 rounded ${tab==='store_credit'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('store_credit')}>{t('pos.storeCredit') || 'رصيد المتجر'}</button>
           <button className="ms-auto text-sm" onClick={onClose}>{t('common.close') || 'إغلاق'}</button>
         </div>
 
@@ -105,6 +110,21 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
             )}
             <button disabled={!validPartial} className={`px-4 py-2 rounded ${validPartial?'bg-emerald-600 text-white':'bg-gray-200 text-gray-500'}`} onClick={()=> onConfirmPartial(partial, { reservationNote: note, plan: schedule.length>0 ? { count: installments, intervalDays, schedule } : undefined })}>
               {t('common.confirm') || 'تأكيد'}
+            </button>
+          </div>
+        )}
+
+        {tab === 'store_credit' && (
+          <div className="space-y-3">
+            <div className="text-sm">{t('pos.availableCredit') || 'الرصيد المتاح'}: {availableCredit == null ? '—' : availableCredit.toFixed(2)}</div>
+            <input type="number" value={storeCreditAmount} onChange={(e)=> setStoreCreditAmount(Number(e.target.value))} className="w-full border rounded px-3 py-2" dir="ltr" placeholder={t('pos.amount') || 'المبلغ'} />
+            <button disabled={!validStoreCredit} className={`px-4 py-2 rounded ${validStoreCredit?'bg-emerald-600 text-white':'bg-gray-200 text-gray-500'}`} onClick={()=> {
+              // Let POS page handle adding payment via store credit by closing and emitting a custom event
+              const ev = new CustomEvent('pos:applyStoreCredit', { detail: { amount: storeCreditAmount } });
+              window.dispatchEvent(ev);
+              onClose();
+            }}>
+              {t('common.apply') || 'تطبيق'}
             </button>
           </div>
         )}

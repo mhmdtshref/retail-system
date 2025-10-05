@@ -92,3 +92,10 @@ export async function getAvailabilityBulk(skus: string[]): Promise<Record<string
   }
 }
 
+export async function getOnHandForSkusAtStart(skus: string[]): Promise<Record<string, number>> {
+  const map = await getAvailabilityBulk(skus);
+  const out: Record<string, number> = {};
+  for (const sku of skus) out[sku] = map[sku]?.onHand ?? 0;
+  return out;
+}
+

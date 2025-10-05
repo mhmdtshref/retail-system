@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
 
 const PaymentSchema = z.object({
-  method: z.enum(['cash', 'card', 'transfer', 'cod_remit']),
+  method: z.enum(['cash', 'card', 'transfer', 'cod_remit', 'store_credit']),
   amount: z.number().positive(),
   seq: z.number().int().nonnegative()
 });

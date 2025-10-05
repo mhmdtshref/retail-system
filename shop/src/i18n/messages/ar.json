@@ -70,11 +70,41 @@
   },
   "nav": {
     "pos": "نقطة البيع",
+    "returns": "الإرجاع والاستبدال",
     "purchaseOrders": "أوامر الشراء",
     "products": "المنتجات",
     "customers": "العملاء",
+    "finance": "المالية",
     "sales": "المبيعات",
+    "inventory": "التسويات والجرد",
     "settings": "الإعدادات"
+  },
+  "returns": {
+    "title": "الإرجاع والاستبدال",
+    "return": "إرجاع",
+    "exchange": "استبدال",
+    "receiptLookup": "بحث عن الإيصال",
+    "searchPlaceholder": "أدخل رقم الإيصال أو ابحث بالعميل/الهاتف/التاريخ",
+    "eligible": "الكمية المتاحة للإرجاع",
+    "qty": "الكمية",
+    "reason": "السبب",
+    "condition": "الحالة",
+    "refundMethod": "طريقة الاسترداد",
+    "confirmReturn": "تأكيد الإرجاع",
+    "settlement": "التسوية",
+    "customerOwes": "المبلغ المستحق",
+    "shopOwes": "المبلغ المسترد",
+    "errors": {
+      "overQty": "لا يمكن إرجاع كمية أكبر من المسموح",
+      "outOfWindow": "خارج نافذة الإرجاع. يتطلب موافقة المدير.",
+      "notOnSale": "العنصر غير موجود في الفاتورة"
+    },
+    "reasons": {
+      "notSuitable": "غير مناسب",
+      "wrongSize": "مقاس غير صحيح",
+      "damaged": "تالف",
+      "changedMind": "تغيير رأي"
+    }
   },
   "pos": {
     "cart": "السلة",
@@ -88,6 +118,7 @@
     "cash": "نقدًا",
     "card": "بطاقة",
     "partial": "تقسيط",
+    "storeCredit": "رصيد المتجر",
     "amount": "المبلغ",
     "cardLast4": "آخر 4 أرقام",
     "authCode": "رمز التفويض",
@@ -110,6 +141,7 @@
     "preDiscountTotal": "الإجمالي قبل الخصم",
     "discountValue": "قيمة الخصم",
     "grandTotal": "الإجمالي النهائي",
+    "availableCredit": "الرصيد المتاح",
     "percentBetweenZeroAndHundred": "النسبة يجب أن تكون بين 0 و 100.",
     "discountExceedsSubtotal": "لا يمكن أن يتجاوز الخصم قيمة الإجمالي."
   },

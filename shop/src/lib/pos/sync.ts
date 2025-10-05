@@ -57,6 +57,94 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'COUNT_SESSION_SYNC') {
+    const p = item.payload as any;
+    const s = p.session;
+    const body: any = { name: s.name, scope: s.scope, location: s.location };
+    const res = await fetch('/api/inventory/count-sessions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error('COUNT_SESSION_SYNC create failed');
+    const created = await res.json();
+    const serverId = created.session._id as string;
+    // patch items if any counted provided locally
+    const itemsPatch = (p.items || []).map((it: any) => ({ sku: it.sku, counted: it.counted, recount: it.recount, note: it.note }));
+    if (itemsPatch.length) {
+      const res2 = await fetch(`/api/inventory/count-sessions/${serverId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey + ':patch' }, body: JSON.stringify({ items: itemsPatch, status: 'open' }) });
+      if (!res2.ok) throw new Error('COUNT_SESSION_SYNC patch failed');
+    }
+    await posDb.syncLog.put({ key: `count:${s.localId}`, value: serverId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'COUNT_POST_VARIANCES') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/inventory/count-sessions/${p.serverId}/post`, { method: 'POST', headers: { 'Idempotency-Key': item.idempotencyKey } });
+    if (!res.ok) throw new Error('COUNT_POST_VARIANCES failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'RETURN_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/returns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ saleId: p.saleId, lines: p.lines, refund: p.refund, notes: p.notes })
+    });
+    if (!res.ok) throw new Error('RETURN_CREATE failed');
+    const data = await res.json();
+    await posDb.syncLog.put({ key: `return:${p.localId}`, value: data.returnId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'EXCHANGE_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/exchanges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ originalSaleId: p.originalSaleId, returnLines: p.returnLines, newLines: p.newLines, settlement: p.settlement, notes: p.notes })
+    });
+    if (!res.ok) throw new Error('EXCHANGE_CREATE failed');
+    const data = await res.json();
+    await posDb.syncLog.put({ key: `exchange:${p.localId}`, value: data.exchangeId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'REFUND_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/refunds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p)
+    });
+    if (!res.ok) throw new Error('REFUND_CREATE failed');
+    const data = await res.json();
+    await posDb.syncLog.put({ key: `refund:${p.localId}`, value: data.refundId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'CREDIT_ISSUE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/store-credit/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p)
+    });
+    if (!res.ok) throw new Error('CREDIT_ISSUE failed');
+    const data = await res.json();
+    await posDb.syncLog.put({ key: `credit:${p.localId}`, value: data.creditId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'CREDIT_REDEEM') {
+    const p = item.payload as any;
+    const res = await fetch('/api/store-credit/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p)
+    });
+    if (!res.ok) throw new Error('CREDIT_REDEEM failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
 }
 
 export function startOutboxSyncLoop() {

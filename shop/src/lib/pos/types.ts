@@ -18,7 +18,7 @@ export type CartTotals = {
 };
 
 export type PosPayment = {
-  method: 'cash' | 'card' | 'transfer' | 'cod_remit';
+  method: 'cash' | 'card' | 'transfer' | 'cod_remit' | 'store_credit';
   amount: number;
   seq: number;
   meta?: {
@@ -26,6 +26,8 @@ export type PosPayment = {
     authCode?: string;
     receivedCash?: number;
     reservationNote?: string;
+    customerId?: string;
+    creditIdOrCode?: string;
   };
 };
 
@@ -50,5 +52,24 @@ export type ReceiptData = {
     schedule?: Array<{ seq: number; dueDate: string; amount: number; paidAt?: string }>;
     expiresAt?: string;
   };
+};
+
+export type ReturnDraft = {
+  localId: string;
+  saleId: string;
+  lines: Array<{ sku: string; qty: number; unitPrice: number; reason: string; condition?: string }>;
+  refund: { method: 'cash'|'card'|'store_credit'; amount: number };
+  notes?: string;
+  createdAt: number;
+};
+
+export type ExchangeDraft = {
+  localId: string;
+  originalSaleId: string;
+  returnLines: Array<{ sku: string; qty: number; unitPrice: number; reason: string }>;
+  newLines: Array<{ sku: string; qty: number; unitPrice: number }>;
+  settlement: { customerOwes: number; shopOwes: number; paidMethod?: 'cash'|'card'; refundMethod?: 'cash'|'card'|'store_credit' };
+  notes?: string;
+  createdAt: number;
 };
 

@@ -46,7 +46,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -66,6 +66,10 @@ export class POSDexie extends Dexie {
   draftSales!: Table<DraftSale, string>; // key: localSaleId
   outbox!: Table<OutboxItem, string>; // key: id
   syncLog!: Table<SyncLog, string>; // key: key
+  countSessions!: Table<any, string>;
+  countItems!: Table<any, number>;
+  storeCreditsLocal!: Table<any, string>;
+  refundDrafts!: Table<any, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -76,6 +80,21 @@ export class POSDexie extends Dexie {
       draftSales: 'localSaleId, createdAt',
       outbox: 'id, type, idempotencyKey, createdAt',
       syncLog: 'key, updatedAt'
+    });
+    // Bump version for count sessions
+    this.version(2).stores({
+      countSessions: 'localId, serverId, status, createdAt',
+      countItems: '++id, localSessionId, sku'
+    });
+    // Bump version for returns/exchanges drafts
+    this.version(3).stores({
+      returnsDrafts: 'localId, createdAt',
+      exchangesDrafts: 'localId, createdAt'
+    });
+    // Bump version for refunds and store credits
+    this.version(4).stores({
+      storeCreditsLocal: 'localId, serverId, customerId, code, status',
+      refundDrafts: 'localId, createdAt'
     });
   }
 }

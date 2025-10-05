@@ -5,6 +5,10 @@ const StockMovementSchema = new Schema({
   type: { type: String, enum: ['purchase_in','sale_out','adjustment','return_in','return_out','reservation_hold','reservation_release','PURCHASE','SALE','RETURN','ADJUST','RESERVE','RELEASE'], required: true },
   quantity: { type: Number, required: true }, // positive for in, negative for out
   refId: { type: Types.ObjectId, index: true },
+  refType: { type: String },
+  reason: { type: String },
+  note: { type: String },
+  createdBy: { type: String },
   occurredAt: { type: Date, default: Date.now, index: true },
 }, { timestamps: true });
 

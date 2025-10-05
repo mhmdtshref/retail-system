@@ -8,6 +8,7 @@ import { Cart } from '@/components/pos/Cart';
 import { PayModal } from '@/components/pos/PayModal';
 import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
+import { uuid } from '@/lib/pos/idempotency';
 
 export default function POSPage() {
   const t = useTranslations();
@@ -17,6 +18,8 @@ export default function POSPage() {
   const startPartialSale = usePosStore((s: any) => s.startPartialSale);
   const addPayment = usePosStore((s: any) => s.addPayment);
   const lastReceipt = usePosStore((s: any) => s.lastReceipt);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [availableCredit, setAvailableCredit] = useState<number | null>(null);
   const [offline, setOffline] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showPay, setShowPay] = useState(false);
@@ -31,6 +34,83 @@ export default function POSPage() {
       window.removeEventListener('offline', update);
     };
   }, []);
+
+  useEffect(() => {
+    async function fetchAndCacheCredits() {
+      if (!customerId) { setAvailableCredit(null); return; }
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/customers/${customerId}/credit`);
+          if (res.ok) {
+            const data = await res.json();
+            const credits = (data.credits || []).map((c: any) => ({
+              localId: c._id,
+              serverId: c._id,
+              customerId,
+              code: c.code,
+              status: c.status,
+              issuedAmount: c.issuedAmount,
+              remainingAmount: c.remainingAmount,
+              expiresAt: c.expiresAt
+            }));
+            try {
+              const existing = await posDb.storeCreditsLocal.where('customerId').equals(customerId).toArray();
+              if (existing && existing.length) {
+                const ids = existing.map((e: any) => e.localId);
+                await posDb.storeCreditsLocal.bulkDelete(ids);
+              }
+            } catch {}
+            if (credits.length) await posDb.storeCreditsLocal.bulkPut(credits);
+            const balance = credits.filter((c: any) => c.status === 'active' && (!c.expiresAt || c.expiresAt > Date.now())).reduce((s: number, c: any) => s + (c.remainingAmount || 0), 0);
+            setAvailableCredit(balance);
+            return;
+          }
+        } catch {}
+      }
+      // Fallback to local cache if offline or fetch failed
+      try {
+        const local = await posDb.storeCreditsLocal.where('customerId').equals(customerId).toArray();
+        const balance = local.filter((c: any) => c.status === 'active' && (!c.expiresAt || c.expiresAt > Date.now())).reduce((s: number, c: any) => s + (c.remainingAmount || 0), 0);
+        setAvailableCredit(balance);
+      } catch {
+        setAvailableCredit(null);
+      }
+    }
+    fetchAndCacheCredits();
+  }, [customerId]);
+
+  useEffect(() => {
+    async function onApplyCredit(e: any) {
+      const requested = Number(e.detail?.amount || 0);
+      if (!requested || requested <= 0) return;
+      if (!customerId) { alert('الرجاء اختيار العميل لاستخدام رصيد المتجر'); return; }
+      // Read local instruments and split across earliest expiry first
+      const list = await posDb.storeCreditsLocal.where('customerId').equals(customerId).toArray();
+      let remaining = requested;
+      const active = list.filter((c: any) => c.status === 'active' && (!c.expiresAt || c.expiresAt > Date.now())).sort((a: any, b: any) => (a.expiresAt || Infinity) - (b.expiresAt || Infinity));
+      for (const c of active) {
+        if (remaining <= 0) break;
+        const canUse = Math.min(remaining, c.remainingAmount || 0);
+        if (canUse <= 0) continue;
+        const oid = uuid();
+        const idemp = `credit_redeem:${customerId}:${c.code || c.serverId}:${Date.now()}:${oid}`;
+        await posDb.outbox.add({ id: oid, type: 'CREDIT_REDEEM', payload: { localId: oid, creditIdOrCode: c.code || c.serverId, customerId, amount: canUse }, idempotencyKey: idemp, createdAt: Date.now(), retryCount: 0 });
+        c.remainingAmount = Math.max(0, (c.remainingAmount || 0) - canUse);
+        if (c.remainingAmount === 0) c.status = 'redeemed';
+        await posDb.storeCreditsLocal.put(c);
+        remaining -= canUse;
+      }
+      const applied = requested - remaining;
+      if (applied > 0) {
+        await addPayment('store_credit', applied, { customerId });
+        setAvailableCredit((v) => (v==null?null:Math.max(0, v - applied)));
+      } else {
+        alert('لا يوجد رصيد كافٍ للاستخدام');
+      }
+    }
+    window.addEventListener('pos:applyStoreCredit', onApplyCredit as any);
+    return () => window.removeEventListener('pos:applyStoreCredit', onApplyCredit as any);
+  }, [customerId, addPayment]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +155,13 @@ export default function POSPage() {
       </div>
 
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur p-1 rounded">
-        <Search onAdd={(line) => addLineStore(line)} />
+        <div className="flex items-center gap-2">
+          <Search onAdd={(line) => addLineStore(line)} />
+          <input placeholder={t('customers.select') || 'اختر العميل (ID)'} className="border rounded px-2 py-1" dir="ltr" value={customerId || ''} onChange={(e)=> setCustomerId(e.target.value || null)} />
+          {availableCredit != null && (
+            <span className="text-xs rounded bg-emerald-50 text-emerald-700 px-2 py-1">{t('pos.availableCredit') || 'الرصيد المتاح'}: {availableCredit?.toFixed(2)}</span>
+          )}
+        </div>
       </div>
 
       <Cart />

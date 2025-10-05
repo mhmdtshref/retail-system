@@ -74,6 +74,7 @@
     "products": "Products",
     "customers": "Customers",
     "sales": "Sales",
+    "inventory": "Adjustments & Counts",
     "settings": "Settings"
   },
   "pos": {
@@ -88,6 +89,7 @@
     "cash": "Cash",
     "card": "Card",
     "partial": "Partial",
+    "storeCredit": "Store Credit",
     "amount": "Amount",
     "cardLast4": "Card last 4",
     "authCode": "Auth code",
@@ -97,7 +99,8 @@
     "size": "Size",
     "color": "Color",
     "subtotal": "Subtotal",
-    "offline": "You are offline. Actions will sync when online."
+    "offline": "You are offline. Actions will sync when online.",
+    "availableCredit": "Available credit"
   },
   "common": {
     "confirm": "Confirm",
