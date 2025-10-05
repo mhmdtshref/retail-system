@@ -12,10 +12,13 @@
     "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
   },
   "dependencies": {
+    "bwip-js": "^3.4.4",
     "dexie": "^4.2.0",
     "mongoose": "^8.18.2",
     "next": "15.5.4",
     "next-intl": "^4.3.9",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "workbox-background-sync": "^7.3.0",
@@ -31,12 +34,14 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/bwip-js": "^2.0.6",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.23.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
-    "esbuild": "^0.23.1",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"

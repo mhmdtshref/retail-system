@@ -46,8 +46,8 @@ export async function POST(req: Request) {
   await dbConnect();
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
-  const existing = await Idempotency.findOne({ key: idempotencyKey }).lean();
-  if (existing) return NextResponse.json(existing.result);
+  const existing: any = await Idempotency.findOne({ key: idempotencyKey }).lean();
+  if (existing && existing.result) return NextResponse.json(existing.result);
 
   const body = await req.json();
   const parsed = AdjustmentCreateSchema.safeParse(body);

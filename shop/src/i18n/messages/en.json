@@ -2,6 +2,31 @@
   "app": {
     "title": "Clothing Shop"
   },
+  "labels": {
+    "title": "Label Printing",
+    "template": "Template",
+    "thermal80": "Thermal 80mm",
+    "thermal58": "Thermal 58mm",
+    "a43x8": "A4 (3×8)",
+    "barcode": "Barcode",
+    "auto": "Auto",
+    "code128": "Code128",
+    "ean13": "EAN-13",
+    "qr": "QR",
+    "shopName": "Shop name (optional)",
+    "preview": "Preview PDF",
+    "downloadZpl": "Download ZPL",
+    "addRow": "Add Row"
+  },
+  "scanner": {
+    "connected": "Barcode scanner connected",
+    "disconnected": "—",
+    "test": "Scanner Test",
+    "prefix": "Prefix",
+    "suffix": "Suffix",
+    "minLength": "Min length",
+    "delay": "Inter-key delay (ms)"
+  },
   "products": {
     "title": "Products",
     "add": "Add Product",

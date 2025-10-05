@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 type Product = {
@@ -18,6 +19,7 @@ type Product = {
 export default function ProductsPage() {
   const t = useTranslations();
   const locale = useLocale();
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState<{ status?: string; category?: string; brand?: string; size?: string; color?: string }>({});
   const [page, setPage] = useState(1);
@@ -66,6 +68,7 @@ export default function ProductsPage() {
         <div className="flex gap-2">
           <Link href={`/${locale}/products/import`} className="px-3 py-2 rounded bg-blue-600 text-white">{t('products.importCsv') || 'استيراد CSV'}</Link>
           <Link href={`/${locale}/products/new`} className="px-3 py-2 rounded bg-green-600 text-white">{t('products.add') || 'إضافة منتج'}</Link>
+          <button onClick={() => router.push(`/${locale}/labels`)} className="px-3 py-2 rounded border">طباعة ملصقات</button>
         </div>
       </div>
 

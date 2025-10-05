@@ -314,7 +314,7 @@ export const mockDb = {
   createRefund(input: Omit<Refund, '_id'|'createdAt'|'confirmedAt'|'status'> & { status?: Refund['status'] }) {
     const id = uuid();
     const now = Date.now();
-    let status: Refund['status'] = input.status || (input.method === 'cash' ? 'confirmed' : input.method === 'store_credit' ? 'confirmed' : 'pending');
+    const status: Refund['status'] = input.status || (input.method === 'cash' ? 'confirmed' : input.method === 'store_credit' ? 'confirmed' : 'pending');
     // If store_credit, ensure we have issued a credit instrument
     if (input.method === 'store_credit') {
       if (!input.customerId) throw new Error('customerId required for store credit refund');

@@ -4,6 +4,7 @@ import { posDb, ProductLite } from '@/lib/db/posDexie';
 import { PosCartLine } from '@/lib/pos/types';
 import { useTranslations } from 'next-intl';
 import { VariantPicker } from './VariantPicker';
+import { attachScanner, loadScannerConfig } from '@/lib/scanner/hid';
 
 type Props = {
   onAdd: (line: Omit<PosCartLine, 'qty'> & { qty?: number }) => void;
@@ -15,6 +16,8 @@ export function Search({ onAdd }: Props) {
   const [query, setQuery] = useState('');
   const [all, setAll] = useState<ProductLite[]>([]);
   const [openPickerFor, setOpenPickerFor] = useState<{ productCode: string; variants: ProductLite[] } | null>(null);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scannerBuffer, setScannerBuffer] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -34,6 +37,26 @@ export function Search({ onAdd }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  useEffect(() => {
+    const detach = attachScanner({
+      beep: true,
+      onScan: (code) => {
+        // Lookup by barcode or sku
+        const lc = code.trim().toLowerCase();
+        const found = all.find((p) => (p.barcode && p.barcode.toLowerCase() === lc) || p.sku.toLowerCase() === lc);
+        if (found) {
+          onAdd({ sku: found.sku, name: found.name_ar || found.name_en || found.sku, price: found.retailPrice, size: found.size, color: found.color });
+          setQuery('');
+        } else {
+          // fallback to show in search box
+          setQuery(code);
+        }
+      },
+      onState: (s) => { setScannerActive(s.active); setScannerBuffer(s.buffer); },
+    }, loadScannerConfig());
+    return () => { detach(); };
+  }, [all, onAdd]);
 
   const results = useMemo((): ProductLite[] => {
     const q = query.trim().toLowerCase();
@@ -64,6 +87,9 @@ export function Search({ onAdd }: Props) {
         className="w-full border rounded px-3 py-2 outline-none focus:ring"
         dir="rtl"
       />
+      <div className="mt-1 text-[10px] text-gray-500">
+        {scannerActive ? 'قارئ الباركود متصل' : '—'}{scannerBuffer ? ` (${scannerBuffer})` : ''}
+      </div>
 
       {query && (
         <div className="mt-2 max-h-64 overflow-auto rounded border divide-y bg-white dark:bg-black">

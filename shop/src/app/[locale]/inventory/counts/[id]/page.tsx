@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { posDb } from '@/lib/db/posDexie';
 import { queueSyncCountSession, addLocalCountItem, upsertLocalCountSession, queuePostVariances } from '@/lib/offline/count-sync';
+import { attachScanner, loadScannerConfig } from '@/lib/scanner/hid';
 
 type CountItem = { sku: string; onHandAtStart: number; counted?: number; variance?: number; recount?: boolean; note?: string };
 type Session = { _id: string; name: string; status: 'open'|'reviewing'|'posted'; items: CountItem[]; createdAt: string };
@@ -43,6 +44,21 @@ export default function CountSessionPage({ params }: { params: { id: string } })
     return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   }, []);
 
+  useEffect(() => {
+    const detach = attachScanner({
+      beep: true,
+      onScan: async (code) => {
+        // Add or update counted item by scanned sku/barcode
+        const lc = code.trim().toLowerCase();
+        // We don't have product lookup here; treat as SKU
+        const existing = (session?.items || []).find((i) => i.sku.toLowerCase() === lc);
+        const nextCount = (existing?.counted || 0) + 1;
+        await saveItems([{ sku: existing?.sku || code, counted: nextCount }]);
+      },
+    }, loadScannerConfig());
+    return () => { detach(); };
+  }, [session]);
+
   function filteredItems(): CountItem[] {
     if (!session) return [];
     const q = search.trim().toLowerCase();
@@ -56,7 +72,7 @@ export default function CountSessionPage({ params }: { params: { id: string } })
       if (isLocal) {
         const localId = id.replace('local-','');
         for (const p of patch) {
-          const existing = await posDb.countItems.where({ localSessionId: localId, sku: p.sku } as any).first();
+          const existing = await posDb.countItems.where('localSessionId').equals(localId).and((i: any) => i.sku === p.sku).first();
           if (existing) {
             const next = { ...existing, counted: typeof p.counted === 'number' ? p.counted : existing.counted, recount: typeof p.recount === 'boolean' ? p.recount : existing.recount, note: typeof p.note === 'string' ? p.note : existing.note } as any;
             next.variance = (next.counted ?? 0) - (next.onHandAtStart || 0);
@@ -65,7 +81,10 @@ export default function CountSessionPage({ params }: { params: { id: string } })
             await addLocalCountItem(localId, { sku: p.sku, onHandAtStart: 0, counted: p.counted, variance: (p.counted || 0) - 0, recount: p.recount, note: p.note });
           }
         }
-        if (status) await posDb.countSessions.where({ localId } as any).modify({ status });
+        if (status) {
+          const sess = await posDb.countSessions.where('localId').equals(localId).first();
+          if (sess) { await posDb.countSessions.update(sess.id || (sess as any).localId, { status }); }
+        }
         await load();
       } else {
         const res = await fetch(`/api/inventory/count-sessions/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${Date.now()}-${Math.random()}` }, body: JSON.stringify({ items: patch, status }) });
@@ -147,7 +166,7 @@ export default function CountSessionPage({ params }: { params: { id: string } })
                   )}
                 </td>
                 <td className="p-2">
-                  <span className={((it.variance || 0) > 0 ? 'text-green-700' : (it.variance || 0) < 0 ? 'text-red-700' : 'text-gray-500'))}>{new Intl.NumberFormat(locale).format(it.variance || 0)}</span>
+                  <span className={( (it.variance || 0) > 0 ? 'text-green-700' : (it.variance || 0) < 0 ? 'text-red-700' : 'text-gray-500')}>{new Intl.NumberFormat(locale).format(it.variance || 0)}</span>
                 </td>
                 <td className="p-2">
                   {session.status !== 'posted' ? (
