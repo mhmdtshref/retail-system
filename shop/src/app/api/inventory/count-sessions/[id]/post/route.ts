@@ -8,8 +8,8 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
   await dbConnect();
   const idempotencyKey = _req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
-  const existing = await Idempotency.findOne({ key: idempotencyKey }).lean();
-  if (existing) return NextResponse.json(existing.result);
+  const existing: any = await Idempotency.findOne({ key: idempotencyKey }).lean();
+  if (existing && existing.result) return NextResponse.json(existing.result);
 
   const { id } = await context.params;
   const session = await StockCountSession.findById(id);

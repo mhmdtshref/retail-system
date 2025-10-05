@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const batch = await ImportBatch.findById(parsed.data.batchId).lean();
+  const batch: any = await ImportBatch.findById(parsed.data.batchId).lean();
   if (!batch) return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
   if (batch.status !== 'validated') return NextResponse.json({ error: 'Batch not validated' }, { status: 400 });
 

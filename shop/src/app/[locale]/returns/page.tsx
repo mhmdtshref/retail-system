@@ -5,7 +5,8 @@ import { ReturnBuilder } from '@/components/returns/ReturnBuilder';
 import { ExchangeBuilder } from '@/components/returns/ExchangeBuilder';
 
 export default function ReturnsPage() {
-	const [tab, setTab] = useState<'return'|'exchange'>('return');
+const [tab, setTab] = useState<'return'|'exchange'>('return');
+const [sale, setSale] = useState<any | null>(null);
 	return (
 		<div dir="rtl" className="p-4 space-y-4">
 			<h1 className="text-xl font-bold">الإرجاع والاستبدال</h1>

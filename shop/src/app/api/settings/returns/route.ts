@@ -10,7 +10,7 @@ export async function GET() {
 export async function PUT(req: Request) {
 	const body = await req.json();
 	const wnd = Number(body.windowDays);
-	const reasons = Array.isArray(body.reasons) ? body.reasons.filter((s) => typeof s === 'string') : undefined;
+  const reasons = Array.isArray(body.reasons) ? (body.reasons as unknown[]).filter((s: any) => typeof s === 'string') as string[] : undefined;
 	if (wnd && wnd > 0) g.__returnsSettings!.windowDays = wnd;
 	if (reasons && reasons.length) g.__returnsSettings!.reasons = reasons;
 	return NextResponse.json(g.__returnsSettings);

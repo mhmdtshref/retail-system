@@ -156,6 +156,34 @@ export default function POPage({ params }: { params: Promise<{ id: string }> }) 
               )}
             </tbody>
           </table>
+          <div className="p-2 border-t flex justify-end">
+            <button
+              className="px-3 py-2 rounded border"
+              onClick={async () => {
+                const received = (po?.lines||[])
+                  .filter((l: any) => (l.quantityReceived||0) > 0 && l.sku)
+                  .map((l: any) => ({
+                    sku: l.sku,
+                    name_ar: po?.name_ar || '',
+                    size: l.size,
+                    color: l.color,
+                    price: l.unitCost,
+                    qty: l.quantityReceived || 1,
+                    barcode: l.barcode,
+                    brand: po?.supplier || undefined,
+                  }));
+                if (received.length === 0) { alert('لا توجد بنود مستلمة'); return; }
+                const res = await fetch('/api/labels/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: 'thermal-80', items: received, options: { barcodeType: 'auto', show: { name: true, sku: true, sizeColor: true, price: true } } }) });
+                if (!res.ok) { alert('تعذر توليد الملصقات'); return; }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const popup = window.open(url, '_blank');
+                popup?.focus();
+              }}
+            >
+              طباعة ملصقات للبنود المستلمة
+            </button>
+          </div>
         </div>
       )}
 

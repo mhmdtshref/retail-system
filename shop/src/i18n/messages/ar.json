@@ -2,6 +2,31 @@
   "app": {
     "title": "متجر الملابس"
   },
+  "labels": {
+    "title": "طباعة الملصقات",
+    "template": "القالب",
+    "thermal80": "حراري 80مم",
+    "thermal58": "حراري 58مم",
+    "a43x8": "A4 (3×8)",
+    "barcode": "الباركود",
+    "auto": "تلقائي",
+    "code128": "Code128",
+    "ean13": "EAN-13",
+    "qr": "QR",
+    "shopName": "اسم المتجر (اختياري)",
+    "preview": "معاينة PDF",
+    "downloadZpl": "تنزيل ZPL",
+    "addRow": "إضافة سطر"
+  },
+  "scanner": {
+    "connected": "قارئ الباركود متصل",
+    "disconnected": "—",
+    "test": "اختبار القارئ",
+    "prefix": "البادئة",
+    "suffix": "اللاحقة",
+    "minLength": "الطول الأدنى",
+    "delay": "الفاصل بين المفاتيح (مللي ثانية)"
+  },
   "products": {
     "title": "المنتجات",
     "add": "إضافة منتج",

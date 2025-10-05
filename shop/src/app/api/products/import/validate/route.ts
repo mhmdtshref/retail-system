@@ -8,7 +8,7 @@ import { generateSku } from '@/lib/sku';
 
 const BodySchema = z.object({
   text: z.string().min(1), // CSV raw text (UTF-8)
-  mapping: z.record(z.string()).optional() // optional manual mapping
+  mapping: z.record(z.string(), z.string()).optional() // optional manual mapping
 });
 
 export async function POST(req: Request) {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     let preview: any = undefined;
     if (messages.length === 0) {
       // Check DB for existing product & variant
-      const existing = await Product.findOne({ productCode }).lean();
+      const existing: any = await Product.findOne({ productCode }).lean();
       if (existing) {
         const hasVariant = (existing.variants || []).some((v: any) => v.sku === sku || (v.size === size && v.color === color));
         outcome = hasVariant ? 'update' : 'insert';

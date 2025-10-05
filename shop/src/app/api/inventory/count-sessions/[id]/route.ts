@@ -17,8 +17,8 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   await dbConnect();
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
-  const existing = await Idempotency.findOne({ key: idempotencyKey }).lean();
-  if (existing) return NextResponse.json(existing.result);
+  const existing: any = await Idempotency.findOne({ key: idempotencyKey }).lean();
+  if (existing && existing.result) return NextResponse.json(existing.result);
 
   const { id } = await context.params;
   const session = await StockCountSession.findById(id);
@@ -33,7 +33,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   // apply item patches with recompute variance
   const map = new Map(session.items.map((i: any) => [i.sku, i]));
   for (const patch of items) {
-    let row = map.get(patch.sku);
+    let row: any = map.get(patch.sku) as any;
     if (!row) {
       // if new sku comes in (e.g., upload scope later), initialize onHandAtStart to 0 by default
       row = { sku: patch.sku, onHandAtStart: 0 } as any;
