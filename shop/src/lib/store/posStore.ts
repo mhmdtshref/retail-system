@@ -52,13 +52,13 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       return { lines: next, total: totalOf(next) } as Partial<State> as State;
     }),
 
-  clear: () => set({ lines: [], payments: [], localSaleId: null, total: 0, discount: null }),
+  clear: () => set({ lines: [], payments: [], localSaleId: null, total: 0, discount: null, appliedDiscounts: [], couponCode: null }),
 
   startSale: async () => {
     const s = get();
     const localSaleId = uuid();
     const subtotal = s.total;
-    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc, d) => acc + (d.amount || 0), 0));
+    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc: number, d: any) => acc + (d.amount || 0), 0));
     const grand = Math.max(0, subtotal - discountValue);
     const draft = {
       localSaleId,
@@ -130,7 +130,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     await posDb.outbox.add({ id: uuid(), type: 'PAYMENT_ADD', payload: { localSaleId, ...payment }, idempotencyKey: makePaymentKey(saleKey, seq), createdAt: Date.now(), retryCount: 0 });
     const payments = [...s.payments, payment];
     const subtotal = s.total;
-    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc, d) => acc + (d.amount || 0), 0));
+    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc: number, d: any) => acc + (d.amount || 0), 0));
     const grand = Math.max(0, subtotal - discountValue);
     const receipt: ReceiptData = {
       localSaleId,

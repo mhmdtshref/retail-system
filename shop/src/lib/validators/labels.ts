@@ -28,7 +28,7 @@ export const LabelShopOptionsSchema = z.object({
 
 export const LabelOptionsSchema = z.object({
   barcodeType: z.enum(['auto','code128','ean13','qr']).optional().default('auto'),
-  show: LabelShowOptionsSchema.default({ name: true, sku: true, sizeColor: true, price: true, brand: false }),
+  show: LabelShowOptionsSchema.default(() => ({ name: true, sku: true, sizeColor: true, price: true } as any)),
   shop: LabelShopOptionsSchema.optional(),
 });
 

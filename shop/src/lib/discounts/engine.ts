@@ -71,9 +71,14 @@ function evaluatePromotion(cart: CartInput, ctx: EvaluateContext, promo: Promoti
       const yItems = pickCheapest(expanded, yQtyTotal);
       const yDisc = promo.yDiscount == null ? 100 : promo.yDiscount;
       amount = yItems.reduce((s, li) => s + percent(li.unitPrice, yDisc), 0);
-      const linesAgg: Record<string, number> = {};
-      for (const item of yItems) linesAgg[item.sku] = (linesAgg[item.sku] || 0) + percent(item.unitPrice, yDisc);
-      lines = Object.entries(linesAgg).map(([sku, discount]) => ({ sku, qty: 1, discount }));
+      const linesAgg: Record<string, { qty: number; discount: number }> = {};
+      for (const item of yItems) {
+        const add = percent(item.unitPrice, yDisc);
+        if (!linesAgg[item.sku]) linesAgg[item.sku] = { qty: 0, discount: 0 };
+        linesAgg[item.sku].qty += 1;
+        linesAgg[item.sku].discount += add;
+      }
+      lines = Object.entries(linesAgg).map(([sku, v]) => ({ sku, qty: v.qty, discount: v.discount }));
     }
   }
 

@@ -4,13 +4,12 @@ export function isLineInScope(line: CartLine, scope?: RuleScope): boolean {
   if (!scope) return true;
   const inc = scope.include || {};
   const exc = scope.exclude || {};
-  // Include filters: if provided, at least one must match
-  const includeOk = (
-    (!inc.categories || (line.category && inc.categories.includes(line.category))) ||
-    (!inc.brands || (line.brand && inc.brands.includes(line.brand))) ||
-    (!inc.skus || inc.skus.includes(line.sku)) ||
-    (!inc.categories && !inc.brands && !inc.skus)
-  );
+  // Include filters: if provided, ALL specified include filters must match.
+  const hasAnyInclude = !!(inc.categories || inc.brands || inc.skus);
+  const matchCategory = !inc.categories || (line.category && inc.categories.includes(line.category));
+  const matchBrand = !inc.brands || (line.brand && inc.brands.includes(line.brand));
+  const matchSku = !inc.skus || inc.skus.includes(line.sku);
+  const includeOk = hasAnyInclude ? (matchCategory && matchBrand && matchSku) : true;
   if (!includeOk) return false;
   // Exclude filters: if any matches, reject
   const excluded = (
