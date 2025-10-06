@@ -14,7 +14,9 @@ async function processItem(item: OutboxItem) {
         downPayment: draft.downPayment,
         schedule: draft.schedule,
         expiresAt: draft.expiresAt,
-        minDownPercent: draft.minDownPercent
+        minDownPercent: draft.minDownPercent,
+        discounts: draft.appliedDiscounts,
+        couponCode: draft.couponCode
       })
     });
     if (!res.ok) throw new Error('SALE_CREATE failed');
@@ -142,6 +144,24 @@ async function processItem(item: OutboxItem) {
       body: JSON.stringify(p)
     });
     if (!res.ok) throw new Error('CREDIT_REDEEM failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'COUPON_REDEEM') {
+    const p = item.payload as any;
+    // Resolve saleId mapping if only localSaleId is present
+    let saleId = p.saleId as string | undefined;
+    if (!saleId && p.localSaleId) {
+      const map = await posDb.syncLog.get({ key: `sale:${p.localSaleId}` } as any);
+      if (!map) return; // wait until sale synced
+      saleId = map.value;
+    }
+    const res = await fetch('/api/coupons/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ code: p.code, saleId })
+    });
+    if (!res.ok) throw new Error('COUPON_REDEEM failed');
     await posDb.outbox.delete(item.id);
     return;
   }

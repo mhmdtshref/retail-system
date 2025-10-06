@@ -8,6 +8,7 @@ import { Cart } from '@/components/pos/Cart';
 import { PayModal } from '@/components/pos/PayModal';
 import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
+import { evaluateLocalForPos } from '@/lib/discounts/local';
 import { uuid } from '@/lib/pos/idempotency';
 
 export default function POSPage() {
@@ -17,9 +18,13 @@ export default function POSPage() {
   const startSale = usePosStore((s: any) => s.startSale);
   const startPartialSale = usePosStore((s: any) => s.startPartialSale);
   const addPayment = usePosStore((s: any) => s.addPayment);
+  const setAppliedDiscountsStore = usePosStore((s: any) => s.setAppliedDiscounts);
+  const setCouponCodeStore = usePosStore((s: any) => s.setCouponCode);
   const lastReceipt = usePosStore((s: any) => s.lastReceipt);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [availableCredit, setAvailableCredit] = useState<number | null>(null);
+  const [couponCode, setCouponCode] = useState<string>('');
+  const [appliedDiscounts, setAppliedDiscounts] = useState<any[]>([]);
   const [offline, setOffline] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showPay, setShowPay] = useState(false);
@@ -33,6 +38,20 @@ export default function POSPage() {
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
     };
+  }, []);
+
+  // Cache promotions and coupons index from bootstrap
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/pos/bootstrap');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.promotions?.length) await posDb.promotionsActive.bulkPut(data.promotions);
+          if (data.couponsIndex?.length) await posDb.couponsIndex.bulkPut(data.couponsIndex);
+        }
+      } catch {}
+    })();
   }, []);
 
   useEffect(() => {
@@ -137,11 +156,17 @@ export default function POSPage() {
   );
   const discount = usePosStore((s: any) => s.discount);
   const { discountValue, grand } = useMemo(() => {
-    const val = discount
-      ? (discount.type === 'percent' ? (subtotal * Math.min(100, Math.max(0, discount.value))) / 100 : Math.min(Math.max(0, discount.value), subtotal))
-      : 0;
-    return { discountValue: val, grand: Math.max(0, subtotal - val) };
-  }, [discount, subtotal]);
+    return { discountValue: 0, grand: subtotal };
+  }, [subtotal]);
+
+  // Evaluate engine locally whenever lines or coupon change
+  useEffect(() => {
+    (async () => {
+      const res = await evaluateLocalForPos(lines as any[], couponCode || null, 'allow_both', discount || null);
+      setAppliedDiscounts(res.applied || []);
+      setAppliedDiscountsStore(res.applied || []);
+    })();
+  }, [lines, couponCode, discount]);
 
   return (
     <main className="p-4 flex flex-col gap-3">
@@ -166,7 +191,30 @@ export default function POSPage() {
 
       <Cart />
 
-      <Totals subtotal={subtotal} />
+      <div className="grid gap-2">
+        <Totals subtotal={subtotal} />
+        <div className="rounded border p-3 flex items-center gap-2">
+          <span className="font-medium">{t('pos.coupon') || 'قسيمة'}</span>
+          <input value={couponCode} onChange={(e)=> { setCouponCode(e.target.value); setCouponCodeStore(e.target.value || null); }} className="border rounded px-2 py-1" dir="ltr" placeholder="RAMADAN10" />
+        </div>
+        {appliedDiscounts && appliedDiscounts.length > 0 && (
+          <div className="rounded border p-3 text-sm">
+            <div className="font-medium mb-1">{t('pos.discounts') || 'التخفيضات'}</div>
+            <div className="space-y-1">
+              {appliedDiscounts.map((d) => (
+                <div key={d.traceId} className="flex items-center justify-between">
+                  <div>{d.label}</div>
+                  <div className="text-rose-600">-{Number(d.amount || 0).toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <div className="text-muted-foreground">{t('pos.totalSavings') || 'إجمالي التوفير'}</div>
+              <div className="text-rose-600">-{appliedDiscounts.reduce((s, a)=> s + (a.amount||0), 0).toFixed(2)}</div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
         <div className="text-sm">
@@ -176,11 +224,11 @@ export default function POSPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">{t('pos.discountValue') || 'قيمة الخصم'}:</span>
-            <span className="text-rose-600">-{discountValue.toFixed(2)}</span>
+            <span className="text-rose-600">-{appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0).toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2 font-semibold">
             <span>{t('pos.grandTotal') || 'الإجمالي النهائي'}:</span>
-            <span>{grand.toFixed(2)}</span>
+            <span>{Math.max(0, subtotal - appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0)).toFixed(2)}</span>
           </div>
         </div>
         <div className="flex gap-2">

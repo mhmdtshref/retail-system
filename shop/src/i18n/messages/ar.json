@@ -168,7 +168,15 @@
     "grandTotal": "الإجمالي النهائي",
     "availableCredit": "الرصيد المتاح",
     "percentBetweenZeroAndHundred": "النسبة يجب أن تكون بين 0 و 100.",
-    "discountExceedsSubtotal": "لا يمكن أن يتجاوز الخصم قيمة الإجمالي."
+    "discountExceedsSubtotal": "لا يمكن أن يتجاوز الخصم قيمة الإجمالي.",
+    "coupon": "قسيمة",
+    "apply": "تطبيق",
+    "remove": "إزالة",
+    "couponApplied": "تم تطبيق القسيمة",
+    "couponInvalid": "قسيمة غير صالحة",
+    "discounts": "التخفيضات",
+    "totalSavings": "إجمالي التوفير",
+    "pendingCoupon": "قيد التحقق من القسيمة"
   },
   "layaway": {
     "title": "تقسيط/الحجوزات",

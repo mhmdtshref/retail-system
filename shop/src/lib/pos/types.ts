@@ -44,6 +44,8 @@ export type ReceiptData = {
   totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
   discount?: Discount;
   offlinePending: boolean;
+  appliedDiscounts?: Array<{ id: string; source: 'promotion'|'coupon'; level: 'line'|'order'; label: string; amount: number; lines?: { sku: string; qty: number; discount: number }[]; traceId?: string }>;
+  pendingCouponRedemption?: boolean;
   paymentPlan?: {
     mode: 'partial';
     downPayment: number;

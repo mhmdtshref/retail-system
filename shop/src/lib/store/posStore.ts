@@ -12,6 +12,8 @@ type State = {
   total: number;
   lastReceipt: ReceiptData | null;
   discount: Discount | null;
+  appliedDiscounts: Array<{ id: string; source: 'promotion'|'coupon'; level: 'line'|'order'; label: string; amount: number; lines?: { sku: string; qty: number; discount: number }[]; traceId?: string }>;
+  couponCode: string | null;
 };
 
 type Actions = {
@@ -23,6 +25,8 @@ type Actions = {
   startPartialSale: (downPayment: number, plan?: { schedule?: Array<{ seq: number; dueDate: string; amount: number }>; expiresAt?: string; minDownPercent?: number; note?: string }) => Promise<string>;
   addPayment: (method: PosPayment['method'], amount: number, meta?: PosPayment['meta']) => Promise<void>;
   setDiscount: (d: Discount | null) => void;
+  setAppliedDiscounts: (list: State['appliedDiscounts']) => void;
+  setCouponCode: (code: string | null) => void;
 };
 
 export const usePosStore = create<State & Actions>((set: any, get: any) => ({
@@ -33,6 +37,8 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   total: 0,
   lastReceipt: null,
   discount: null,
+  appliedDiscounts: [],
+  couponCode: null,
 
   addLine: (line) =>
     set((s: any) => {
@@ -52,7 +58,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const s = get();
     const localSaleId = uuid();
     const subtotal = s.total;
-    const discountValue = calcDiscountValue(subtotal, s.discount);
+    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc, d) => acc + (d.amount || 0), 0));
     const grand = Math.max(0, subtotal - discountValue);
     const draft = {
       localSaleId,
@@ -60,11 +66,20 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
       totals: { subtotal, tax: 0, grand, discountValue },
       discount: s.discount || undefined,
+      appliedDiscounts: s.appliedDiscounts || [],
+      couponCode: s.couponCode || null,
+      pendingCouponRedemption: !!(s.couponCode && !navigator.onLine),
       mode: 'cash' as const,
     };
     await posDb.draftSales.put(draft);
     const saleKey = makeSaleKey(s.storeId, localSaleId);
     await posDb.outbox.add({ id: uuid(), type: 'SALE_CREATE', payload: draft, idempotencyKey: saleKey, createdAt: Date.now(), retryCount: 0 });
+    // If coupon present, queue redemption (will resolve saleId mapping later)
+    if (s.couponCode) {
+      const oid = uuid();
+      const idemp = `${saleKey}:coupon:${s.couponCode}`;
+      await posDb.outbox.add({ id: oid, type: 'COUPON_REDEEM', payload: { localSaleId, code: s.couponCode }, idempotencyKey: idemp, createdAt: Date.now(), retryCount: 0 });
+    }
     set({ localSaleId });
     return localSaleId;
   },
@@ -115,7 +130,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     await posDb.outbox.add({ id: uuid(), type: 'PAYMENT_ADD', payload: { localSaleId, ...payment }, idempotencyKey: makePaymentKey(saleKey, seq), createdAt: Date.now(), retryCount: 0 });
     const payments = [...s.payments, payment];
     const subtotal = s.total;
-    const discountValue = calcDiscountValue(subtotal, s.discount);
+    const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc, d) => acc + (d.amount || 0), 0));
     const grand = Math.max(0, subtotal - discountValue);
     const receipt: ReceiptData = {
       localSaleId,
@@ -124,6 +139,8 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       payments,
       totals: { subtotal, tax: 0, grand, discountValue },
       discount: s.discount || undefined,
+      appliedDiscounts: s.appliedDiscounts || [],
+      pendingCouponRedemption: !!(s.couponCode && !navigator.onLine),
       offlinePending: !navigator.onLine,
     };
     set({ payments, lastReceipt: receipt, lines: [], total: 0, localSaleId: null, discount: null });
@@ -143,6 +160,8 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   }),
 
   setDiscount: (d) => set({ discount: d }),
+  setAppliedDiscounts: (list) => set({ appliedDiscounts: Array.isArray(list) ? list : [] }),
+  setCouponCode: (code) => set({ couponCode: code })
 }));
 
 function totalOf(lines: PosCartLine[]): number {
