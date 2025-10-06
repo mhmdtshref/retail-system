@@ -358,7 +358,7 @@ export const mockDb = {
   // Store Credit
   issueStoreCredit(input: { customerId: string; amount: number; expiresAt?: number; note?: string; origin: { type: 'return'|'exchange'|'manual'; refId?: string } }) {
     const id = uuid();
-    const code = genCreditCode();
+    const code = `CR-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
     const doc: StoreCredit = {
       _id: id,
       customerId: input.customerId,
@@ -467,11 +467,11 @@ export const mockDb = {
     const now = Date.now();
     const refMovementIds: string[] = [];
     for (const l of input.returnLines) {
-      const m = mockDb.addMovement({ sku: l.sku, type: 'return_in', quantity: l.qty, refType: 'Exchange', refId: id, note: input.notes });
+      const m = mockDb.addMovement({ sku: l.sku, type: 'return_in', quantity: l.qty, refType: 'Return', refId: id, note: input.notes });
       refMovementIds.push(m._id);
     }
     for (const l of input.newLines) {
-      const m = mockDb.addMovement({ sku: l.sku, type: 'sale_out', quantity: l.qty, refType: 'Exchange', refId: id, note: input.notes });
+      const m = mockDb.addMovement({ sku: l.sku, type: 'sale_out', quantity: l.qty, refType: 'Sale', refId: id, note: input.notes });
       refMovementIds.push(m._id);
     }
     const ex = { _id: id, originalSaleId: input.originalSaleId, returnLines: input.returnLines, newLines: input.newLines, settlement: input.settlement, posted: true, postedAt: now, createdBy: 'mock', notes: input.notes, refMovementIds, createdAt: now, updatedAt: now };

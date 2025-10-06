@@ -37,6 +37,9 @@ export type DraftSale = {
   customerLocalId?: string;
   totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
   discount?: Discount;
+  appliedDiscounts?: Array<{ id: string; source: 'promotion'|'coupon'; level: 'line'|'order'; label: string; amount: number; lines?: { sku: string; qty: number; discount: number }[]; traceId?: string }>;
+  pendingCouponRedemption?: boolean;
+  couponCode?: string | null;
   mode?: 'cash'|'card'|'partial';
   downPayment?: number;
   schedule?: Array<{ seq: number; dueDate: string; amount: number }>;
@@ -46,7 +49,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -70,6 +73,8 @@ export class POSDexie extends Dexie {
   countItems!: Table<any, number>;
   storeCreditsLocal!: Table<any, string>;
   refundDrafts!: Table<any, string>;
+  promotionsActive!: Table<any, string>;
+  couponsIndex!: Table<any, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -95,6 +100,11 @@ export class POSDexie extends Dexie {
     this.version(4).stores({
       storeCreditsLocal: 'localId, serverId, customerId, code, status',
       refundDrafts: 'localId, createdAt'
+    });
+    // Bump version for discounts engine caches
+    this.version(5).stores({
+      promotionsActive: 'id, updatedAt, startsAt, endsAt',
+      couponsIndex: 'codeLower, expiresAt'
     });
   }
 }

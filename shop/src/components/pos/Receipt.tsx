@@ -37,12 +37,22 @@ export function Receipt({ data }: { data: ReceiptData }) {
           <div>الإجمالي قبل الخصم</div>
           <div>{data.totals.subtotal.toFixed(2)}</div>
         </div>
-        {(data.totals.discountValue || 0) > 0 && (
-          <div className="flex items-center justify-between">
-            <div>
-              الخصم{data.discount?.type === 'percent' ? ` (%${data.discount.value})` : ''}
+        {data.appliedDiscounts && data.appliedDiscounts.length > 0 && (
+          <div className="mt-1">
+            <div className="font-medium">التخفيضات</div>
+            {data.appliedDiscounts.map((d) => (
+              <div key={d.traceId} className="flex items-center justify-between text-xs">
+                <div>{d.label}</div>
+                <div>-{Number(d.amount || 0).toFixed(2)}</div>
+              </div>
+            ))}
+            <div className="flex items-center justify-between text-xs">
+              <div>إجمالي التوفير</div>
+              <div>-{data.appliedDiscounts.reduce((s: number, a: any)=> s + (a.amount || 0), 0).toFixed(2)}</div>
             </div>
-            <div>-{(data.totals.discountValue || 0).toFixed(2)}</div>
+            {data.pendingCouponRedemption && (
+              <div className="text-amber-700 text-xs mt-1">قيد التحقق من القسيمة</div>
+            )}
           </div>
         )}
         <div className="flex items-center justify-between">

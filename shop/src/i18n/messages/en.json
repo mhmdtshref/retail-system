@@ -125,7 +125,15 @@
     "color": "Color",
     "subtotal": "Subtotal",
     "offline": "You are offline. Actions will sync when online.",
-    "availableCredit": "Available credit"
+    "availableCredit": "Available credit",
+    "coupon": "Coupon",
+    "apply": "Apply",
+    "remove": "Remove",
+    "couponApplied": "Coupon applied",
+    "couponInvalid": "Invalid coupon",
+    "discounts": "Discounts",
+    "totalSavings": "Total savings",
+    "pendingCoupon": "Pending coupon verification"
   },
   "common": {
     "confirm": "Confirm",

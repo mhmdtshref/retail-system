@@ -28,7 +28,7 @@ export const LabelShopOptionsSchema = z.object({
 
 export const LabelOptionsSchema = z.object({
   barcodeType: z.enum(['auto','code128','ean13','qr']).optional().default('auto'),
-  show: LabelShowOptionsSchema.default({ name: true, sku: true, sizeColor: true, price: true }),
+  show: LabelShowOptionsSchema.default(() => ({ name: true, sku: true, sizeColor: true, price: true } as any)),
   shop: LabelShopOptionsSchema.optional(),
 });
 
@@ -37,12 +37,12 @@ export const LabelTemplateSchema = z.enum(['thermal-80','thermal-58','a4-3x8']);
 export const LabelsPreviewBodySchema = z.object({
   template: LabelTemplateSchema,
   items: z.array(LabelItemSchema).min(1),
-  options: LabelOptionsSchema.default({})
+  options: LabelOptionsSchema.default({ barcodeType: 'auto', show: { name: true, sku: true, sizeColor: true, price: true, brand: false } })
 });
 
 export const LabelsZplBodySchema = z.object({
   items: z.array(LabelItemSchema).min(1),
-  options: LabelOptionsSchema.default({})
+  options: LabelOptionsSchema.default({ barcodeType: 'auto', show: { name: true, sku: true, sizeColor: true, price: true, brand: false } })
 });
 
 export type LabelOptions = z.infer<typeof LabelOptionsSchema>;
