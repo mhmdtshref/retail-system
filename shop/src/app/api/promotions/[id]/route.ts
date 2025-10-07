@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongo';
 import { Promotion } from '@/lib/models/Promotion';
 import { PromotionSchema } from '@/lib/validators/promotion';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   await dbConnect();
@@ -11,7 +12,11 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
   return NextResponse.json({ promotion: doc });
 }
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'PROMOS.MANAGE');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const body = await req.json();
   const parsed = PromotionSchema.partial().safeParse(body);
@@ -22,7 +27,11 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   return NextResponse.json({ promotion: updated });
 }
 
-export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'PROMOS.MANAGE');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const { id } = await context.params;
   await Promotion.findByIdAndDelete(id);

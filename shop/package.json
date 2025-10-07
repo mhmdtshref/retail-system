@@ -12,10 +12,13 @@
     "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "bwip-js": "^3.4.4",
     "dexie": "^4.2.0",
+    "jose": "^6.1.0",
     "mongoose": "^8.18.2",
     "next": "15.5.4",
+    "next-auth": "^4.24.11",
     "next-intl": "^4.3.9",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongo';
 import { Product } from '@/lib/models/Product';
 import { z } from 'zod';
 import { ProductSchema } from '@/lib/validators/product';
 import { getIfExists, saveResult } from '@/lib/idempotency';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const ListQuery = z.object({
   q: z.string().optional(),
@@ -48,7 +49,11 @@ export async function GET(req: Request) {
   return NextResponse.json({ items, page, pageSize, total });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'PRODUCTS.CREATE');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   const existing = await getIfExists(idempotencyKey);

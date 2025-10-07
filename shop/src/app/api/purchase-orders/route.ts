@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const CreateSchema = z.object({
   supplierId: z.string(),
@@ -25,7 +26,11 @@ export async function GET(req: Request) {
   return NextResponse.json({ purchaseOrders: list });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'INVENTORY.COUNT_POST');
+  if (allowed !== true) return allowed;
   const body = await req.json();
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

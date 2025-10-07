@@ -1,0 +1,43 @@
+import createMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale, localePrefix } from '@/i18n/config';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUserFromRequest } from '@/lib/auth/session';
+import { ROUTE_RULES } from '@/lib/policy/route-config';
+import { minRole as hasMinRole } from '@/lib/policy/guard';
+
+const intl = createMiddleware({ locales: Array.from(locales), defaultLocale, localePrefix });
+
+const PROTECTED_PREFIXES = [
+  /^\/(ar|en)\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings)(\/.*)?$/, // locale prefixed
+  /^\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings)(\/.*)?$/ // non-locale (fallback)
+];
+
+export default async function middleware(req: NextRequest) {
+  const res = intl(req);
+
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+
+  const needsAuth = PROTECTED_PREFIXES.some((re) => re.test(pathname));
+  if (!needsAuth) return res;
+
+  const user = await getSessionUserFromRequest(req);
+  if (!user || user.status !== 'active') {
+    const loginUrl = new URL('/auth/login', req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+  // Optional per-route minRole checks
+  const rule = ROUTE_RULES.find((r) => r.pattern.test(pathname));
+  if (rule && rule.minRole && !hasMinRole(user as any, rule.minRole)) {
+    const loginUrl = new URL('/auth/login', req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+  return res;
+}
+
+export const config = {
+  matcher: [
+    '/',
+    '/((?!_next|api|offline|manifest\\.webmanifest|sw\\.js|icons|.*\\..*).*)',
+  ],
+};
