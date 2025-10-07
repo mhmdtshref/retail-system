@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
+import { getSettings } from '@/lib/settings/index';
 import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const PaymentSchema = z.object({
@@ -25,6 +26,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { id } = await context.params;
+  // Enforce allowed payment methods from Settings
+  try {
+    const s = await getSettings();
+    const allowed: string[] = s?.payments?.enabledMethods || ['cash','card','transfer','store_credit','partial'];
+    const map: Record<string,string> = { cod_remit: 'cod' };
+    const methodKey = map[parsed.data.method] || parsed.data.method;
+    if (!allowed.includes(methodKey)) {
+      return NextResponse.json({ error: { message: 'مرفوض: طريقة الدفع غير مفعلة' } }, { status: 403 });
+    }
+  } catch {}
   const result = mockDb.addPayment({ saleId: id, ...parsed.data } as any);
   mockDb.set(idempotencyKey, result);
   return NextResponse.json(result);

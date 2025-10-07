@@ -64,14 +64,35 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
     setSchedule(out);
   };
 
+  const [allowed, setAllowed] = useState<Array<'cash'|'card'|'transfer'|'store_credit'|'cod'|'partial'>>(['cash','card','transfer','store_credit','partial']);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const s = await res.json();
+          setAllowed(s?.payments?.enabledMethods || allowed);
+        }
+      } catch {}
+    })();
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end">
       <div className="w-full bg-white dark:bg-neutral-900 rounded-t-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <button className={`px-3 py-1 rounded ${tab==='cash'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('cash')}>{t('pos.cash') || 'نقدًا'}</button>
-          <button className={`px-3 py-1 rounded ${tab==='card'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('card')}>{t('pos.card') || 'بطاقة'}</button>
-          <button className={`px-3 py-1 rounded ${tab==='partial'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('partial')}>{t('pos.partial') || 'تقسيط'}</button>
-          <button className={`px-3 py-1 rounded ${tab==='store_credit'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('store_credit')}>{t('pos.storeCredit') || 'رصيد المتجر'}</button>
+          {allowed.includes('cash') && (
+            <button className={`px-3 py-1 rounded ${tab==='cash'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('cash')}>{t('pos.cash') || 'نقدًا'}</button>
+          )}
+          {allowed.includes('card') && (
+            <button className={`px-3 py-1 rounded ${tab==='card'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('card')}>{t('pos.card') || 'بطاقة'}</button>
+          )}
+          {allowed.includes('partial') && (
+            <button className={`px-3 py-1 rounded ${tab==='partial'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('partial')}>{t('pos.partial') || 'تقسيط'}</button>
+          )}
+          {allowed.includes('store_credit') && (
+            <button className={`px-3 py-1 rounded ${tab==='store_credit'?'bg-blue-600 text-white':'border'}`} onClick={() => setTab('store_credit')}>{t('pos.storeCredit') || 'رصيد المتجر'}</button>
+          )}
           <button className="ms-auto text-sm" onClick={onClose}>{t('common.close') || 'إغلاق'}</button>
         </div>
 

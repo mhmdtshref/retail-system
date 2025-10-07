@@ -10,7 +10,8 @@ import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
 import { evaluateLocalForPos } from '@/lib/discounts/local';
 import { evaluateTaxForPos } from '@/lib/tax/local';
-import { refreshTaxCurrencyConfigs } from '@/lib/tax/cache';
+import { refreshTaxCurrencyConfigs, refreshSettingsConfig } from '@/lib/tax/cache';
+import { getCachedSettings } from '@/lib/offline/settings-cache';
 import { uuid } from '@/lib/pos/idempotency';
 import { getCachedUser } from '@/lib/offline/userRoleCache';
 import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
@@ -57,6 +58,7 @@ export default function POSPage() {
         }
         // Refresh tax & currency configs for offline
         await refreshTaxCurrencyConfigs();
+        await refreshSettingsConfig();
       } catch {}
     })();
   }, []);
@@ -202,6 +204,30 @@ export default function POSPage() {
       setAppliedDiscountsStore(res.applied || []);
     })();
   }, [lines, couponCode, discount, role]);
+
+  const [allowedMethods, setAllowedMethods] = useState<Array<'cash'|'card'|'transfer'|'store_credit'|'cod'|'partial'>>(['cash','card','transfer','store_credit','partial']);
+  const [manualLimitPct, setManualLimitPct] = useState<number>(10);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const s = await res.json();
+          setAllowedMethods(s?.payments?.enabledMethods || allowedMethods);
+          setManualLimitPct(s?.payments?.cashierManualDiscountLimitPct ?? 10);
+          return;
+        }
+      } catch {}
+      try {
+        const s = await getCachedSettings();
+        if (s) {
+          setAllowedMethods(s?.payments?.enabledMethods || allowedMethods);
+          setManualLimitPct(s?.payments?.cashierManualDiscountLimitPct ?? 10);
+        }
+      } catch {}
+    })();
+  }, []);
 
   return (
     <main className="p-4 flex flex-col gap-3">

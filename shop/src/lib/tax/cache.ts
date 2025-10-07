@@ -20,6 +20,19 @@ export async function refreshTaxCurrencyConfigs(): Promise<void> {
   } catch {}
 }
 
+export async function refreshSettingsConfig(): Promise<void> {
+  try {
+    const res = await fetch('/api/settings');
+    if (res.ok) {
+      const doc = await res.json();
+      try {
+        const { cacheSettings } = await import('@/lib/offline/settings-cache');
+        await cacheSettings(doc);
+      } catch {}
+    }
+  } catch {}
+}
+
 export async function getCachedTaxConfig(): Promise<TaxConfig> {
   const def: TaxConfig = { priceMode: 'tax_exclusive', defaultRate: 0.15, rules: [], precision: 2, roundingStrategy: 'half_up', receiptRounding: 'none', cashRounding: { enabled: true, increment: 0.05 } };
   try {
