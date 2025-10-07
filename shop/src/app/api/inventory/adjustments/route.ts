@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { dbConnect } from '@/lib/db/mongo';
 import { StockMovement } from '@/lib/models/StockMovement';
 import { StockAdjustment } from '@/lib/models/StockAdjustment';
 import { AdjustmentCreateSchema } from '@/lib/validators/adjustment';
 import { Idempotency } from '@/lib/models/Idempotency';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const ListQuerySchema = z.object({
   dateFrom: z.coerce.number().optional(),
@@ -42,7 +43,11 @@ export async function GET(req: Request) {
   return NextResponse.json({ total, page, pageSize, adjustments: docs });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'INVENTORY.ADJUST_POST');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });

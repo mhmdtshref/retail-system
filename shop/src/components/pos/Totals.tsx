@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { usePosStore } from '@/lib/store/posStore';
 import type { Discount } from '@/lib/pos/types';
+import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
 
 type Props = {
   subtotal: number;
@@ -43,9 +44,13 @@ export function Totals({ subtotal }: Props) {
 
   useEffect(() => {
     if (!isValid) return;
-    const d: Discount = { type, value: valueNum };
+    let capped = valueNum;
+    if (type === 'percent' && valueNum > MANUAL_DISCOUNT_LIMIT * 100) {
+      capped = MANUAL_DISCOUNT_LIMIT * 100;
+    }
+    const d: Discount = { type, value: capped };
     // Persist to store
-    setDiscount((valueNum === 0) ? null : d);
+    setDiscount((capped === 0) ? null : d);
   }, [type, valueNum, isValid, setDiscount]);
 
   return (

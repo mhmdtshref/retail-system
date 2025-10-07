@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const PaymentSchema = z.object({
   method: z.enum(['cash', 'card', 'transfer', 'cod_remit', 'store_credit']),
@@ -8,7 +9,11 @@ const PaymentSchema = z.object({
   seq: z.number().int().nonnegative()
 });
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'POS.SALE');
+  if (allowed !== true) return allowed;
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   if (mockDb.has(idempotencyKey)) {

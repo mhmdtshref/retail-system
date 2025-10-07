@@ -18,7 +18,7 @@ export type CartTotals = {
 };
 
 export type PosPayment = {
-  method: 'cash' | 'card' | 'transfer' | 'cod_remit' | 'store_credit';
+  method: 'cash' | 'card' | 'transfer' | 'store_credit';
   amount: number;
   seq: number;
   meta?: {

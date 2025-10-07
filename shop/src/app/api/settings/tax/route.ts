@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { TaxConfigSchema } from '@/lib/validators/tax';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 const g = globalThis as unknown as { __taxConfig?: any };
 if (!g.__taxConfig) {
@@ -18,7 +19,11 @@ export async function GET() {
   return NextResponse.json(g.__taxConfig);
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'TAX.MANAGE');
+  if (allowed !== true) return allowed;
   const idk = req.headers.get('Idempotency-Key') || '';
   const body = await req.json();
   const parsed = TaxConfigSchema.safeParse(body);

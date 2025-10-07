@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ReturnCreateSchema } from '@/lib/validators/return';
 import { mockDb } from '@/lib/mock/store';
 import { getSaleEligibility, withinReturnWindow } from '@/lib/returns/eligibility';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 export async function GET(req: Request) {
 	const url = new URL(req.url);
@@ -11,7 +12,9 @@ export async function GET(req: Request) {
 	return NextResponse.json({ results: list });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
 	const idempotencyKey = req.headers.get('Idempotency-Key') || '';
 	if (!idempotencyKey) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
 	if (mockDb.has(idempotencyKey)) {
@@ -20,7 +23,11 @@ export async function POST(req: Request) {
 	const body = await req.json();
 	const parsed = ReturnCreateSchema.safeParse(body);
 	if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-	const { saleId, lines, refund, notes, override } = parsed.data;
+  const { saleId, lines, refund, notes, override } = parsed.data;
+  if (!override) {
+    const allowed = await requireCan(req, auth.user, 'POS.RETURN_EXCHANGE_FINALIZE');
+    if (allowed !== true) return allowed;
+  }
 	const sale = mockDb.getSale(saleId);
 	if (!sale) return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
 	const settings = { windowDays: 14 };

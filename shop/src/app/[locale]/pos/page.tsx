@@ -12,6 +12,8 @@ import { evaluateLocalForPos } from '@/lib/discounts/local';
 import { evaluateTaxForPos } from '@/lib/tax/local';
 import { refreshTaxCurrencyConfigs } from '@/lib/tax/cache';
 import { uuid } from '@/lib/pos/idempotency';
+import { getCachedUser } from '@/lib/offline/userRoleCache';
+import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
 
 export default function POSPage() {
   const t = useTranslations();
@@ -30,6 +32,7 @@ export default function POSPage() {
   const [offline, setOffline] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showPay, setShowPay] = useState(false);
+  const [role, setRole] = useState<string>('viewer');
 
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
@@ -55,6 +58,24 @@ export default function POSPage() {
         // Refresh tax & currency configs for offline
         await refreshTaxCurrencyConfigs();
       } catch {}
+    })();
+  }, []);
+
+  // Cache current user role for offline gating
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/self');
+        if (res.ok) {
+          const data = await res.json();
+          const r = data?.user?.role || 'viewer';
+          setRole(r);
+          try { localStorage.setItem('auth:user', JSON.stringify({ id: data?.user?.id, role: r })); } catch {}
+          return;
+        }
+      } catch {}
+      const cached = getCachedUser();
+      if (cached?.role) setRole(cached.role);
     })();
   }, []);
 
@@ -171,11 +192,16 @@ export default function POSPage() {
   // Evaluate engine locally whenever lines or coupon change
   useEffect(() => {
     (async () => {
-      const res = await evaluateLocalForPos(lines as any[], couponCode || null, 'allow_both', discount || null);
+      // Enforce manual discount soft limit for cashiers offline as UX gating
+      let manual = discount;
+      if (role === 'cashier' && manual && manual.type === 'percent' && manual.value > MANUAL_DISCOUNT_LIMIT * 100) {
+        manual = { ...manual, value: MANUAL_DISCOUNT_LIMIT * 100 } as any;
+      }
+      const res = await evaluateLocalForPos(lines as any[], couponCode || null, 'allow_both', manual || null);
       setAppliedDiscounts(res.applied || []);
       setAppliedDiscountsStore(res.applied || []);
     })();
-  }, [lines, couponCode, discount]);
+  }, [lines, couponCode, discount, role]);
 
   return (
     <main className="p-4 flex flex-col gap-3">

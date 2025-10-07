@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db/mongo';
 import { Product } from '@/lib/models/Product';
 import { ProductUpdateSchema } from '@/lib/validators/product';
 import { getIfExists, saveResult } from '@/lib/idempotency';
+import { requireAuth, requireCan } from '@/lib/policy/api';
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   await dbConnect();
@@ -12,7 +13,11 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   return NextResponse.json({ product: doc });
 }
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'PRODUCTS.UPDATE');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const { id } = await context.params;
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
@@ -28,7 +33,11 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   return NextResponse.json(res);
 }
 
-export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  const allowed = await requireCan(req, auth.user, 'PRODUCTS.DELETE');
+  if (allowed !== true) return allowed;
   await dbConnect();
   const { id } = await context.params;
   // Soft delete by setting status archived for safer default

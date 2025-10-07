@@ -63,7 +63,7 @@ export function evaluateTotals(
   let taxRaw = rawPerLine.reduce((s, li)=> s + li.tax, 0);
 
   // Receipt-level rounding/penny balancing
-  let perLine = rawPerLine.slice();
+  const perLine = rawPerLine.slice();
   if (taxConfig.receiptRounding && taxConfig.receiptRounding !== 'none') {
     // sum raw then round totals, adjust largest remainder line
     const roundedTax = round(taxRaw, decimals, taxConfig.receiptRounding);
