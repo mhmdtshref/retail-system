@@ -110,6 +110,39 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'CUSTOMER_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p)
+    });
+    if (!res.ok) throw new Error('CUSTOMER_CREATE failed');
+    const data = await res.json();
+    try {
+      const c = data.customer;
+      await posDb.recentCustomers.put({ id: c._id, name: c.fullName_ar || c.fullName_en || '', phones: c.phones, stats: c.stats, updatedAt: Date.now() });
+    } catch {}
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'CUSTOMER_UPDATE') {
+    const p = item.payload as any;
+    const id = p.id;
+    const res = await fetch(`/api/customers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p.patch)
+    });
+    if (!res.ok) throw new Error('CUSTOMER_UPDATE failed');
+    const data = await res.json();
+    try {
+      const c = data.customer;
+      await posDb.recentCustomers.put({ id: c._id, name: c.fullName_ar || c.fullName_en || '', phones: c.phones, stats: c.stats, updatedAt: Date.now() });
+    } catch {}
+    await posDb.outbox.delete(item.id);
+    return;
+  }
   if (item.type === 'REFUND_CREATE') {
     const p = item.payload as any;
     const res = await fetch('/api/refunds', {

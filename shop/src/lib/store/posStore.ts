@@ -15,6 +15,7 @@ type State = {
   discount: Discount | null;
   appliedDiscounts: Array<{ id: string; source: 'promotion'|'coupon'; level: 'line'|'order'; label: string; amount: number; lines?: { sku: string; qty: number; discount: number }[]; traceId?: string }>;
   couponCode: string | null;
+  customerId: string | null;
 };
 
 type Actions = {
@@ -28,6 +29,7 @@ type Actions = {
   setDiscount: (d: Discount | null) => void;
   setAppliedDiscounts: (list: State['appliedDiscounts']) => void;
   setCouponCode: (code: string | null) => void;
+  setCustomerId: (id: string | null) => void;
 };
 
 export const usePosStore = create<State & Actions>((set: any, get: any) => ({
@@ -40,6 +42,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   discount: null,
   appliedDiscounts: [],
   couponCode: null,
+  customerId: null,
 
   addLine: (line) =>
     set((s: any) => {
@@ -73,6 +76,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       couponCode: s.couponCode || null,
       pendingCouponRedemption: !!(s.couponCode && !navigator.onLine),
       mode: 'cash' as const,
+      customerId: s.customerId || undefined
     };
     await posDb.draftSales.put(draft);
     const saleKey = makeSaleKey(s.storeId, localSaleId);
@@ -105,6 +109,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       schedule: plan?.schedule,
       expiresAt: plan?.expiresAt,
       minDownPercent: plan?.minDownPercent ?? 10,
+      customerId: s.customerId || undefined
     };
     await posDb.draftSales.put(draft);
     const saleKey = makeSaleKey(s.storeId, localSaleId);
@@ -166,7 +171,8 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
 
   setDiscount: (d) => set({ discount: d }),
   setAppliedDiscounts: (list) => set({ appliedDiscounts: Array.isArray(list) ? list : [] }),
-  setCouponCode: (code) => set({ couponCode: code })
+  setCouponCode: (code) => set({ couponCode: code }),
+  setCustomerId: (id) => set({ customerId: id })
 }));
 
 function totalOf(lines: PosCartLine[]): number {
