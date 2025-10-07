@@ -9,6 +9,8 @@ import { PayModal } from '@/components/pos/PayModal';
 import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
 import { evaluateLocalForPos } from '@/lib/discounts/local';
+import { evaluateTaxForPos } from '@/lib/tax/local';
+import { refreshTaxCurrencyConfigs } from '@/lib/tax/cache';
 import { uuid } from '@/lib/pos/idempotency';
 
 export default function POSPage() {
@@ -50,6 +52,8 @@ export default function POSPage() {
           if (data.promotions?.length) await posDb.promotionsActive.bulkPut(data.promotions);
           if (data.couponsIndex?.length) await posDb.couponsIndex.bulkPut(data.couponsIndex);
         }
+        // Refresh tax & currency configs for offline
+        await refreshTaxCurrencyConfigs();
       } catch {}
     })();
   }, []);
@@ -155,9 +159,14 @@ export default function POSPage() {
     [lines]
   );
   const discount = usePosStore((s: any) => s.discount);
-  const { discountValue, grand } = useMemo(() => {
-    return { discountValue: 0, grand: subtotal };
-  }, [subtotal]);
+  const [taxEval, setTaxEval] = useState<{ subtotalExclTax: number; tax: number; grandTotal: number; roundingAdj?: number; priceMode: 'tax_inclusive'|'tax_exclusive' } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const res = await evaluateTaxForPos(lines as any[], appliedDiscounts as any[]);
+      setTaxEval({ subtotalExclTax: res.totals.subtotalExclTax, tax: res.totals.tax, grandTotal: res.totals.grandTotal, roundingAdj: res.totals.roundingAdj, priceMode: res.totals.priceMode });
+    })();
+  }, [lines, appliedDiscounts]);
 
   // Evaluate engine locally whenever lines or coupon change
   useEffect(() => {
@@ -219,17 +228,30 @@ export default function POSPage() {
       <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
         <div className="text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">{t('pos.preDiscountTotal') || 'الإجمالي قبل الخصم'}:</span>
-            <span>{subtotal.toFixed(2)}</span>
+            <span className="text-muted-foreground">المجموع قبل الضريبة:</span>
+            <span>{(taxEval?.subtotalExclTax ?? subtotal).toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">{t('pos.discountValue') || 'قيمة الخصم'}:</span>
             <span className="text-rose-600">-{appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0).toFixed(2)}</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">الضريبة:</span>
+            <span>{(taxEval?.tax ?? 0).toFixed(2)}</span>
+          </div>
+          {typeof taxEval?.roundingAdj === 'number' && (taxEval?.roundingAdj || 0) !== 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">تعديل التقريب:</span>
+              <span>{taxEval!.roundingAdj! > 0 ? '+' : ''}{taxEval!.roundingAdj!.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 font-semibold">
             <span>{t('pos.grandTotal') || 'الإجمالي النهائي'}:</span>
-            <span>{Math.max(0, subtotal - appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0)).toFixed(2)}</span>
+            <span>{(taxEval?.grandTotal ?? Math.max(0, subtotal - appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0))).toFixed(2)}</span>
           </div>
+          {taxEval?.priceMode === 'tax_inclusive' && (
+            <div className="text-[11px] text-neutral-600">الأسعار تشمل الضريبة</div>
+          )}
         </div>
         <div className="flex gap-2">
           <button className="px-4 py-2 rounded bg-emerald-600 text-white disabled:opacity-50" disabled={lines.length===0} onClick={() => setShowPay(true)}>{t('pos.pay')}</button>
@@ -248,7 +270,7 @@ export default function POSPage() {
 
       {showPay && (
         <PayModal
-          total={grand}
+          total={(taxEval?.grandTotal ?? subtotal)}
           onClose={() => setShowPay(false)}
           onConfirmCash={async (amount, meta) => { await startSale(); await addPayment('cash', amount, meta); setShowPay(false); }}
           onConfirmCard={async (amount) => { await startSale(); await addPayment('card', amount, {} as any); setShowPay(false); }}

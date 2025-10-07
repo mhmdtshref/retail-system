@@ -1,6 +1,8 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { usePosStore } from '@/lib/store/posStore';
+import { evaluateTaxForPos } from '@/lib/tax/local';
 
 type Props = {
   total: number;
@@ -24,6 +26,22 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
   const [availableCredit, setAvailableCredit] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const minPartial = Math.ceil(total * 0.1);
+
+  const lines = usePosStore((s: any) => s.lines);
+  const appliedDiscounts = usePosStore((s: any) => s.appliedDiscounts);
+  const [cashRoundedTotal, setCashRoundedTotal] = useState<number>(total);
+  const [cashRoundingAdj, setCashRoundingAdj] = useState<number>(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await evaluateTaxForPos(lines as any[], appliedDiscounts as any[], { paymentMethod: 'cash' });
+        setCashRoundedTotal(res.totals.grandTotal);
+        setCashRoundingAdj(res.totals.roundingAdj || 0);
+        setCash(res.totals.grandTotal);
+      } catch {}
+    })();
+  }, [lines, appliedDiscounts]);
 
   const validCash = cash >= total && cash > 0;
   const validCard = cardAmount > 0;
@@ -59,7 +77,10 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
 
         {tab === 'cash' && (
           <div className="space-y-3">
-            <div className="text-sm">{t('pos.total')}: {total.toFixed(2)}</div>
+            <div className="text-sm">{t('pos.total')}: {cashRoundedTotal.toFixed(2)}</div>
+            {typeof cashRoundingAdj === 'number' && cashRoundingAdj !== 0 && (
+              <div className="text-xs text-neutral-600">تعديل التقريب: {cashRoundingAdj > 0 ? '+' : ''}{cashRoundingAdj.toFixed(2)}</div>
+            )}
             <input type="number" value={cash} onChange={(e)=> setCash(Number(e.target.value))} className="w-full border rounded px-3 py-2" dir="ltr" />
             <button disabled={!validCash} className={`px-4 py-2 rounded ${validCash?'bg-emerald-600 text-white':'bg-gray-200 text-gray-500'}`} onClick={()=> onConfirmCash(cash, { receivedCash: cash })}>
               {t('common.confirm') || 'تأكيد'}

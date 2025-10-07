@@ -75,6 +75,8 @@ export class POSDexie extends Dexie {
   refundDrafts!: Table<any, string>;
   promotionsActive!: Table<any, string>;
   couponsIndex!: Table<any, string>;
+  taxConfigCache!: Table<any, string>;
+  currencyConfigCache!: Table<any, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -105,6 +107,11 @@ export class POSDexie extends Dexie {
     this.version(5).stores({
       promotionsActive: 'id, updatedAt, startsAt, endsAt',
       couponsIndex: 'codeLower, expiresAt'
+    });
+    // Bump version for tax & currency offline cache
+    this.version(6).stores({
+      taxConfigCache: 'id, updatedAt',
+      currencyConfigCache: 'id, updatedAt'
     });
   }
 }

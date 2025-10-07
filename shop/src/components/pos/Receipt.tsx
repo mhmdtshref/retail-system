@@ -34,8 +34,12 @@ export function Receipt({ data }: { data: ReceiptData }) {
       <hr className="my-2" />
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <div>الإجمالي قبل الخصم</div>
+          <div>المجموع قبل الضريبة</div>
           <div>{data.totals.subtotal.toFixed(2)}</div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>الضريبة</div>
+          <div>{data.totals.tax.toFixed(2)}</div>
         </div>
         {data.appliedDiscounts && data.appliedDiscounts.length > 0 && (
           <div className="mt-1">
@@ -55,10 +59,30 @@ export function Receipt({ data }: { data: ReceiptData }) {
             )}
           </div>
         )}
+        {typeof data.totals.roundingAdj === 'number' && data.totals.roundingAdj !== 0 && (
+          <div className="flex items-center justify-between text-xs">
+            <div>تعديل التقريب</div>
+            <div>{data.totals.roundingAdj > 0 ? '+' : ''}{data.totals.roundingAdj.toFixed(2)}</div>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <div className="font-medium">الإجمالي النهائي</div>
           <div className="font-medium">{data.totals.grand.toFixed(2)}</div>
         </div>
+        {data.totals.taxByRate && data.totals.taxByRate.length > 0 && (
+          <div className="mt-2 text-[11px]">
+            <div className="font-medium">ملخص الضريبة حسب النسبة</div>
+            {data.totals.taxByRate.map((r)=> (
+              <div key={r.rate} className="flex items-center justify-between">
+                <div>{Math.round(r.rate*100)}%</div>
+                <div>{r.taxable.toFixed(2)} / {r.tax.toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {data.totals.priceMode === 'tax_inclusive' && (
+          <div className="text-[11px] text-neutral-600">الأسعار تشمل الضريبة</div>
+        )}
       </div>
       {data.paymentPlan?.mode === 'partial' && (
         <div className="mt-2">
