@@ -1,6 +1,9 @@
 .receipt {
   font-family: Tahoma, Arial, sans-serif;
 }
+.receipt .header, .receipt .footer {
+  white-space: pre-wrap;
+}
 @media print {
   body { padding: 0; margin: 0; }
   .receipt { width: 80mm; }

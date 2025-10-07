@@ -1,23 +1,38 @@
 "use client";
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export default function SettingsInventoryPage() {
-  const [reasons, setReasons] = useState<string[]>([]);
-  const [text, setText] = useState('');
-  const [saving, setSaving] = useState(false);
-  useEffect(() => { (async () => { const res = await fetch('/api/settings/inventory'); const data = await res.json(); setReasons(data.reasons || []); setText((data.reasons || []).join('\n')); })(); }, []);
-  async function save() { setSaving(true); try { const res = await fetch('/api/settings/inventory', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reasons: text.split(/\n+/).map((s) => s.trim()).filter(Boolean) }) }); if (res.ok) { const data = await res.json(); setReasons(data.reasons || []); } } finally { setSaving(false); } }
+export default function SettingsIndexPage() {
+  const [role, setRole] = useState<string>('viewer');
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/self');
+        if (res.ok) {
+          const data = await res.json();
+          setRole(data?.user?.role || 'viewer');
+        }
+      } catch {}
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <main className="p-4">...تحميل</main>;
+  if (!(role === 'owner' || role === 'manager')) {
+    return <main className="p-4"><div className="rounded border p-4 text-rose-700">مرفوض: يتطلب صلاحيات مدير</div></main>;
+  }
+
   return (
-    <main className="p-4 flex flex-col gap-4">
+    <main className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">الإعدادات</h1>
-      <div className="p-3 border rounded flex flex-col gap-2">
-        <div className="font-semibold">أسباب التسوية</div>
-        <textarea className="border rounded p-2 min-h-[160px]" value={text} onChange={(e) => setText(e.target.value)} />
-        <div className="text-sm text-gray-600">سطر لكل سبب</div>
-        <button disabled={saving} onClick={save} className="px-3 py-2 bg-blue-600 text-white rounded w-fit">حفظ</button>
+      <div className="flex items-center gap-2 border rounded p-2 bg-white dark:bg-neutral-900 sticky top-0 z-10">
+        <Link className="px-3 py-1 rounded border" href="/settings/payments">المدفوعات</Link>
+        <Link className="px-3 py-1 rounded border" href="/settings/locales">اللغة والتنسيق</Link>
+        <Link className="px-3 py-1 rounded border" href="/settings/receipts">الإيصالات</Link>
       </div>
+      <div className="text-sm text-neutral-600">اختر تبويبًا أعلاه لعرض الإعدادات.</div>
     </main>
   );
 }
-
 

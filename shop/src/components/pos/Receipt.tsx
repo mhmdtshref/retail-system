@@ -1,9 +1,27 @@
 "use client";
 import { ReceiptData } from '@/lib/pos/types';
+import { useEffect, useState } from 'react';
+import { getCachedSettings } from '@/lib/offline/settings-cache';
 
 export function Receipt({ data }: { data: ReceiptData }) {
+  const [tpl, setTpl] = useState<any | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const s = await res.json();
+          setTpl(s?.receipts?.thermal80 || null);
+          return;
+        }
+      } catch {}
+      const cached = await getCachedSettings();
+      setTpl(cached?.receipts?.thermal80 || null);
+    })();
+  }, []);
   return (
     <div dir="rtl" className="receipt w-[80mm] mx-auto text-sm">
+      {tpl?.header?.ar && <div className="header text-center mb-2">{tpl.header.ar}</div>}
       <div className="text-center font-semibold mb-2">الإيصال</div>
       <div className="space-y-1">
         {data.lines.map((l) => (
@@ -113,6 +131,7 @@ export function Receipt({ data }: { data: ReceiptData }) {
       {data.offlinePending && (
         <div className="mt-2 text-amber-700">سيتم مزامنة الفاتورة عند توفر الاتصال</div>
       )}
+      {tpl?.footer?.ar && <div className="footer text-center mt-2">{tpl.footer.ar}</div>}
     </div>
   );
 }

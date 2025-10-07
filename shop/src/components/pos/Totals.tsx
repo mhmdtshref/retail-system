@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { usePosStore } from '@/lib/store/posStore';
 import type { Discount } from '@/lib/pos/types';
 import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
+import { getCachedSettings } from '@/lib/offline/settings-cache';
 
 type Props = {
   subtotal: number;
@@ -18,6 +19,7 @@ export function Totals({ subtotal }: Props) {
 
   const [type, setType] = useState<Discount['type']>(discount?.type || 'percent');
   const [valueInput, setValueInput] = useState<string>(discount ? String(discount.value) : '0');
+  const [limitPct, setLimitPct] = useState<number>(MANUAL_DISCOUNT_LIMIT * 100);
 
   useEffect(() => {
     // Sync when external discount changes
@@ -28,6 +30,22 @@ export function Totals({ subtotal }: Props) {
       setValueInput('0');
     }
   }, [discount]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const s = await res.json();
+          const lim = Number(s?.payments?.cashierManualDiscountLimitPct ?? MANUAL_DISCOUNT_LIMIT * 100);
+          setLimitPct(isNaN(lim) ? MANUAL_DISCOUNT_LIMIT * 100 : lim);
+          return;
+        }
+      } catch {}
+      const cached = await getCachedSettings();
+      if (cached?.payments?.cashierManualDiscountLimitPct != null) setLimitPct(Number(cached.payments.cashierManualDiscountLimitPct));
+    })();
+  }, []);
 
   const valueNum = Number(valueInput) || 0;
   const percentValid = type === 'percent' ? valueNum >= 0 && valueNum <= 100 : true;
@@ -45,8 +63,8 @@ export function Totals({ subtotal }: Props) {
   useEffect(() => {
     if (!isValid) return;
     let capped = valueNum;
-    if (type === 'percent' && valueNum > MANUAL_DISCOUNT_LIMIT * 100) {
-      capped = MANUAL_DISCOUNT_LIMIT * 100;
+    if (type === 'percent' && valueNum > limitPct) {
+      capped = limitPct;
     }
     const d: Discount = { type, value: capped };
     // Persist to store
