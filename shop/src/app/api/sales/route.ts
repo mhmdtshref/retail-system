@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
+import { evaluateTotals } from '@/lib/tax/apply';
 
 const LineSchema = z.object({ sku: z.string(), qty: z.number().positive(), price: z.number().nonnegative() });
 const PlanInstallmentSchema = z.object({ seq: z.number().int().positive(), dueDate: z.string(), amount: z.number().nonnegative(), paidAt: z.string().optional() });
@@ -46,6 +47,18 @@ export async function POST(req: Request) {
     if (!parsedOnline.success) return NextResponse.json({ error: parsedOnline.error.flatten() }, { status: 400 });
     const data = parsedOnline.data;
     const sale = mockDb.createOnlineSale({ customer: data.customer, items: data.items, total: data.totals.grand });
+    try {
+      const g = globalThis as unknown as { __taxConfig?: any };
+      const taxConfig = g.__taxConfig || { priceMode: 'tax_exclusive', defaultRate: 0.15, rules: [], precision: 2, roundingStrategy: 'half_up', receiptRounding: 'none' };
+      const res = evaluateTotals({ lines: data.items.map((l:any)=> ({ sku: l.sku, qty: l.qty, unitPrice: l.price })) }, [], taxConfig as any, { defaultCurrency: 'SAR', displayLocale: 'ar-SA' } as any);
+      (sale as any).tax = res.totals.tax;
+      (sale as any).priceMode = taxConfig.priceMode;
+      // persist per-line rate
+      if ((sale as any).lines && res.perLine) {
+        const withRates = (sale as any).lines.map((l: any, idx: number) => ({ ...l, taxRateApplied: res.perLine[idx]?.rate }));
+        (sale as any).lines = withRates;
+      }
+    } catch {}
     const result = { saleId: sale._id, channel: 'online' };
     mockDb.set(idempotencyKey, result);
     return NextResponse.json(result);
@@ -59,6 +72,17 @@ export async function POST(req: Request) {
     const down = input.downPayment ?? 0;
     try {
       const sale = mockDb.createPartialSale({ lines: input.lines, total: input.total, downPayment: down, minDownPercent: input.minDownPercent, schedule: input.schedule as any, expiresAt: input.expiresAt, customerId: input.customerId });
+      try {
+        const g = globalThis as unknown as { __taxConfig?: any };
+        const taxConfig = g.__taxConfig || { priceMode: 'tax_exclusive', defaultRate: 0.15, rules: [], precision: 2, roundingStrategy: 'half_up', receiptRounding: 'none' };
+        const res = evaluateTotals({ lines: input.lines.map((l:any)=> ({ sku: l.sku, qty: l.qty, unitPrice: l.price })) }, (body?.discounts || []) as any, taxConfig as any, { defaultCurrency: 'SAR', displayLocale: 'ar-SA' } as any);
+        (sale as any).tax = res.totals.tax;
+        (sale as any).priceMode = taxConfig.priceMode;
+        if ((sale as any).lines && res.perLine) {
+          const withRates = (sale as any).lines.map((l: any, idx: number) => ({ ...l, taxRateApplied: res.perLine[idx]?.rate }));
+          (sale as any).lines = withRates;
+        }
+      } catch {}
       const result = { saleId: sale._id, status: sale.status, remaining: sale.paymentPlan?.remaining ?? Math.max(0, sale.total - sale.paid), reservations: sale.reservations };
       mockDb.set(idempotencyKey, result);
       return NextResponse.json(result);
@@ -68,6 +92,17 @@ export async function POST(req: Request) {
   }
 
   const doc = mockDb.createSale(input.lines, input.total);
+  try {
+    const g = globalThis as unknown as { __taxConfig?: any };
+    const taxConfig = g.__taxConfig || { priceMode: 'tax_exclusive', defaultRate: 0.15, rules: [], precision: 2, roundingStrategy: 'half_up', receiptRounding: 'none' };
+    const res = evaluateTotals({ lines: input.lines.map((l:any)=> ({ sku: l.sku, qty: l.qty, unitPrice: l.price })) }, (body?.discounts || []) as any, taxConfig as any, { defaultCurrency: 'SAR', displayLocale: 'ar-SA' } as any);
+    (doc as any).tax = res.totals.tax;
+    (doc as any).priceMode = taxConfig.priceMode;
+    if ((doc as any).lines && res.perLine) {
+      const withRates = (doc as any).lines.map((l: any, idx: number) => ({ ...l, taxRateApplied: res.perLine[idx]?.rate }));
+      (doc as any).lines = withRates;
+    }
+  } catch {}
   const result = { saleId: String(doc._id) };
   mockDb.set(idempotencyKey, result);
   return NextResponse.json(result);

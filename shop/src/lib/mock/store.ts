@@ -21,6 +21,8 @@ type Sale = {
   channel?: 'retail'|'online';
   deliveryShipmentId?: string;
   createdAt?: number;
+  tax?: number;
+  priceMode?: 'tax_inclusive'|'tax_exclusive';
 };
 type Payment = { _id: string; saleId: string; method: 'cash'|'card'|'transfer'|'cod_remit'|'partial'|'store_credit'; amount: number; seq: number; status?: 'pending'|'confirmed'|'failed'; receivedAt?: number; externalRef?: string };
 type DeliveryShipment = {

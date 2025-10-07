@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { posDb } from '@/lib/db/posDexie';
 import { Discount, PosCartLine, PosPayment, ReceiptData } from '@/lib/pos/types';
+import { evaluateTaxForPos } from '@/lib/tax/local';
 import { makePaymentKey, makeSaleKey, uuid } from '@/lib/pos/idempotency';
 
 type State = {
@@ -59,12 +60,14 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const localSaleId = uuid();
     const subtotal = s.total;
     const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc: number, d: any) => acc + (d.amount || 0), 0));
-    const grand = Math.max(0, subtotal - discountValue);
+    // Compute taxes using local engine (no payment method rounding yet)
+    const taxEval = await evaluateTaxForPos(s.lines as PosCartLine[], s.appliedDiscounts || []);
+    const grand = taxEval.totals.grandTotal;
     const draft = {
       localSaleId,
       createdAt: Date.now(),
       lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
-      totals: { subtotal, tax: 0, grand, discountValue },
+      totals: { subtotal, tax: taxEval.totals.tax, grand, discountValue },
       discount: s.discount || undefined,
       appliedDiscounts: s.appliedDiscounts || [],
       couponCode: s.couponCode || null,
@@ -89,12 +92,13 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const localSaleId = uuid();
     const subtotal = s.total;
     const discountValue = calcDiscountValue(subtotal, s.discount);
-    const grand = Math.max(0, subtotal - discountValue);
+    const taxEval = await evaluateTaxForPos(s.lines as PosCartLine[], s.appliedDiscounts || []);
+    const grand = taxEval.totals.grandTotal;
     const draft = {
       localSaleId,
       createdAt: Date.now(),
       lines: (s.lines as PosCartLine[]).map((l: PosCartLine) => ({ sku: l.sku, qty: l.qty, price: l.price })),
-      totals: { subtotal, tax: 0, grand, discountValue },
+      totals: { subtotal, tax: taxEval.totals.tax, grand, discountValue },
       discount: s.discount || undefined,
       mode: 'partial' as const,
       downPayment,
@@ -111,7 +115,7 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
       createdAt: Date.now(),
       lines: s.lines,
       payments: [{ method: 'cash', amount: downPayment, seq: 1, meta: { reservationNote: plan?.note } }],
-      totals: { subtotal, tax: 0, grand, discountValue },
+      totals: { subtotal, tax: taxEval.totals.tax, grand, discountValue, roundingAdj: taxEval.totals.roundingAdj, taxByRate: taxEval.totals.taxByRate, priceMode: taxEval.totals.priceMode },
       discount: s.discount || undefined,
       offlinePending: !navigator.onLine,
       paymentPlan: { mode: 'partial', downPayment, remaining, minDownPercent: draft.minDownPercent!, schedule: plan?.schedule, expiresAt: plan?.expiresAt }
@@ -131,13 +135,14 @@ export const usePosStore = create<State & Actions>((set: any, get: any) => ({
     const payments = [...s.payments, payment];
     const subtotal = s.total;
     const discountValue = Math.max(0, s.appliedDiscounts.reduce((acc: number, d: any) => acc + (d.amount || 0), 0));
-    const grand = Math.max(0, subtotal - discountValue);
+    const taxEval = await evaluateTaxForPos(s.lines as PosCartLine[], s.appliedDiscounts || [], { paymentMethod: method });
+    const grand = taxEval.totals.grandTotal;
     const receipt: ReceiptData = {
       localSaleId,
       createdAt: Date.now(),
       lines: s.lines,
       payments,
-      totals: { subtotal, tax: 0, grand, discountValue },
+      totals: { subtotal, tax: taxEval.totals.tax, grand, discountValue, roundingAdj: taxEval.totals.roundingAdj, taxByRate: taxEval.totals.taxByRate, priceMode: taxEval.totals.priceMode },
       discount: s.discount || undefined,
       appliedDiscounts: s.appliedDiscounts || [],
       pendingCouponRedemption: !!(s.couponCode && !navigator.onLine),

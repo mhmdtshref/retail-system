@@ -41,7 +41,7 @@ export type ReceiptData = {
   createdAt: number;
   lines: PosCartLine[];
   payments: PosPayment[];
-  totals: { subtotal: number; tax: number; grand: number; discountValue?: number };
+  totals: { subtotal: number; tax: number; grand: number; discountValue?: number; roundingAdj?: number; taxByRate?: Array<{ rate: number; taxable: number; tax: number }>; priceMode?: 'tax_inclusive'|'tax_exclusive' };
   discount?: Discount;
   offlinePending: boolean;
   appliedDiscounts?: Array<{ id: string; source: 'promotion'|'coupon'; level: 'line'|'order'; label: string; amount: number; lines?: { sku: string; qty: number; discount: number }[]; traceId?: string }>;

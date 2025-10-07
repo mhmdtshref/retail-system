@@ -6,6 +6,7 @@ export type EligibleLine = {
 	returnedQty: number;
 	eligibleQty: number;
 	unitPrice?: number;
+	taxRateApplied?: number;
 };
 
 export async function getEligibleReturnQty(saleId: string, sku: string): Promise<number> {
@@ -21,10 +22,10 @@ export async function getSaleEligibility(saleId: string): Promise<EligibleLine[]
 	const sale = mockDb.getSale(saleId);
 	if (!sale) return [];
 	return Promise.all(
-		sale.lines.map(async (l) => {
+		sale.lines.map(async (l: any) => {
 			const returned = mockDb.sumReturnedQtyForSaleSku(saleId, l.sku);
 			const eligible = Math.max(0, l.qty - returned);
-			return { sku: l.sku, soldQty: l.qty, returnedQty: returned, eligibleQty: eligible, unitPrice: l.price };
+			return { sku: l.sku, soldQty: l.qty, returnedQty: returned, eligibleQty: eligible, unitPrice: l.price, taxRateApplied: l.taxRateApplied };
 		})
 	);
 }
