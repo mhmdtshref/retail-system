@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import type { Action } from './policies';
+import { ROLE_PERMS, type Role, type Action } from './policies';
 
 // Minimal client-side cache of role from a public endpoint or injected global; replaced later by real session
 export function useCan(action: Action) {
@@ -11,14 +11,11 @@ export function useCan(action: Action) {
         const res = await fetch('/api/auth/self');
         if (!res.ok) { setAllowed(false); return; }
         const data = await res.json();
-        const role = (data && data.user && data.user.role) || 'viewer';
-        const perms = await import('./policies');
-        if (perms.ROLE_PERMS[role]) {
-          const p = (perms.ROLE_PERMS as any)[role];
-          setAllowed(Array.isArray(p) && (p[0] === '*' || p.includes(action)));
-        } else {
-          setAllowed(false);
-        }
+        const roleStr: string = (data && data.user && data.user.role) || 'viewer';
+        const validRoles = ['owner','manager','cashier','staff','viewer'] as const;
+        const rr: Role = (validRoles as readonly string[]).includes(roleStr) ? (roleStr as Role) : 'viewer';
+        const p = ROLE_PERMS[rr];
+        setAllowed(Array.isArray(p) && ((p as any)[0] === '*' || (p as Action[]).includes(action)));
       } catch { setAllowed(false); }
     })();
   }, [action]);

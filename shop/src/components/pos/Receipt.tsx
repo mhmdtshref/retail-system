@@ -23,7 +23,6 @@ export function Receipt({ data }: { data: ReceiptData }) {
               {p.method === 'cash' && 'دفع نقدًا'}
               {p.method === 'card' && `طريقة الدفع: بطاقة`}
               {p.method === 'transfer' && `حوالة بنكية`}
-              {p.method === 'cod_remit' && `سداد وكاش عند التسليم`}
               {p.method === 'store_credit' && `تم استخدام رصيد المتجر`}
               {p.meta?.reservationNote ? ` (${p.meta?.reservationNote})` : ''}
             </div>
