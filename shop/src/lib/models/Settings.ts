@@ -76,6 +76,14 @@ const DeliverySettingsSchema = new Schema({
   webhookBaseUrl: { type: String }
 }, { _id: false });
 
+const SupportConfigSchema = new Schema({
+  email: { type: String },
+  phone: { type: String }, // e.g., whatsapp:+9665...
+  helpUrl: { type: String },
+  returnsUrl: { type: String },
+  allowCustomerInitiatedReturn: { type: Boolean, default: false }
+}, { _id: false });
+
 const SettingsSchema = new Schema({
   _id: { type: String, default: 'global' },
   version: { type: Number, default: 1 },
@@ -84,6 +92,7 @@ const SettingsSchema = new Schema({
   receipts: { type: ReceiptsConfigSchema, default: {} },
   notifications: { type: NotificationsConfigSchema, default: {} },
   delivery: { type: DeliverySettingsSchema, default: {} },
+  support: { type: SupportConfigSchema, default: {} },
   updatedAt: { type: Date, default: () => new Date() },
   updatedBy: { type: String }
 }, { timestamps: false, minimize: false });
@@ -96,6 +105,13 @@ export type SettingsDoc = {
   receipts: any;
   notifications?: any;
   delivery?: { defaultCarrierAccountId?: string; webhookBaseUrl?: string };
+  support?: {
+    email?: string;
+    phone?: string;
+    helpUrl?: string;
+    returnsUrl?: string;
+    allowCustomerInitiatedReturn?: boolean;
+  };
   updatedAt: string;
   updatedBy: string;
 };
