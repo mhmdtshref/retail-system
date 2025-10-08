@@ -21,7 +21,7 @@ export async function getDailyReport(filters: DailyFilters) {
   const returns = mockDb.listReturns({ dateFrom, dateTo });
   const payments = Array.from((mockDb as any).listRefunds ? [] : []);
 
-  let invoices = 0; let items = 0; let grossSales = 0; let discounts = 0; let returnsValue = 0; let netSales = 0; let tax = 0; let roundingAdj = 0; let shipping = 0; let cogs = 0; let margin = 0; let marginPct = 0;
+  let invoices = 0; let items = 0; let grossSales = 0; let discounts = 0; let returnsValue = 0; let netSales = 0; let tax = 0; const roundingAdj = 0; const shipping = 0; const cogs = 0; let margin = 0; let marginPct = 0;
   const payMap: Record<'cash'|'card'|'transfer'|'store_credit'|'cod', number> = { cash: 0, card: 0, transfer: 0, store_credit: 0, cod: 0 };
 
   for (const s of sales) {

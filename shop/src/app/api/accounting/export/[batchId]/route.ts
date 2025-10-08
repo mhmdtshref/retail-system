@@ -1,0 +1,19 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/policy/api';
+import { minRole } from '@/lib/policy/guard';
+import { dbConnect } from '@/lib/db/mongo';
+import { ExportBatch } from '@/lib/models/ExportBatch';
+
+export async function GET(req: NextRequest, context: { params: Promise<{ batchId: string }> }) {
+  const auth = await requireAuth(req);
+  if ('error' in auth) return auth.error;
+  if (!minRole(auth.user, 'manager')) {
+    return NextResponse.json({ error: { message: 'مرفوض: يتطلب صلاحيات مدير أو المالك' } }, { status: 403 });
+  }
+  const { batchId } = await context.params;
+  await dbConnect().catch(()=>{});
+  const doc = await ExportBatch.findById(batchId).lean().catch(()=>null);
+  if (!doc) return NextResponse.json({ error: { message: 'Not found' } }, { status: 404 });
+  return NextResponse.json(doc);
+}
+

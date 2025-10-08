@@ -11,6 +11,7 @@ export default function ReportsHub() {
         <Link href="/ar/reports/daily" className="px-3 py-2 border rounded">{t('daily')}</Link>
         <Link href="/ar/reports/aging" className="px-3 py-2 border rounded">{t('aging')}</Link>
         <Link href="/ar/reports/valuation" className="px-3 py-2 border rounded">{t('valuation')}</Link>
+        <Link href="/ar/reports/accounting" className="px-3 py-2 border rounded">التقارير المحاسبية</Link>
       </div>
     </div>
   );
