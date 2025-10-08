@@ -38,6 +38,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   } catch {}
   const result = mockDb.addPayment({ saleId: id, ...parsed.data } as any);
   mockDb.set(idempotencyKey, result);
+  try {
+    const ev = parsed.data.method === 'cod_remit' ? 'DELIVERED' : 'ORDER_PAID';
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${idempotencyKey}:notif:${ev.toLowerCase()}` },
+      body: JSON.stringify({ event: ev, entity: { type: 'order', id }, customerId: undefined })
+    }).catch(()=>{});
+  } catch {}
   return NextResponse.json(result);
 }
 

@@ -100,6 +100,13 @@ export async function POST(req: NextRequest) {
   }
   const res = { layawayId: String(doc._id), code: doc.code, status: (doc as any).status, dueAt: doc.dueAt, balance: doc.totals.balance };
   await saveResult(idk, res);
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${idk}:notif:layaway_created` },
+      body: JSON.stringify({ event: 'LAYAWAY_CREATED', entity: { type: 'layaway', id: String(doc._id) }, customerId })
+    }).catch(()=>{});
+  } catch {}
   return NextResponse.json(res);
 }
 

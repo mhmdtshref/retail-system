@@ -110,6 +110,14 @@ export async function POST(req: NextRequest) {
   } catch {}
   const result = { saleId: String(doc._id) };
   mockDb.set(idempotencyKey, result);
+  try {
+    // trigger ORDER_CREATED
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${idempotencyKey}:notif:order_created` },
+      body: JSON.stringify({ event: 'ORDER_CREATED', entity: { type: 'order', id: String(doc._id) }, customerId: input.customerId })
+    }).catch(()=>{});
+  } catch {}
   return NextResponse.json(result);
 }
 

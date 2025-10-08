@@ -81,6 +81,17 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'NOTIF_SEND') {
+    const p = item.payload as any;
+    const res = await fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ event: p.event, entity: p.entity, customerId: p.customerId, channels: p.channels, data: p.data })
+    });
+    if (!res.ok) throw new Error('NOTIF_SEND failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
   if (item.type === 'COUNT_SESSION_SYNC') {
     const p = item.payload as any;
     const s = p.session;
@@ -220,6 +231,7 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  // notifications outbox (separate table)
 }
 
 export function startOutboxSyncLoop() {
@@ -231,10 +243,17 @@ export function startOutboxSyncLoop() {
     try {
       const items = await posDb.outbox.orderBy('createdAt').toArray();
       for (const item of items) {
+        try { await processItem(item); } catch (e) { await posDb.outbox.update(item.id, { retryCount: (item.retryCount || 0) + 1 }); }
+      }
+      // process notification outbox
+      const notifItems = await posDb.notifOutbox.orderBy('createdAt').toArray();
+      for (const n of notifItems) {
         try {
-          await processItem(item);
+          const res = await fetch('/api/notifications/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': n.idempotencyKey }, body: JSON.stringify(n.payload) });
+          if (!res.ok) throw new Error('NOTIF_SEND failed');
+          await posDb.notifOutbox.delete(n.id);
         } catch (e) {
-          await posDb.outbox.update(item.id, { retryCount: (item.retryCount || 0) + 1 });
+          await posDb.notifOutbox.update(n.id, { retryCount: (n.retryCount || 0) + 1 });
         }
       }
     } finally {
