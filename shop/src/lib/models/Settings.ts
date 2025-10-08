@@ -24,7 +24,9 @@ const PaymentRulesSchema = new Schema({
     enabled: { type: Boolean, default: false },
     minUpfrontPct: { type: Number, default: 10 },
     maxDays: { type: Number, default: 30 },
-    autoCancel: { type: Boolean, default: false }
+    autoCancel: { type: Boolean, default: false },
+    forfeitDays: { type: Number, default: 30 },
+    graceDays: { type: Number, default: 0 }
   },
   cashierManualDiscountLimitPct: { type: Number, default: 10 },
   drawer: {
@@ -63,12 +65,19 @@ const LocalesConfigSchema = new Schema({
   }
 }, { _id: false });
 
+const NotificationsSchema = new Schema({
+  email: { type: Schema.Types.Mixed, default: {} },
+  sms: { type: Schema.Types.Mixed, default: {} },
+  webhook: { type: Schema.Types.Mixed, default: {} }
+}, { _id: false });
+
 const SettingsSchema = new Schema({
   _id: { type: String, default: 'global' },
   version: { type: Number, default: 1 },
   payments: { type: PaymentRulesSchema, default: {} },
   locales: { type: LocalesConfigSchema, default: {} },
   receipts: { type: ReceiptsConfigSchema, default: {} },
+  notifications: { type: NotificationsSchema, default: {} },
   updatedAt: { type: Date, default: () => new Date() },
   updatedBy: { type: String }
 }, { timestamps: false, minimize: false });

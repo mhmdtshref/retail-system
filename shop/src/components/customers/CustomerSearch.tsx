@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { posDb } from '@/lib/db/posDexie';
 
 type Props = {
   onSelect: (c: any) => void;
   placeholder?: string;
-  offlineBanner?: (isOffline: boolean) => JSX.Element | null;
+  offlineBanner?: (isOffline: boolean) => React.ReactNode;
 };
 
 export function CustomerSearch({ onSelect, placeholder, offlineBanner }: Props) {

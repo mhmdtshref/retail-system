@@ -14,8 +14,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const doc = await Customer.findById(id).lean();
   if (!doc) return NextResponse.json({ error: { message: 'Not found' } }, { status: 404 });
-  (doc as any).createdAt = new Date(doc.createdAt).toISOString();
-  (doc as any).updatedAt = new Date(doc.updatedAt).toISOString();
+  (doc as any).createdAt = new Date((doc as any).createdAt).toISOString();
+  (doc as any).updatedAt = new Date((doc as any).updatedAt).toISOString();
   return NextResponse.json({ customer: doc });
 }
 
@@ -34,8 +34,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const updated = await Customer.findByIdAndUpdate(id, enrichWithSearch(parsed.data), { new: true }).lean();
   if (!updated) return NextResponse.json({ error: { message: 'Not found' } }, { status: 404 });
-  (updated as any).createdAt = new Date(updated.createdAt).toISOString();
-  (updated as any).updatedAt = new Date(updated.updatedAt).toISOString();
+  (updated as any).createdAt = new Date((updated as any).createdAt).toISOString();
+  (updated as any).updatedAt = new Date((updated as any).updatedAt).toISOString();
   const res = { customer: updated };
   await saveResult(idempotencyKey, res);
   return NextResponse.json(res);

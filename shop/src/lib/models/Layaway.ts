@@ -1,0 +1,79 @@
+import { Schema, model, models, Types } from 'mongoose';
+
+const LayawayItemSchema = new Schema({
+  sku: { type: String, required: true },
+  name_ar: { type: String },
+  variant: { type: String },
+  qty: { type: Number, required: true },
+  unitPrice: { type: Number, required: true }
+}, { _id: false });
+
+const TotalsSchema = new Schema({
+  grandTotal: { type: Number, required: true },
+  upfrontPaid: { type: Number, required: true },
+  balance: { type: Number, required: true }
+}, { _id: false });
+
+const PaymentRefSchema = new Schema({
+  paymentId: { type: Types.ObjectId, ref: 'Payment' },
+  method: { type: String, enum: ['cash','card','transfer','store_credit'], required: true },
+  amount: { type: Number, required: true },
+  at: { type: String, required: true }
+}, { _id: false });
+
+const ReminderSchema = new Schema({
+  doNotContact: { type: Boolean, default: false },
+  lastEmailAt: { type: String },
+  lastSmsAt: { type: String },
+  lastWebhookAt: { type: String }
+}, { _id: false });
+
+const AuditSchema = new Schema({
+  createdBy: { type: String },
+  updatedBy: { type: String }
+}, { _id: false });
+
+const LayawaySchema = new Schema({
+  code: { type: String, required: true, index: { unique: true } },
+  customerId: { type: Types.ObjectId, ref: 'Customer', required: true, index: true },
+  saleId: { type: Types.ObjectId, ref: 'Sale', required: true, index: true },
+  items: { type: [LayawayItemSchema], default: [] },
+  totals: { type: TotalsSchema, required: true },
+  payments: { type: [PaymentRefSchema], default: [] },
+  status: { type: String, enum: ['active','overdue','completed','canceled','forfeited'], default: 'active', index: true },
+  createdAt: { type: String, required: true },
+  dueAt: { type: String, required: true, index: true },
+  lastPaymentAt: { type: String },
+  completedAt: { type: String },
+  canceledAt: { type: String },
+  forfeitedAt: { type: String },
+  notes: { type: String },
+  reminder: { type: ReminderSchema, default: {} },
+  audit: { type: AuditSchema, default: {} }
+}, { minimize: false });
+
+LayawaySchema.index({ customerId: 1, status: 1 });
+LayawaySchema.index({ dueAt: 1, status: 1 });
+
+export type LayawayDoc = {
+  _id?: string;
+  code: string;
+  customerId: string;
+  saleId: string;
+  items: { sku: string; name_ar?: string; variant?: string; qty: number; unitPrice: number }[];
+  totals: { grandTotal: number; upfrontPaid: number; balance: number };
+  payments: { paymentId?: string; method: 'cash'|'card'|'transfer'|'store_credit'; amount: number; at: string }[];
+  status: 'active'|'overdue'|'completed'|'canceled'|'forfeited';
+  createdAt: string;
+  dueAt: string;
+  lastPaymentAt?: string;
+  completedAt?: string;
+  canceledAt?: string;
+  forfeitedAt?: string;
+  notes?: string;
+  reminder?: { doNotContact?: boolean; lastEmailAt?: string; lastSmsAt?: string; lastWebhookAt?: string };
+  audit?: { createdBy?: string; updatedBy?: string };
+};
+
+export const Layaway = models.Layaway || model('Layaway', LayawaySchema);
+
