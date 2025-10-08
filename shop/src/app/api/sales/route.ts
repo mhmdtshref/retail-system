@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const doc = mockDb.createSale(input.lines, input.total);
+  const doc = mockDb.createSale(input.lines, input.total, input.customerId);
   try {
     const g = globalThis as unknown as { __taxConfig?: any };
     const taxConfig = g.__taxConfig || { priceMode: 'tax_exclusive', defaultRate: 0.15, rules: [], precision: 2, roundingStrategy: 'half_up', receiptRounding: 'none' };

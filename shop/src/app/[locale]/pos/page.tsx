@@ -8,6 +8,8 @@ import { Cart } from '@/components/pos/Cart';
 import { PayModal } from '@/components/pos/PayModal';
 import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
+import { CustomerAttachModal } from '@/components/pos/CustomerAttachModal';
+import { MiniProfileDrawer } from '@/components/pos/MiniProfileDrawer';
 import { evaluateLocalForPos } from '@/lib/discounts/local';
 import { evaluateTaxForPos } from '@/lib/tax/local';
 import { refreshTaxCurrencyConfigs, refreshSettingsConfig } from '@/lib/tax/cache';
@@ -26,8 +28,12 @@ export default function POSPage() {
   const setAppliedDiscountsStore = usePosStore((s: any) => s.setAppliedDiscounts);
   const setCouponCodeStore = usePosStore((s: any) => s.setCouponCode);
   const lastReceipt = usePosStore((s: any) => s.lastReceipt);
-  const [customerId, setCustomerId] = useState<string | null>(null);
+  const customerIdStore = usePosStore((s: any) => s.customerId);
+  const setCustomerIdStore = usePosStore((s: any) => s.setCustomerId);
+  const [customerId, setCustomerId] = useState<string | null>(customerIdStore);
   const [availableCredit, setAvailableCredit] = useState<number | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showMiniProfile, setShowMiniProfile] = useState(false);
   const [couponCode, setCouponCode] = useState<string>('');
   const [appliedDiscounts, setAppliedDiscounts] = useState<any[]>([]);
   const [offline, setOffline] = useState(false);
@@ -243,7 +249,12 @@ export default function POSPage() {
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur p-1 rounded">
         <div className="flex items-center gap-2">
           <Search onAdd={(line) => addLineStore(line)} />
-          <input placeholder={t('customers.select') || 'اختر العميل (ID)'} className="border rounded px-2 py-1" dir="ltr" value={customerId || ''} onChange={(e)=> setCustomerId(e.target.value || null)} />
+          <button className="px-2 py-1 rounded border" onClick={()=> setShowCustomerModal(true)}>{t('customers.select') || 'اختر العميل'}</button>
+          {customerId && (
+            <button className="px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800" onClick={()=> setShowMiniProfile(true)}>
+              #{customerId.slice(-6)}
+            </button>
+          )}
           {availableCredit != null && (
             <span className="text-xs rounded bg-emerald-50 text-emerald-700 px-2 py-1">{t('pos.availableCredit') || 'الرصيد المتاح'}: {availableCredit?.toFixed(2)}</span>
           )}
@@ -328,6 +339,17 @@ export default function POSPage() {
           onConfirmCard={async (amount) => { await startSale(); await addPayment('card', amount, {} as any); setShowPay(false); }}
           onConfirmPartial={async (amount, meta) => { await startPartialSale(amount, { schedule: meta.plan?.schedule, minDownPercent: 10, note: meta.reservationNote }); setShowPay(false); }}
         />
+      )}
+
+      {showCustomerModal && (
+        <CustomerAttachModal
+          onClose={() => setShowCustomerModal(false)}
+          onAttach={(c) => { const id = c._id || null; setCustomerId(id); setCustomerIdStore(id); setShowCustomerModal(false); }}
+        />
+      )}
+
+      {showMiniProfile && (
+        <MiniProfileDrawer customerId={customerId} onClose={() => setShowMiniProfile(false)} />
       )}
 
       <div id="__receipt_print" className="hidden print:block">

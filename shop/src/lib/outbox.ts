@@ -12,4 +12,14 @@ export async function enqueueExchangeCreate(input: { localId: string; originalSa
 	await posDb.outbox.add({ id, type: 'EXCHANGE_CREATE', payload: input, idempotencyKey: `exchange:${input.localId}`, createdAt: Date.now(), retryCount: 0 });
 }
 
+export async function enqueueCustomerCreate(input: any) {
+	const id = uuid();
+	await posDb.outbox.add({ id, type: 'CUSTOMER_CREATE', payload: input, idempotencyKey: `customer:create:${input.localId || id}`, createdAt: Date.now(), retryCount: 0 });
+}
+
+export async function enqueueCustomerUpdate(idOrLocal: string, patch: any) {
+	const id = uuid();
+	await posDb.outbox.add({ id, type: 'CUSTOMER_UPDATE', payload: { id: idOrLocal, patch }, idempotencyKey: `customer:update:${idOrLocal}:${Date.now()}`, createdAt: Date.now(), retryCount: 0 });
+}
+
 

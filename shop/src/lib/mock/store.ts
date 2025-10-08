@@ -186,10 +186,10 @@ export const mockDb = {
     return customers.get(id) || null;
   },
   // Sales
-  createSale(lines: Sale['lines'], total: number) {
+  createSale(lines: Sale['lines'], total: number, customerId?: string) {
     const id = uuid();
     const now = Date.now();
-    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'open', channel: 'retail', createdAt: now };
+    const sale: Sale = { _id: id, lines, total, paid: 0, status: 'open', channel: 'retail', customerId, createdAt: now };
     sales.set(id, sale);
     return sale;
   },

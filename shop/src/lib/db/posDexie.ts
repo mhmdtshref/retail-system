@@ -49,7 +49,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -77,6 +77,9 @@ export class POSDexie extends Dexie {
   couponsIndex!: Table<any, string>;
   taxConfigCache!: Table<any, string>;
   currencyConfigCache!: Table<any, string>;
+  recentCustomers!: Table<any, string>;
+  customerLookups!: Table<any, number>;
+  customerDrafts!: Table<any, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -112,6 +115,12 @@ export class POSDexie extends Dexie {
     this.version(6).stores({
       taxConfigCache: 'id, updatedAt',
       currencyConfigCache: 'id, updatedAt'
+    });
+    // Bump version for customers offline cache
+    this.version(7).stores({
+      recentCustomers: 'id, updatedAt, name',
+      customerLookups: '++id, ts, q',
+      customerDrafts: 'localId, createdAt'
     });
   }
 }
