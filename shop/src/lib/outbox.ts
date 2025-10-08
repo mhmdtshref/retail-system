@@ -22,4 +22,14 @@ export async function enqueueCustomerUpdate(idOrLocal: string, patch: any) {
 	await posDb.outbox.add({ id, type: 'CUSTOMER_UPDATE', payload: { id: idOrLocal, patch }, idempotencyKey: `customer:update:${idOrLocal}:${Date.now()}`, createdAt: Date.now(), retryCount: 0 });
 }
 
+export async function enqueueShipmentCreate(input: { localId: string; payload: { orderId: string; to: any; cod?: any; weightKg?: number; pieces?: number; service?: string } }) {
+	const id = uuid();
+	await posDb.outbox.add({ id, type: 'SHIPMENT_CREATE', payload: input.payload, idempotencyKey: `shipment:create:${input.localId}`, createdAt: Date.now(), retryCount: 0 });
+}
+
+export async function enqueueShipmentCancel(input: { shipmentId: string }) {
+	const id = uuid();
+	await posDb.outbox.add({ id, type: 'SHIPMENT_CANCEL', payload: { shipmentId: input.shipmentId }, idempotencyKey: `shipment:cancel:${input.shipmentId}:${Date.now()}`, createdAt: Date.now(), retryCount: 0 });
+}
+
 
