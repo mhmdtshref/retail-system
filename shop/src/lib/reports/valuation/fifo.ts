@@ -118,7 +118,7 @@ export async function computeFIFOAsOf(asOfUtc: Date, opts?: { includeReserved?: 
 
   // Enrich names
   const skus = Array.from(lotsBySku.keys());
-  let names: Record<string, string> = {};
+  const names: Record<string, string> = {};
   if (skus.length) {
     try {
       const prods = await Product.find({ 'variants.sku': { $in: skus } }, { productCode: 1, name_ar: 1, name_en: 1, variants: 1 }).lean();

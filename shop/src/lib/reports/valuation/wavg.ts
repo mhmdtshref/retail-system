@@ -85,7 +85,7 @@ export async function computeWeightedAverageAsOf(asOfUtc: Date, opts?: { include
 
   // Enrich with product names if available
   const skus = Array.from(bySku.keys());
-  let names: Record<string, string> = {};
+  const names: Record<string, string> = {};
   if (skus.length) {
     try {
       const prods = await Product.find({ 'variants.sku': { $in: skus } }, { productCode: 1, name_ar: 1, name_en: 1, variants: 1 }).lean();

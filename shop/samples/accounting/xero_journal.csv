@@ -1,0 +1,5 @@
+Date,JournalNumber,LineNumber,AccountCode,Description,Debit,Credit,TaxType,TrackingName1,TrackingOption1
+2025-01-01,ACC-20250101,1,Sales,Revenue,0.00,100.00,,,
+2025-01-01,ACC-20250101,2,Tax Payable,Tax,0.00,15.00,,,
+2025-01-01,ACC-20250101,3,Cash,Payment,115.00,0.00,,,
+
