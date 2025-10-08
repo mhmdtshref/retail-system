@@ -3,6 +3,7 @@ import { Shipment } from '@/lib/models/Shipment';
 import { CarrierAccount } from '@/lib/models/CarrierAccount';
 import { getAdapterFor } from '@/lib/delivery/registry';
 import { AuditLog } from '@/lib/models/AuditLog';
+import { revalidateTag } from 'next/cache';
 
 export async function POST(req: Request, context: { params: Promise<{ carrier: string }> }) {
   await dbConnect();
@@ -22,6 +23,7 @@ export async function POST(req: Request, context: { params: Promise<{ carrier: s
       if (event.status && event.status !== sh.status) updates.status = event.status;
       await Shipment.updateOne({ _id: sh._id }, { $set: updates, ...(updates.$push ? { $push: updates.$push } : {}) } as any);
       await AuditLog.create({ action: 'shipment.webhook', subject: { type: 'Shipment', id: String(sh._id) }, dataHash: undefined });
+      try { revalidateTag(`track:order:${sh.orderId}`); } catch {}
       return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } });
     } catch {
       continue;
