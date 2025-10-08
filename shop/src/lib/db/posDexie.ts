@@ -49,7 +49,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE' | 'SHIPMENT_CREATE' | 'SHIPMENT_CANCEL';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -80,6 +80,7 @@ export class POSDexie extends Dexie {
   recentCustomers!: Table<any, string>;
   customerLookups!: Table<any, number>;
   customerDrafts!: Table<any, string>;
+  shipmentsCache!: Table<{ id: string; orderId: string; carrier: string; trackingNumber?: string; status: string; to?: any; updatedAt: number }, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -126,6 +127,10 @@ export class POSDexie extends Dexie {
     this.version(8).stores({
       layawayCache: 'id, updatedAt, dueAt, status, bucket',
       layawayRemindersDrafts: 'localId, layawayId, createdAt'
+    });
+    // Bump version for shipments cache
+    this.version(9).stores({
+      shipmentsCache: 'id, orderId, carrier, trackingNumber, status, updatedAt'
     });
   }
 }

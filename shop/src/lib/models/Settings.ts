@@ -71,6 +71,11 @@ const LocalesConfigSchema = new Schema({
   }
 }, { _id: false });
 
+const DeliverySettingsSchema = new Schema({
+  defaultCarrierAccountId: { type: String },
+  webhookBaseUrl: { type: String }
+}, { _id: false });
+
 const SettingsSchema = new Schema({
   _id: { type: String, default: 'global' },
   version: { type: Number, default: 1 },
@@ -78,6 +83,7 @@ const SettingsSchema = new Schema({
   locales: { type: LocalesConfigSchema, default: {} },
   receipts: { type: ReceiptsConfigSchema, default: {} },
   notifications: { type: NotificationsConfigSchema, default: {} },
+  delivery: { type: DeliverySettingsSchema, default: {} },
   updatedAt: { type: Date, default: () => new Date() },
   updatedBy: { type: String }
 }, { timestamps: false, minimize: false });
@@ -89,6 +95,7 @@ export type SettingsDoc = {
   locales: any;
   receipts: any;
   notifications?: any;
+  delivery?: { defaultCarrierAccountId?: string; webhookBaseUrl?: string };
   updatedAt: string;
   updatedBy: string;
 };
