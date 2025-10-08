@@ -24,7 +24,9 @@ const PaymentRulesSchema = new Schema({
     enabled: { type: Boolean, default: false },
     minUpfrontPct: { type: Number, default: 10 },
     maxDays: { type: Number, default: 30 },
-    autoCancel: { type: Boolean, default: false }
+    autoCancel: { type: Boolean, default: false },
+    forfeitDays: { type: Number, default: 30 },
+    graceDays: { type: Number, default: 0 }
   },
   cashierManualDiscountLimitPct: { type: Number, default: 10 },
   drawer: {
@@ -44,6 +46,12 @@ const PaymentRulesSchema = new Schema({
   transfer: {
     requireRef: { type: Boolean, default: true }
   }
+}, { _id: false });
+
+const NotificationsConfigSchema = new Schema({
+  email: { type: new Schema({ fromName: { type: String }, fromAddress: { type: String }, relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
+  sms: { type: new Schema({ relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
+  webhook: { type: new Schema({ url: { type: String }, secret: { type: String } }, { _id: false }), default: {} }
 }, { _id: false });
 
 const LocalesConfigSchema = new Schema({
@@ -69,6 +77,7 @@ const SettingsSchema = new Schema({
   payments: { type: PaymentRulesSchema, default: {} },
   locales: { type: LocalesConfigSchema, default: {} },
   receipts: { type: ReceiptsConfigSchema, default: {} },
+  notifications: { type: NotificationsConfigSchema, default: {} },
   updatedAt: { type: Date, default: () => new Date() },
   updatedBy: { type: String }
 }, { timestamps: false, minimize: false });
@@ -79,6 +88,7 @@ export type SettingsDoc = {
   payments: any;
   locales: any;
   receipts: any;
+  notifications?: any;
   updatedAt: string;
   updatedBy: string;
 };
