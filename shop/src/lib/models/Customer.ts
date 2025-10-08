@@ -29,7 +29,9 @@ const SearchSchema = new Schema({
 const ConsentSchema = new Schema({
   marketing: { type: Boolean, default: false },
   sms: { type: Boolean, default: false },
-  email: { type: Boolean, default: false }
+  email: { type: Boolean, default: false },
+  whatsapp: { type: Boolean, default: false },
+  doNotContact: { type: Boolean, default: false }
 }, { _id: false });
 
 const StatsSchema = new Schema({
@@ -82,7 +84,7 @@ export type CustomerDoc = {
     label?: string; name_ar?: string; name_en?: string; line1: string; line2?: string; city?: string; state?: string; postal?: string; country?: string; phone?: string; isDefault?: boolean;
   }>;
   search: { name_ar_norm?: string; name_en_norm?: string; phone_index?: string[] };
-  consent?: { marketing?: boolean; sms?: boolean; email?: boolean };
+  consent?: { marketing?: boolean; sms?: boolean; email?: boolean; whatsapp?: boolean; doNotContact?: boolean };
   stats?: { lifetimeSpend?: number; ordersCount?: number; lastOrderAt?: string; storeCredit?: number };
   createdAt?: string; updatedAt?: string; createdBy?: string; updatedBy?: string;
   status?: 'active'|'archived';

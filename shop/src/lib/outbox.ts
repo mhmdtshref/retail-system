@@ -32,4 +32,9 @@ export async function enqueueShipmentCancel(input: { shipmentId: string }) {
 	await posDb.outbox.add({ id, type: 'SHIPMENT_CANCEL', payload: { shipmentId: input.shipmentId }, idempotencyKey: `shipment:cancel:${input.shipmentId}:${Date.now()}`, createdAt: Date.now(), retryCount: 0 });
 }
 
+export async function enqueueNotificationSend(input: { localId: string; payload: { event: string; entity: { type: 'order'|'layaway'; id: string }; customerId: string; channels?: Array<'email'|'sms'|'whatsapp'>; data?: any } }) {
+  const id = uuid();
+  await posDb.outbox.add({ id, type: 'NOTIF_SEND', payload: input.payload, idempotencyKey: `notif:${input.localId}`, createdAt: Date.now(), retryCount: 0 });
+}
+
 

@@ -6,6 +6,7 @@ import { Settings } from '@/lib/models/Settings';
 import { LayawayRemindSchema } from '@/lib/validators/layaway';
 import { getIfExists, saveResult } from '@/lib/idempotency';
 import { renderArabicTemplate, sendEmail, sendSms, sendWebhook } from '@/lib/reminders/send';
+import { sendNotification } from '@/lib/notifications/engine';
 
 function canSendSince(ts?: string, hours = 48) {
   if (!ts) return true;
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
   await lay.save();
+  try {
+    await sendNotification({ event: 'LAYAWAY_DUE_SOON' as any, entity: { type: 'layaway', id: String(lay._id), code: lay.code }, customerId: String(lay.customerId), channels: parsed.data.channels as any, idempotencyKey: idk });
+  } catch {}
   // TODO: Add audit log entry for reminder intent
   const res = { ok: true, sent };
   await saveResult(idk, res);

@@ -49,8 +49,12 @@ const PaymentRulesSchema = new Schema({
 }, { _id: false });
 
 const NotificationsConfigSchema = new Schema({
+  channels: { type: new Schema({ email: { type: Boolean, default: true }, sms: { type: Boolean, default: false }, whatsapp: { type: Boolean, default: false } }, { _id: false }), default: { email: true, sms: false, whatsapp: false } },
   email: { type: new Schema({ fromName: { type: String }, fromAddress: { type: String }, relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
-  sms: { type: new Schema({ relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
+  sms: { type: new Schema({ senderId: { type: String }, relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
+  whatsapp: { type: new Schema({ waNumber: { type: String }, relayWebhookUrl: { type: String } }, { _id: false }), default: {} },
+  throttling: { type: new Schema({ hoursPerEvent: { type: Number, default: 24 } }, { _id: false }), default: { hoursPerEvent: 24 } },
+  autoSend: { type: Schema.Types.Mixed, default: {} },
   webhook: { type: new Schema({ url: { type: String }, secret: { type: String } }, { _id: false }), default: {} }
 }, { _id: false });
 

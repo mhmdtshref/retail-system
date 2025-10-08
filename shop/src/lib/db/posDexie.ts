@@ -49,7 +49,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE' | 'SHIPMENT_CREATE' | 'SHIPMENT_CANCEL';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE' | 'SHIPMENT_CREATE' | 'SHIPMENT_CANCEL' | 'NOTIF_SEND';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -82,6 +82,8 @@ export class POSDexie extends Dexie {
   customerDrafts!: Table<any, string>;
   shipmentsCache!: Table<{ id: string; orderId: string; carrier: string; trackingNumber?: string; status: string; to?: any; updatedAt: number }, string>;
   reportsCache!: Table<{ key: string; snapshotJson: any; updatedAt: number; ttlSec: number }, string>;
+  notifDrafts!: Table<{ localId: string; event: string; entity: { type: 'order'|'layaway'; id: string }; customerId: string; channels?: Array<'email'|'sms'|'whatsapp'>; createdAt: number }, string>;
+  notifOutbox!: Table<{ id: string; type: 'NOTIF_SEND'; payload: any; idempotencyKey: string; createdAt: number; retryCount: number }, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -136,6 +138,11 @@ export class POSDexie extends Dexie {
     // Bump version for reports cache
     this.version(10).stores({
       reportsCache: 'key, updatedAt'
+    });
+    // Bump version for notifications drafts & outbox
+    this.version(11).stores({
+      notifDrafts: 'localId, createdAt',
+      notifOutbox: 'id, idempotencyKey, createdAt'
     });
   }
 }

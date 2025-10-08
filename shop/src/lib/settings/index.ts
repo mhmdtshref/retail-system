@@ -52,3 +52,16 @@ export async function updateReceipts(userId: string, receipts: any) {
   return out;
 }
 
+export async function updateNotifications(userId: string, notifications: any) {
+  await dbConnect();
+  const now = new Date();
+  const res = await Settings.findOneAndUpdate(
+    { _id: 'global' },
+    { $set: { notifications, updatedAt: now, updatedBy: userId }, $inc: { version: 1 } },
+    { new: true, upsert: true }
+  ).lean();
+  const out = res || { _id: 'global', version: 1, payments: {}, locales: {}, receipts: {}, notifications, updatedAt: now, updatedBy: userId } as any;
+  (out as any).updatedAt = new Date((out as any).updatedAt || now).toISOString();
+  return out;
+}
+

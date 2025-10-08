@@ -24,6 +24,18 @@ export async function POST(req: Request, context: { params: Promise<{ carrier: s
       await Shipment.updateOne({ _id: sh._id }, { $set: updates, ...(updates.$push ? { $push: updates.$push } : {}) } as any);
       await AuditLog.create({ action: 'shipment.webhook', subject: { type: 'Shipment', id: String(sh._id) }, dataHash: undefined });
       try { revalidateTag(`track:order:${sh.orderId}`); } catch {}
+      try {
+        const status = event.status || sh.status;
+        const map: any = { out_for_delivery: 'OUT_FOR_DELIVERY', delivered: 'DELIVERED' };
+        const ev = map[status as string];
+        if (ev) {
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notifications/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `shipment:webhook:${String(sh._id)}:${status}` },
+            body: JSON.stringify({ event: ev, entity: { type: 'order', id: String(sh.orderId) }, customerId: undefined })
+          }).catch(()=>{});
+        }
+      } catch {}
       return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } });
     } catch {
       continue;

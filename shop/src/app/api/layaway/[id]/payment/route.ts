@@ -39,6 +39,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await lay.save();
   const res = { ok: true, balance: lay.totals.balance, status: lay.status, paymentId: String(payment._id) };
   await saveResult(idk, res);
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${idk}:notif:layaway_payment` },
+      body: JSON.stringify({ event: 'LAYAWAY_PAYMENT_POSTED', entity: { type: 'layaway', id: String(lay._id) }, customerId: String(lay.customerId) })
+    }).catch(()=>{});
+  } catch {}
   return NextResponse.json(res);
 }
 
