@@ -81,6 +81,7 @@ export class POSDexie extends Dexie {
   customerLookups!: Table<any, number>;
   customerDrafts!: Table<any, string>;
   shipmentsCache!: Table<{ id: string; orderId: string; carrier: string; trackingNumber?: string; status: string; to?: any; updatedAt: number }, string>;
+  reportsCache!: Table<{ key: string; snapshotJson: any; updatedAt: number; ttlSec: number }, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -131,6 +132,10 @@ export class POSDexie extends Dexie {
     // Bump version for shipments cache
     this.version(9).stores({
       shipmentsCache: 'id, orderId, carrier, trackingNumber, status, updatedAt'
+    });
+    // Bump version for reports cache
+    this.version(10).stores({
+      reportsCache: 'key, updatedAt'
     });
   }
 }

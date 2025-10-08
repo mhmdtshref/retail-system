@@ -8,8 +8,8 @@ import { minRole as hasMinRole } from '@/lib/policy/guard';
 const intl = createMiddleware({ locales: Array.from(locales), defaultLocale, localePrefix });
 
 const PROTECTED_PREFIXES = [
-  /^\/(ar|en)\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings)(\/.*)?$/, // locale prefixed
-  /^\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings)(\/.*)?$/ // non-locale (fallback)
+  /^\/(ar|en)\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings|reports)(\/.*)?$/, // locale prefixed
+  /^\/(pos|inventory|products|promotions|purchase-orders|delivery|returns|sales|settings|reports)(\/.*)?$/ // non-locale (fallback)
 ];
 
 export default async function middleware(req: NextRequest) {

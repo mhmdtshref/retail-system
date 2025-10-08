@@ -100,9 +100,61 @@
     "products": "المنتجات",
     "customers": "العملاء",
     "finance": "المالية",
+    "reports": "التقارير",
     "sales": "المبيعات",
     "inventory": "التسويات والجرد",
     "settings": "الإعدادات"
+  },
+  "reports": {
+    "title": "التقارير",
+    "daily": "اليومي",
+    "aging": "التأخر",
+    "valuation": "تقييم المخزون",
+    "filters": {
+      "dateFrom": "من التاريخ",
+      "dateTo": "إلى التاريخ",
+      "asOf": "حتى تاريخ",
+      "method": "طريقة التقييم",
+      "includeReserved": "تشمل المحجوز",
+      "channel": "القناة",
+      "cashier": "الصراف",
+      "payment": "طريقة الدفع"
+    },
+    "kpis": {
+      "grossSales": "إجمالي المبيعات",
+      "discounts": "الخصومات",
+      "returns": "المردودات",
+      "netSales": "صافي المبيعات",
+      "tax": "الضريبة",
+      "grand": "الإجمالي بعد الضريبة",
+      "paid": "إجمالي المدفوع",
+      "cogs": "تكلفة البضاعة المباعة",
+      "margin": "هامش الربح",
+      "marginPct": "٪الهامش",
+      "invoices": "عدد الفواتير",
+      "aov": "متوسط الفاتورة",
+      "cashIn": "سحب نقدي",
+      "cashOut": "صرف نقدي",
+      "drawerOpens": "فتح الدرج"
+    },
+    "tables": {
+      "payments": "تفصيل المدفوعات",
+      "returns": "ملخص المرتجعات",
+      "discounts": "تأثير التخفيضات"
+    },
+    "valuation": {
+      "sku": "SKU",
+      "name": "الاسم",
+      "category": "الفئة",
+      "brand": "العلامة",
+      "units": "الوحدات المتاحة",
+      "unitCost": "تكلفة الوحدة",
+      "value": "قيمة المخزون",
+      "method": "طريقة التقييم"
+    },
+    "export": "تصدير",
+    "exportDisabledOffline": "التصدير غير متاح دون اتصال",
+    "offlineBanner": "تم عرض بيانات سابقة لعدم توفر الاتصال"
   },
   "returns": {
     "title": "الإرجاع والاستبدال",
