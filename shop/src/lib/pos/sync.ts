@@ -59,6 +59,28 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'LAYAWAY_PAYMENT') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/layaway/${p.layawayId}/payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ amount: p.amount, method: p.method })
+    });
+    if (!res.ok) throw new Error('LAYAWAY_PAYMENT failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'LAYAWAY_REMIND') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/layaway/${p.layawayId}/remind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify({ channels: p.channels })
+    });
+    if (!res.ok) throw new Error('LAYAWAY_REMIND failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
   if (item.type === 'COUNT_SESSION_SYNC') {
     const p = item.payload as any;
     const s = p.session;

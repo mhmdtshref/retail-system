@@ -49,7 +49,7 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -121,6 +121,11 @@ export class POSDexie extends Dexie {
       recentCustomers: 'id, updatedAt, name',
       customerLookups: '++id, ts, q',
       customerDrafts: 'localId, createdAt'
+    });
+    // Bump version for layaway cache and drafts
+    this.version(8).stores({
+      layawayCache: 'id, updatedAt, dueAt, status, bucket',
+      layawayRemindersDrafts: 'localId, layawayId, createdAt'
     });
   }
 }

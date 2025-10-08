@@ -6,7 +6,9 @@ export const PaymentRulesSchema = z.object({
     enabled: z.boolean().default(false),
     minUpfrontPct: z.number().min(0).max(100).default(10),
     maxDays: z.number().min(1).max(365).default(30),
-    autoCancel: z.boolean().default(false)
+    autoCancel: z.boolean().default(false),
+    forfeitDays: z.number().min(0).max(365).default(30).optional(),
+    graceDays: z.number().min(0).max(30).default(0).optional()
   }).optional(),
   cashierManualDiscountLimitPct: z.number().min(0).max(100).default(10),
   drawer: z.object({
@@ -69,6 +71,11 @@ export const SettingsDocSchema = z.object({
   payments: PaymentRulesSchema,
   locales: LocalesConfigSchema,
   receipts: ReceiptsConfigSchema,
+  notifications: z.object({
+    email: z.object({ fromName: z.string().optional(), fromAddress: z.string().email().optional(), relayWebhookUrl: z.string().url().optional() }).optional(),
+    sms: z.object({ relayWebhookUrl: z.string().url().optional() }).optional(),
+    webhook: z.object({ url: z.string().url().optional(), secret: z.string().optional() }).optional()
+  }).optional(),
   updatedAt: z.string(),
   updatedBy: z.string()
 });
