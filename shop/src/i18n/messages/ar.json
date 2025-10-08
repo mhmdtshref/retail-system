@@ -237,7 +237,8 @@
     "couponInvalid": "قسيمة غير صالحة",
     "discounts": "التخفيضات",
     "totalSavings": "إجمالي التوفير",
-    "pendingCoupon": "قيد التحقق من القسيمة"
+    "pendingCoupon": "قيد التحقق من القسيمة",
+    "location": "الموقع"
   },
   "layaway": {
     "title": "تقسيط/الحجوزات",

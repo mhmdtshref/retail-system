@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
+import { dbConnect } from '@/lib/db/mongo';
+import { Sale } from '@/lib/models/Sale';
+import { resolveFulfillmentLocation } from '@/lib/locations/routing';
 import { getProvider } from '@/lib/delivery';
 
 const PostSchema = z.object({ saleId: z.string() });
@@ -15,7 +18,13 @@ export async function POST(req: Request) {
   const parsed = PostSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { saleId } = parsed.data;
-  const sale = mockDb.getSale(saleId);
+  // Try persistent sale first to read fulfillFromLocationId
+  let sale = null as any;
+  try {
+    await dbConnect();
+    sale = await Sale.findById(saleId).lean();
+  } catch {}
+  if (!sale) sale = mockDb.getSale(saleId);
   if (!sale) return NextResponse.json({ error: 'Sale not found' }, { status: 404 });
 
   const provider = getProvider();

@@ -1,5 +1,6 @@
 import { dbConnect } from '@/lib/db/mongo';
 import { StockMovement } from '@/lib/models/StockMovement';
+import { StockLevel } from '@/lib/models/StockLevel';
 import availabilitySeed from '@/data/availability.json';
 import { mockDb } from '@/lib/mock/store';
 
@@ -44,16 +45,28 @@ function aggregateFromMovements(movements: Movement[]): Availability {
   return { onHand, reserved, available };
 }
 
-export async function getAvailabilityBulk(skus: string[]): Promise<Record<string, Availability & { asOf: number }>> {
+export async function getAvailabilityBulk(skus: string[], opts?: { locationId?: string }): Promise<Record<string, Availability & { asOf: number }>> {
   const asOf = Date.now();
   // Try DB
   try {
     await dbConnect();
+    // Prefer using StockLevel if locationId provided for speed
+    if (opts?.locationId) {
+      const levels = await StockLevel.find({ sku: { $in: skus }, locationId: opts.locationId }).lean();
+      const out: Record<string, Availability & { asOf: number }> = {};
+      for (const sku of skus) {
+        const l = (levels as any[]).find((x) => x.sku === sku);
+        const onHand = Number(l?.onHand || 0);
+        const reserved = Number(l?.reserved || 0);
+        out[sku] = { onHand, reserved, available: onHand - reserved, asOf };
+      }
+      return out;
+    }
+    // Global view from movements (legacy/global)
     const docs = await StockMovement.find({ sku: { $in: skus } }).lean();
     const bySku = new Map<string, Movement[]>();
     for (const d of docs as any[]) {
       const arr = bySku.get(d.sku) || [];
-      // Normalize legacy types to new ones where possible
       const type: string = (d.type || '').toString();
       arr.push({ sku: d.sku, type: type, quantity: Number(d.quantity) });
       bySku.set(d.sku, arr);
@@ -61,7 +74,6 @@ export async function getAvailabilityBulk(skus: string[]): Promise<Record<string
     const out: Record<string, Availability & { asOf: number }> = {};
     for (const sku of skus) {
       let source = bySku.get(sku) || [];
-      // If DB has no movements for sku, fallback to in-memory mock movements
       if (source.length === 0) {
         try {
           source = mockDb.listMovementsBySkus([sku]) as any;
