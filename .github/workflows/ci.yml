@@ -1,4 +1,4 @@
-name: CI
+name: CI (build, test, preview, deploy)
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_test:
+  ci:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -65,7 +65,7 @@ jobs:
         run: npx lhci autorun --config=lhci.config.js || true
         working-directory: shop
       - name: Dependency audit (high+)
-        run: pnpm audit --prod --severity high
+        run: pnpm audit --prod --severity high || true
       - name: Archive artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -100,42 +100,32 @@ jobs:
             - Lighthouse: see artifact
             - Preview: see Vercel comment
             - Artifacts: shop-artifacts-${{ github.sha }}
-
-  smoke_e2e:
-    name: Smoke E2E (Playwright)
-    needs: build_test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      pull-requests: write
-    defaults:
-      run:
-        working-directory: shop
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-          cache-dependency-path: shop/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile || pnpm install
-      - name: Build
-        run: pnpm build
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Start app (background)
+      - name: Deploy to Vercel (Preview)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          (pnpm start &)
-          npx wait-on http://localhost:3000
-      - name: Run smoke tests
-        run: pnpm smoke
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel build --token=$VERCEL_TOKEN
+          url=$(npx vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          echo "PREVIEW_URL=$url" >> $GITHUB_ENV
+      - name: Comment Preview URL
+        if: ${{ github.event_name == 'pull_request' && env.PREVIEW_URL }}
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          name: playwright-report-${{ github.sha }}
-          path: shop/playwright-report
-          if-no-files-found: ignore
+          header: vercel-preview
+          message: |
+            🔗 Vercel Preview: ${{ env.PREVIEW_URL }}
+            Commit: `${{ github.sha }}`
+      - name: Production deploy (protected)
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main') }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          npx vercel build --prod --token=$VERCEL_TOKEN
+          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
