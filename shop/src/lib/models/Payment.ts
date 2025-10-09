@@ -8,5 +8,9 @@ const PaymentSchema = new Schema({
   receivedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
+// Align with migration
+PaymentSchema.index({ saleId: 1, createdAt: -1 });
+PaymentSchema.index({ method: 1, createdAt: -1 });
+
 export const Payment = models.Payment || model('Payment', PaymentSchema);
 

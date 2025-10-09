@@ -43,6 +43,10 @@ const NotificationLogSchema = new Schema({
 
 NotificationLogSchema.index({ idempotencyKey: 1, channel: 1 }, { unique: true });
 NotificationLogSchema.index({ 'entity.type': 1, 'entity.id': 1, event: 1, channel: 1, createdAt: 1 });
+NotificationLogSchema.index({ event: 1 });
+NotificationLogSchema.index({ channel: 1 });
+NotificationLogSchema.index({ status: 1 });
+NotificationLogSchema.index({ createdAt: 1 });
 
 export type NotificationLogDoc = {
   _id?: string;

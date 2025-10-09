@@ -10,6 +10,7 @@ const StockLevelSchema = new Schema({
 
 StockLevelSchema.index({ locationId: 1, sku: 1, variantId: 1 }, { unique: true });
 StockLevelSchema.index({ sku: 1 });
+StockLevelSchema.index({ locationId: 1 });
 
 export const StockLevel = models.StockLevel || model('StockLevel', StockLevelSchema);
 

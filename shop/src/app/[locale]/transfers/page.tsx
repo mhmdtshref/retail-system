@@ -1,23 +1,38 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { VirtualTable } from '@/components/virtualized/VirtualTable';
 
 export default function TransfersPage() {
   const t = useTranslations();
   const [list, setList] = useState<any[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(true);
   const [status, setStatus] = useState<string>('');
 
   useEffect(() => {
     (async () => {
       const params = new URLSearchParams();
       if (status) params.set('status', status);
+      if (cursor) params.set('cursor', cursor);
       const res = await fetch('/api/transfers?' + params.toString());
       if (res.ok) {
         const data = await res.json();
-        setList(data.transfers || []);
+        setList((prev) => cursor ? [...prev, ...(data.transfers || [])] : (data.transfers || []));
+        setHasMore(!!data.nextCursor);
+        setCursor(data.nextCursor);
       }
     })();
   }, [status]);
+
+  const columns = useMemo(() => ([
+    { key: 'code', header: 'الكود', width: 160 },
+    { key: 'fromLocationId', header: 'من' },
+    { key: 'toLocationId', header: 'إلى' },
+    { key: 'status', header: 'الحالة', width: 140 },
+    { key: 'lines', header: 'الأسطر', cell: (t: any) => (t.lines||[]).reduce((s:number,l:any)=> s + (l.qty||0), 0), width: 120 },
+    { key: 'updatedAt', header: 'تاريخ', cell: (t: any) => new Date(t.updatedAt || t.createdAt).toLocaleString('ar-SA'), width: 220 },
+  ]), []);
 
   return (
     <main className="p-4 space-y-3">
@@ -30,26 +45,28 @@ export default function TransfersPage() {
           ))}
         </select>
       </div>
-      <div className="rounded border divide-y">
-        <div className="grid grid-cols-6 gap-2 p-2 text-xs text-muted-foreground">
-          <div>الكود</div>
-          <div>من</div>
-          <div>إلى</div>
-          <div>الحالة</div>
-          <div>الأسطر</div>
-          <div>تاريخ</div>
+      <VirtualTable rows={list} columns={columns as any} rowKey={(r:any)=> r._id} />
+      {hasMore && (
+        <div className="flex justify-center py-2">
+          <button className="px-3 py-1 rounded border" onClick={() => {
+            const c = cursor; // use last captured cursor
+            if (!c) return;
+            // trigger effect by updating status to same value; instead, manual fetch
+            (async () => {
+              const params = new URLSearchParams();
+              if (status) params.set('status', status);
+              params.set('cursor', c);
+              const res = await fetch('/api/transfers?' + params.toString());
+              if (res.ok) {
+                const data = await res.json();
+                setList((prev) => [...prev, ...(data.transfers || [])]);
+                setHasMore(!!data.nextCursor);
+                setCursor(data.nextCursor);
+              }
+            })();
+          }}>تحميل المزيد</button>
         </div>
-        {list.map((t: any) => (
-          <a key={t._id} href={`./transfers/${t._id}`} className="grid grid-cols-6 gap-2 p-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900">
-            <div className="font-mono">{t.code}</div>
-            <div>{t.fromLocationId}</div>
-            <div>{t.toLocationId}</div>
-            <div>{t.status}</div>
-            <div>{(t.lines||[]).reduce((s: number, l: any)=> s + (l.qty||0), 0)}</div>
-            <div>{new Date(t.updatedAt || t.createdAt).toLocaleString('ar-SA')}</div>
-          </a>
-        ))}
-      </div>
+      )}
     </main>
   );
 }

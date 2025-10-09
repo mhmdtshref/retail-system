@@ -36,6 +36,8 @@ const SaleSchema = new Schema({
 }, { timestamps: true });
 
 SaleSchema.index({ fulfillFromLocationId: 1, createdAt: -1 });
+SaleSchema.index({ customerId: 1, createdAt: -1 });
+SaleSchema.index({ createdAt: -1 });
 
 export const Sale = models.Sale || model('Sale', SaleSchema);
 

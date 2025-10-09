@@ -15,8 +15,12 @@ export async function GET(req: NextRequest) {
   if (status) q.status = status;
   if (from) q.fromLocationId = from;
   if (to) q.toLocationId = to;
-  const docs = await Transfer.find(q).sort({ createdAt: -1 }).limit(200).lean();
-  return NextResponse.json({ transfers: docs.map((d: any) => ({ ...d, _id: String(d._id) })) });
+  const limit = Math.min(200, Number(url.searchParams.get('limit') || 50));
+  const cursor = url.searchParams.get('cursor') || undefined;
+  const find = Transfer.find(q).sort({ createdAt: -1, _id: -1 }).limit(limit);
+  if (cursor) find.where('_id').lt(cursor);
+  const docs = await find.lean();
+  return NextResponse.json({ transfers: docs.map((d: any) => ({ ...d, _id: String(d._id) })), nextCursor: docs.length === limit ? String(docs[docs.length - 1]._id) : undefined });
 }
 
 export async function POST(req: NextRequest) {

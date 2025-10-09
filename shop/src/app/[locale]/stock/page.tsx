@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { LocationSwitcher } from '@/components/pos/LocationSwitcher';
+import { VirtualTable } from '@/components/virtualized/VirtualTable';
 
 export default function StockPage() {
   const t = useTranslations();
@@ -39,6 +40,13 @@ export default function StockPage() {
     return [header.join(','), ...lines].join('\n');
   }, [rows]);
 
+  const columns = useMemo(() => ([
+    { key: 'sku', header: 'SKU', width: 200 },
+    { key: 'available', header: 'المتاح', width: 140 },
+    { key: 'reserved', header: 'المحجوز', width: 140 },
+    { key: 'onHand', header: 'المخزون', width: 140 },
+  ]), []);
+
   return (
     <main className="p-4 space-y-3">
       {offline && (
@@ -49,22 +57,7 @@ export default function StockPage() {
         <input className="border rounded px-2 py-1" placeholder={t('products.searchPlaceholder') || 'بحث'} value={q} onChange={(e)=> setQ(e.target.value)} />
         <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} download={`stock-${locationId}.csv`} className="px-2 py-1 rounded border">CSV</a>
       </div>
-      <div className="rounded border divide-y">
-        <div className="grid grid-cols-4 gap-2 p-2 text-xs text-muted-foreground">
-          <div>SKU</div>
-          <div>المتاح</div>
-          <div>المحجوز</div>
-          <div>المخزون</div>
-        </div>
-        {rows.map((r) => (
-          <div key={r.sku} className="grid grid-cols-4 gap-2 p-2 text-sm">
-            <div className="font-mono">{r.sku}</div>
-            <div>{r.available}</div>
-            <div>{r.reserved}</div>
-            <div>{r.onHand}</div>
-          </div>
-        ))}
-      </div>
+      <VirtualTable rows={rows} columns={columns as any} rowKey={(r:any)=> r.sku} />
     </main>
   );
 }

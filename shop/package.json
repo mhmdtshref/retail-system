@@ -39,6 +39,7 @@
     "workbox-routing": "^7.3.0",
     "workbox-strategies": "^7.3.0",
     "workbox-window": "^7.3.0",
+    "@tanstack/react-virtual": "^3.10.8",
     "zod": "^4.1.11",
     "swr": "^2.2.5",
     "zustand": "^5.0.8",

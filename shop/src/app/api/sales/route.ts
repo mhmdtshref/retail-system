@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
 import { evaluateTotals } from '@/lib/tax/apply';
 import { requireAuth, requireCan } from '@/lib/policy/api';
+import { cache, cacheTags } from '@/lib/cache';
 
 const LineSchema = z.object({ sku: z.string(), qty: z.number().positive(), price: z.number().nonnegative() });
 const PlanInstallmentSchema = z.object({ seq: z.number().int().positive(), dueDate: z.string(), amount: z.number().nonnegative(), paidAt: z.string().optional() });
@@ -117,6 +118,10 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${idempotencyKey}:notif:order_created` },
       body: JSON.stringify({ event: 'ORDER_CREATED', entity: { type: 'order', id: String(doc._id) }, customerId: input.customerId })
     }).catch(()=>{});
+  } catch {}
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    await cache.invalidateTag(cacheTags.reportDaily(today));
   } catch {}
   return NextResponse.json(result);
 }

@@ -1,96 +1,64 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { VirtualTable } from '@/components/virtualized/VirtualTable';
 
 export default function NotificationsLogsPage() {
   const [items, setItems] = useState<any[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/notifications/logs');
+        const params = new URLSearchParams();
+        params.set('limit', '100');
+        if (cursor) params.set('cursor', cursor);
+        const res = await fetch('/api/notifications/logs?' + params.toString());
         if (res.ok) {
           const data = await res.json();
-          setItems(data.items || []);
+          setItems((prev) => cursor ? [...prev, ...(data.items || [])] : (data.items || []));
+          setHasMore(!!data.nextCursor);
+          setCursor(data.nextCursor);
         }
       } finally { setLoading(false); }
     })();
   }, []);
+
+  const columns = useMemo(() => ([
+    { key: 'createdAt', header: 'التاريخ', width: 220, cell: (it: any) => new Date(it.createdAt).toLocaleString('ar-SA') },
+    { key: 'event', header: 'الحدث' },
+    { key: 'channel', header: 'القناة', width: 140 },
+    { key: 'customerId', header: 'العميل' },
+    { key: 'status', header: 'الحالة', width: 140 },
+    { key: 'attempt', header: 'المحاولة', width: 100 },
+  ]), []);
+
   if (loading) return <main className="p-4">…</main>;
+
   return (
     <main className="p-4" dir="rtl">
       <h1 className="text-xl font-semibold mb-4">سجل الإشعارات</h1>
-      <div className="overflow-auto border rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className="text-right p-2">التاريخ</th>
-              <th className="text-right p-2">الحدث</th>
-              <th className="text-right p-2">القناة</th>
-              <th className="text-right p-2">العميل</th>
-              <th className="text-right p-2">الحالة</th>
-              <th className="text-right p-2">المحاولة</th>
-              <th className="text-right p-2">المعرف</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it) => (
-              <tr key={it._id} className="border-t">
-                <td className="p-2 whitespace-nowrap">{new Date(it.createdAt).toLocaleString('ar-SA')}</td>
-                <td className="p-2">{it.event}</td>
-                <td className="p-2">{it.channel}</td>
-                <td className="p-2">{it.customerId}</td>
-                <td className="p-2">{it.status}</td>
-                <td className="p-2">{it.attempt}</td>
-                <td className="p-2">{it.provider?.responseId || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <VirtualTable rows={items} columns={columns as any} rowKey={(r:any)=> r._id} />
+      {hasMore && (
+        <div className="flex justify-center py-2">
+          <button className="px-3 py-1 rounded border" onClick={() => {
+            const c = cursor; if (!c) return;
+            (async () => {
+              const params = new URLSearchParams();
+              params.set('limit', '100');
+              params.set('cursor', c);
+              const res = await fetch('/api/notifications/logs?' + params.toString());
+              if (res.ok) {
+                const data = await res.json();
+                setItems((prev) => [...prev, ...(data.items || [])]);
+                setHasMore(!!data.nextCursor);
+                setCursor(data.nextCursor);
+              }
+            })();
+          }}>تحميل المزيد</button>
+        </div>
+      )}
     </main>
-  );
-}
-
-"use client";
-import useSWR from 'swr';
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-export default function NotificationsLogsPage() {
-  const { data, error, isLoading } = useSWR('/api/notifications/logs?limit=100', fetcher);
-
-  if (isLoading) return <div className="p-6">…</div>;
-  if (error) return <div className="p-6 text-red-600">فشل التحميل</div>;
-
-  const items = (data?.items || []) as any[];
-
-  return (
-    <div className="p-6" dir="rtl">
-      <h2 className="text-xl font-bold mb-4">سجل الإشعارات</h2>
-      <table className="w-full text-sm border">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="p-2 border">التاريخ</th>
-            <th className="p-2 border">الحدث</th>
-            <th className="p-2 border">القناة</th>
-            <th className="p-2 border">العميل</th>
-            <th className="p-2 border">الحالة</th>
-            <th className="p-2 border">المحاولة</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it) => (
-            <tr key={it._id}>
-              <td className="p-2 border">{new Date(it.createdAt).toLocaleString()}</td>
-              <td className="p-2 border">{it.event}</td>
-              <td className="p-2 border">{it.channel}</td>
-              <td className="p-2 border">{it.customerId}</td>
-              <td className="p-2 border">{it.status}</td>
-              <td className="p-2 border">{it.attempt}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
