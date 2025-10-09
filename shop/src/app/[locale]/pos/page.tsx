@@ -17,6 +17,7 @@ import { getCachedSettings } from '@/lib/offline/settings-cache';
 import { uuid } from '@/lib/pos/idempotency';
 import { getCachedUser } from '@/lib/offline/userRoleCache';
 import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
+import { LocationSwitcher } from '@/components/pos/LocationSwitcher';
 
 export default function POSPage() {
   const t = useTranslations();
@@ -243,6 +244,7 @@ export default function POSPage() {
         </div>
       )}
       <div className="flex items-center gap-2">
+        <LocationSwitcher />
         <span className="font-medium">{t('pos.cart')}</span>
       </div>
 

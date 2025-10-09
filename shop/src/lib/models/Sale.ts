@@ -27,12 +27,15 @@ const SaleSchema = new Schema({
   lines: [{ sku: String, qty: Number, price: Number }],
   customerId: { type: Types.ObjectId, ref: 'Customer' },
   channel: { type: String, enum: ['retail', 'online'], default: 'retail' },
+  fulfillFromLocationId: { type: String },
   total: Number,
   paid: { type: Number, default: 0 },
   status: { type: String, enum: ['open','partially_paid','paid','cancelled'], default: 'open', index: true },
   paymentPlan: { type: PaymentPlanSchema },
   reservations: { type: [ReservationSchema], default: [] },
 }, { timestamps: true });
+
+SaleSchema.index({ fulfillFromLocationId: 1, createdAt: -1 });
 
 export const Sale = models.Sale || model('Sale', SaleSchema);
 

@@ -6,7 +6,8 @@ export async function GET(req: Request) {
   const skusParams = url.searchParams.getAll('skus[]');
   const skusSingle = url.searchParams.getAll('skus');
   const skus = (skusParams.length ? skusParams : skusSingle).filter(Boolean);
-  const map = await getAvailabilityBulk(skus as string[]);
+  const locationId = url.searchParams.get('locationId') || undefined;
+  const map = await getAvailabilityBulk(skus as string[], { locationId: locationId || undefined });
   const out = (skus as string[]).map((sku) => ({ sku, ...map[sku] }));
   return NextResponse.json({ availability: out });
 }

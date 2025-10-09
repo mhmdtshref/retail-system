@@ -7,6 +7,7 @@ import { makePaymentKey, makeSaleKey, uuid } from '@/lib/pos/idempotency';
 
 type State = {
   storeId: string;
+  activeLocationId: string | null;
   lines: PosCartLine[];
   payments: PosPayment[];
   localSaleId: string | null;
@@ -34,6 +35,7 @@ type Actions = {
 
 export const usePosStore = create<State & Actions>((set: any, get: any) => ({
   storeId: 'default',
+  activeLocationId: null,
   lines: [],
   payments: [],
   localSaleId: null,

@@ -21,6 +21,22 @@ export type Availability = {
   asOf: number; // epoch ms
 };
 
+export type LocationLocal = {
+  id: string; // locationId
+  code: string;
+  name: string;
+  type: 'store'|'warehouse'|'returns';
+  isSellable: boolean;
+  updatedAt: number;
+};
+
+export type StockCache = {
+  key: string; // `${locationId}:${sku}:${variantId||''}`
+  onHand: number;
+  reserved: number;
+  updatedAt: number;
+};
+
 export type CustomerLocal = {
   _id?: string;
   localId: string; // uuid
@@ -49,7 +65,9 @@ export type DraftSale = {
 
 export type OutboxItem = {
   id: string; // uuid
-  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE' | 'SHIPMENT_CREATE' | 'SHIPMENT_CANCEL' | 'NOTIF_SEND';
+  type: 'SALE_CREATE' | 'PAYMENT_ADD' | 'LAYAWAY_CANCEL' | 'LAYAWAY_PAYMENT' | 'LAYAWAY_REMIND' | 'COUNT_SESSION_SYNC' | 'COUNT_POST_VARIANCES' | 'RETURN_CREATE' | 'EXCHANGE_CREATE' | 'REFUND_CREATE' | 'CREDIT_ISSUE' | 'CREDIT_REDEEM' | 'COUPON_REDEEM' | 'CUSTOMER_CREATE' | 'CUSTOMER_UPDATE' | 'SHIPMENT_CREATE' | 'SHIPMENT_CANCEL' | 'NOTIF_SEND'
+        | 'STOCK_RESERVE' | 'STOCK_RELEASE' | 'STOCK_ADJUST'
+        | 'TRANSFER_CREATE' | 'TRANSFER_APPROVE' | 'TRANSFER_PICK' | 'TRANSFER_DISPATCH' | 'TRANSFER_RECEIVE' | 'TRANSFER_CANCEL';
   payload: unknown;
   idempotencyKey: string;
   createdAt: number;
@@ -71,6 +89,8 @@ export class POSDexie extends Dexie {
   syncLog!: Table<SyncLog, string>; // key: key
   countSessions!: Table<any, string>;
   countItems!: Table<any, number>;
+  locations!: Table<LocationLocal, string>;
+  stockCache!: Table<StockCache, string>;
   storeCreditsLocal!: Table<any, string>;
   refundDrafts!: Table<any, string>;
   promotionsActive!: Table<any, string>;
@@ -143,6 +163,11 @@ export class POSDexie extends Dexie {
     this.version(11).stores({
       notifDrafts: 'localId, createdAt',
       notifOutbox: 'id, idempotencyKey, createdAt'
+    });
+    // Bump version for multi-location support
+    this.version(12).stores({
+      locations: 'id, code, updatedAt',
+      stockCache: 'key, updatedAt'
     });
   }
 }

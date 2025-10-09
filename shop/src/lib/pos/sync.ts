@@ -92,6 +92,69 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'STOCK_ADJUST') {
+    const p = item.payload as any;
+    const res = await fetch('/api/stock/adjust', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify(p) });
+    if (!res.ok) throw new Error('STOCK_ADJUST failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'STOCK_RESERVE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/stock/reserve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify(p) });
+    if (!res.ok) throw new Error('STOCK_RESERVE failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'STOCK_RELEASE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/stock/release', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify(p) });
+    if (!res.ok) throw new Error('STOCK_RELEASE failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/transfers', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify(p) });
+    if (!res.ok) throw new Error('TRANSFER_CREATE failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_APPROVE') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/transfers/${p.id}/approve`, { method: 'POST', headers: { 'Idempotency-Key': item.idempotencyKey } });
+    if (!res.ok) throw new Error('TRANSFER_APPROVE failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_PICK') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/transfers/${p.id}/pick`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify({ picks: p.picks }) });
+    if (!res.ok) throw new Error('TRANSFER_PICK failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_DISPATCH') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/transfers/${p.id}/dispatch`, { method: 'POST', headers: { 'Idempotency-Key': item.idempotencyKey } });
+    if (!res.ok) throw new Error('TRANSFER_DISPATCH failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_RECEIVE') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/transfers/${p.id}/receive`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey }, body: JSON.stringify({ receipts: p.receipts }) });
+    if (!res.ok) throw new Error('TRANSFER_RECEIVE failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
+  if (item.type === 'TRANSFER_CANCEL') {
+    const p = item.payload as any;
+    const res = await fetch(`/api/transfers/${p.id}/cancel`, { method: 'POST', headers: { 'Idempotency-Key': item.idempotencyKey } });
+    if (!res.ok) throw new Error('TRANSFER_CANCEL failed');
+    await posDb.outbox.delete(item.id);
+    return;
+  }
   if (item.type === 'COUNT_SESSION_SYNC') {
     const p = item.payload as any;
     const s = p.session;
