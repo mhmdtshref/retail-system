@@ -55,7 +55,8 @@ export function ReceiptsForm() {
     setSaving(true);
     try {
       const idk = Math.random().toString(36).slice(2);
-      const res = await fetch('/api/settings/receipts', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idk }, body: JSON.stringify(conf) });
+      const csrf = document.cookie.split('; ').find(c=>c.startsWith('csrf-token='))?.split('=')[1] || '';
+      const res = await fetch('/api/settings/receipts', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idk, 'X-CSRF-Token': csrf }, body: JSON.stringify(conf) });
       if (res.ok) {
         try { const { refreshSettingsConfig } = await import('@/lib/tax/cache'); await refreshSettingsConfig(); } catch {}
         alert('تم الحفظ');

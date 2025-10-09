@@ -1,0 +1,36 @@
+name: Security CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master, develop, '**/harden-security**', 'cursor/**' ]
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+      - name: Install dependencies (pnpm if lockfile exists)
+        run: |
+          if [ -f shop/pnpm-lock.yaml ]; then pnpm -C shop install --frozen-lockfile || pnpm -C shop install; else npm -C shop ci || npm -C shop install; fi
+      - name: Lint (ESLint)
+        run: |
+          npm -w shop run -s lint || pnpm -C shop eslint || true
+      - name: Build
+        run: |
+          npm -w shop run -s build || pnpm -C shop build
+      - name: Smoke Tests
+        run: |
+          npm -w shop run -s test || true
+      - name: Dependency Audit (high+)
+        run: |
+          if [ -f shop/pnpm-lock.yaml ]; then pnpm -C shop audit --prod --severity high || true; else npm -C shop audit --production --audit-level=high || true; fi

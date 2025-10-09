@@ -1,0 +1,4 @@
+Contact: mailto:security@example.com
+Policy: https://example.com/security
+Preferred-Languages: en, ar
+Hiring: https://example.com/careers

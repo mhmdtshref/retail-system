@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUserFromRequest } from '@/lib/auth/session';
 import { ROUTE_RULES } from '@/lib/policy/route-config';
 import { minRole as hasMinRole } from '@/lib/policy/guard';
+import { applySecurityHeaders } from '@/lib/security/headers';
 
 const intl = createMiddleware({ locales: Array.from(locales), defaultLocale, localePrefix });
 
@@ -13,10 +14,19 @@ const PROTECTED_PREFIXES = [
 ];
 
 export default async function middleware(req: NextRequest) {
-  const res = intl(req);
+  let res = intl(req);
 
   const url = new URL(req.url);
   const pathname = url.pathname;
+
+  // Security headers for all requests (including public)
+  res = applySecurityHeaders(req, res, { cspImgDomains: ['data:', 'blob:'] });
+  // Set CSRF token if missing
+  const csrfCookie = req.cookies.get('csrf-token');
+  if (!csrfCookie) {
+    const token = Math.random().toString(36).slice(2);
+    res.cookies.set('csrf-token', token, { httpOnly: false, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 });
+  }
 
   const needsAuth = PROTECTED_PREFIXES.some((re) => re.test(pathname));
   if (!needsAuth) return res;

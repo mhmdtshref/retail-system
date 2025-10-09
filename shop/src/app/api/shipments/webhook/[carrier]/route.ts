@@ -3,6 +3,7 @@ import { Shipment } from '@/lib/models/Shipment';
 import { CarrierAccount } from '@/lib/models/CarrierAccount';
 import { getAdapterFor } from '@/lib/delivery/registry';
 import { AuditLog } from '@/lib/models/AuditLog';
+import { writeAudit } from '@/lib/security/audit';
 import { revalidateTag } from 'next/cache';
 
 export async function POST(req: Request, context: { params: Promise<{ carrier: string }> }) {
@@ -22,7 +23,7 @@ export async function POST(req: Request, context: { params: Promise<{ carrier: s
       if (event.events && event.events.length) updates.$push = { events: { $each: event.events } };
       if (event.status && event.status !== sh.status) updates.status = event.status;
       await Shipment.updateOne({ _id: sh._id }, { $set: updates, ...(updates.$push ? { $push: updates.$push } : {}) } as any);
-      await AuditLog.create({ action: 'shipment.webhook', subject: { type: 'Shipment', id: String(sh._id) }, dataHash: undefined });
+      await writeAudit({ action: 'webhook.received', entity: { type: 'Shipment', id: String(sh._id) }, meta: { carrier: type, verified: !!event.verified } as any });
       try { revalidateTag(`track:order:${sh.orderId}`); } catch {}
       try {
         const status = event.status || sh.status;
@@ -41,6 +42,7 @@ export async function POST(req: Request, context: { params: Promise<{ carrier: s
       continue;
     }
   }
+  await writeAudit({ action: 'webhook.rejected', status: 'failed', entity: { type: 'Shipment' }, meta: { reason: 'unrecognized' } as any });
   return new Response(JSON.stringify({ error: 'Unrecognized webhook' }), { status: 400, headers: { 'content-type': 'application/json' } });
 }
 

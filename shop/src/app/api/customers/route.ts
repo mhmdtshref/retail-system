@@ -7,6 +7,9 @@ import { requireAuth, requireCan } from '@/lib/policy/api';
 import { getIfExists, saveResult } from '@/lib/idempotency';
 import { normalizeArabicName, normalizeEnglishName, digitsOnly } from '@/lib/arabic/normalize';
 import { detectDuplicates } from '@/lib/customers/duplicates';
+import { withRateLimit } from '@/lib/security/rate-limit';
+import { verifyCsrf } from '@/lib/security/csrf';
+import { writeAudit } from '@/lib/security/audit';
 
 const ListQuery = z.object({
   q: z.string().optional(),
@@ -56,7 +59,8 @@ export async function GET(req: NextRequest) {
   const find: any = Customer.find(query).sort({ updatedAt: -1 }).limit(limit);
   if (cursor) find.where('_id').lt(cursor);
   const items = await find.lean();
-  return NextResponse.json({ items, nextCursor: items.length === limit ? String(items[items.length - 1]._id) : undefined });
+  const final = NextResponse.json({ items, nextCursor: items.length === limit ? String(items[items.length - 1]._id) : undefined });
+  return final;
 }
 
 export async function POST(req: NextRequest) {
@@ -65,6 +69,21 @@ export async function POST(req: NextRequest) {
   const allowed = await requireCan(req, auth.user, 'CUSTOMERS.CREATE');
   if (allowed !== true) return allowed;
   await dbConnect();
+  const csrf = verifyCsrf(req);
+  if (csrf !== true) return csrf;
+
+  // Rate limit sensitive create
+  const limited = await withRateLimit(
+    req,
+    () => new NextResponse(null, { status: 204 }),
+    { limit: 10, windowMs: 5 * 60 * 1000, burst: 5 },
+    'api:customers:create',
+    String((auth.user as any)?.id || (auth.user as any)?._id || '')
+  );
+  if (limited && limited.status === 429) {
+    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
+    return limited;
+  }
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   const existing = await getIfExists(idempotencyKey);
   if (existing) return NextResponse.json(existing);
@@ -85,6 +104,7 @@ export async function POST(req: NextRequest) {
   const doc = await Customer.create(enriched);
   const res = { customer: toClient(doc.toObject()), duplicates: dups };
   await saveResult(idempotencyKey, res);
+  await writeAudit({ action: 'user.create', status: 'success', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, entity: { type: 'Customer', id: String(doc._id) }, req });
   return NextResponse.json(res);
 }
 
