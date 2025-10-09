@@ -5,7 +5,6 @@ import { getSessionUserFromRequest } from '@/lib/auth/session';
 import { ROUTE_RULES } from '@/lib/policy/route-config';
 import { minRole as hasMinRole } from '@/lib/policy/guard';
 import { applySecurityHeaders } from '@/lib/security/headers';
-import { NextResponse } from 'next/server';
 
 const intl = createMiddleware({ locales: Array.from(locales), defaultLocale, localePrefix });
 
