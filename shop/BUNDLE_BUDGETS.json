@@ -1,0 +1,10 @@
+{
+  "pages": {
+    "/[locale]/pos": { "gzipKB": 250 },
+    "/[locale]/products": { "gzipKB": 250 },
+    "/[locale]/settings": { "gzipKB": 250 }
+  },
+  "shared": {
+    "vendor": { "gzipKB": 350 }
+  }
+}

@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    turbotrace: {
+      contextDirectory: __dirname,
+    },
+  },
   compress: true,
   images: {
     formats: ['image/avif', 'image/webp'],

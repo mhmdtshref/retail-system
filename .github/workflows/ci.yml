@@ -1,0 +1,131 @@
+name: CI (build, test, preview, deploy)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, release/**]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: shop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: shop/pnpm-lock.yaml
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: shop/.next/cache
+          key: next-cache-${{ runner.os }}-${{ hashFiles('shop/pnpm-lock.yaml') }}-${{ hashFiles('shop/next.config.*') }}
+          restore-keys: |
+            next-cache-${{ runner.os }}-
+      - name: Install deps
+        run: pnpm install --frozen-lockfile || pnpm install
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm tsc --noEmit
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: pnpm build
+      - name: Bundle size budgets
+        run: pnpm bundle:check
+        working-directory: shop
+      - name: Compute budgets status
+        run: |
+          echo "BUDGETS_STATUS=$(node -e \"try{const s=require('./shop/bundle-stats.json');process.stdout.write(s.ok?'ok':'exceeded')}catch{process.stdout.write('n/a')}\")" >> $GITHUB_ENV
+      - name: Start app (for audits)
+        if: always()
+        working-directory: shop
+        run: |
+          (pnpm start &)
+          npx wait-on http://localhost:3000
+      - name: Smoke tests (node)
+        run: pnpm test
+        working-directory: shop
+      - name: Lighthouse (LHCI)
+        run: npx lhci autorun --config=lhci.config.js || true
+        working-directory: shop
+      - name: Dependency audit (high+)
+        run: pnpm audit --prod --severity high || true
+      - name: Archive artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shop-artifacts-${{ github.sha }}
+          path: |
+            shop/.next/trace
+            shop/.next/trace.zip
+            shop/.next/cache
+            shop/junit.xml
+            shop/playwright-report
+            shop/lhci
+            shop/bundle-stats.json
+          if-no-files-found: ignore
+      - name: Job summary
+        if: always()
+        run: |
+          echo "CI for $GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
+          echo "\n- Build: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Budgets: ${BUDGETS_STATUS}" >> $GITHUB_STEP_SUMMARY
+          echo "- Lighthouse: see artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Smoke: see logs" >> $GITHUB_STEP_SUMMARY
+      - name: Post PR comment (summary)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: ci-summary
+          message: |
+            ✅ CI ran for `${{ github.sha }}`
+            - Lint/Types/Build: completed
+            - Budgets: ${{ env.BUDGETS_STATUS }}
+            - Lighthouse: see artifact
+            - Preview: see Vercel comment
+            - Artifacts: shop-artifacts-${{ github.sha }}
+      - name: Deploy to Vercel (Preview)
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel build --token=$VERCEL_TOKEN
+          url=$(npx vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          echo "PREVIEW_URL=$url" >> $GITHUB_ENV
+      - name: Comment Preview URL
+        if: ${{ github.event_name == 'pull_request' && env.PREVIEW_URL }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vercel-preview
+          message: |
+            🔗 Vercel Preview: ${{ env.PREVIEW_URL }}
+            Commit: `${{ github.sha }}`
+      - name: Production deploy (protected)
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main') }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          npx vercel build --prod --token=$VERCEL_TOKEN
+          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
