@@ -69,6 +69,8 @@ CustomerSchema.index({ 'search.name_ar_norm': 1 }, { collation: { locale: 'ar', 
 CustomerSchema.index({ 'search.name_en_norm': 1 });
 CustomerSchema.index({ 'search.phone_index': 1 });
 CustomerSchema.index({ 'search.name_ar_norm': 1, 'search.name_en_norm': 1, 'phones.e164': 1 });
+CustomerSchema.index({ email: 1 });
+CustomerSchema.index({ createdAt: -1 });
 
 export type CustomerDoc = {
   _id?: string;

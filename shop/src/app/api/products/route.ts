@@ -46,7 +46,11 @@ export async function GET(req: Request) {
     Product.find(query).sort({ updatedAt: -1 }).skip(skip).limit(pageSize).lean(),
     Product.countDocuments(query)
   ]);
-  return NextResponse.json({ items, page, pageSize, total });
+  const etag = `W/"products:list:${page}:${pageSize}:${total}:${items[0]?.updatedAt || ''}"`;
+  const res = NextResponse.json({ items, page, pageSize, total });
+  res.headers.set('ETag', etag);
+  res.headers.set('Cache-Control', 'public, max-age=30');
+  return res;
 }
 
 export async function POST(req: NextRequest) {

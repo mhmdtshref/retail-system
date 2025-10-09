@@ -1,7 +1,7 @@
 import { Schema, model, models } from 'mongoose';
 
 const VariantSchema = new Schema({
-  sku: { type: String, required: true, unique: true, index: true, trim: true },
+  sku: { type: String, required: true, index: true, trim: true },
   size: { type: String },
   color: { type: String },
   barcode: { type: String, index: true },
@@ -21,8 +21,12 @@ const ProductSchema = new Schema({
   variants: [VariantSchema]
 }, { timestamps: true });
 
-// Optional compound index for efficient lookups by size/color within a product
+// Indexes aligning with migration (safety on app-start)
 ProductSchema.index({ 'variants.size': 1, 'variants.color': 1, productCode: 1 });
+ProductSchema.index({ status: 1 });
+ProductSchema.index({ category: 1 });
+ProductSchema.index({ brand: 1 });
+ProductSchema.index({ updatedAt: -1 });
 
 export type VariantDoc = {
   sku: string;

@@ -24,6 +24,7 @@ const TransferSchema = new Schema({
 TransferSchema.index({ status: 1, createdAt: -1 });
 TransferSchema.index({ fromLocationId: 1 });
 TransferSchema.index({ toLocationId: 1 });
+TransferSchema.index({ code: 1 }, { unique: true });
 
 export const Transfer = models.Transfer || model('Transfer', TransferSchema);
 

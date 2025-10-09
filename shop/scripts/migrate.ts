@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 import { applyMigrations, listMigrations, revertMigrations, type Migration } from '@/lib/migrations/runner';
+import { migrationEnsureIndexes } from '@/migrations/2025-10-09_ensure_indexes';
 
 const registry: Migration[] = [
-  // Example migration placeholders; real ones added under src/migrations and imported here if needed
+  migrationEnsureIndexes,
 ];
 
 async function main() {
