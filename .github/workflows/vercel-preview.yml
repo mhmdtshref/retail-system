@@ -1,0 +1,62 @@
+name: Vercel Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: vercel-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.fork == false }}
+    defaults:
+      run:
+        working-directory: shop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Post sticky comment (preparing)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vercel-preview
+          message: |
+            ⏳ Preparing Vercel Preview for `${{ github.sha }}`...
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: shop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile || pnpm install
+      - name: Build (sanity)
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: pnpm build
+      - name: Deploy to Vercel (Preview)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          npx vercel build --token=$VERCEL_TOKEN
+          url=$(npx vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          echo "PREVIEW_URL=$url" >> $GITHUB_ENV
+      - name: Comment Preview URL
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vercel-preview
+          message: |
+            🔗 Vercel Preview: ${{ env.PREVIEW_URL }}
+            Commit: `${{ github.sha }}`
+      - name: Expose Preview URL as job output
+        id: out
+        run: echo "preview=${PREVIEW_URL}" >> $GITHUB_OUTPUT
