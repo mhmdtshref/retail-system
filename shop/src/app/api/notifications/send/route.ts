@@ -4,6 +4,9 @@ import { requireAuth, requireCan } from '@/lib/policy/api';
 import { SendIntentSchema } from '@/lib/validators/notifications';
 import { enqueueNotification, deliverNow } from '@/lib/notifications/engine';
 import { getIfExists, saveResult } from '@/lib/idempotency';
+import { takeRateLimit, applyRateHeaders } from '@/lib/security/rate-limit';
+import { verifyCsrf } from '@/lib/security/csrf';
+import { writeAudit } from '@/lib/security/audit';
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
@@ -11,6 +14,13 @@ export async function POST(req: NextRequest) {
   const allowed = await requireCan(req, auth.user, 'POS.SALE'); // cashiers can trigger transactional sends
   if (allowed !== true) return allowed;
   await dbConnect();
+  const csrf = verifyCsrf(req);
+  if (csrf !== true) return csrf;
+  const { limited, response, headers } = await takeRateLimit(req, { limit: 10, windowMs: 5 * 60 * 1000, burst: 5 }, 'api:notifications:send', String((auth.user as any)?.id || (auth.user as any)?._id || ''));
+  if (limited) {
+    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
+    return response!;
+  }
   const idk = req.headers.get('Idempotency-Key') || '';
   if (!idk) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   const existing = await getIfExists(idk);
@@ -26,7 +36,8 @@ export async function POST(req: NextRequest) {
   }
   const result = { ok: true, results };
   await saveResult(idk, result);
-  return NextResponse.json(result);
+  const res = NextResponse.json(result);
+  return applyRateHeaders(res, headers);
 }
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -43,6 +54,13 @@ export async function POST(req: NextRequest) {
   const allowed = await requireCan(req, auth.user, 'POS.SALE');
   if (allowed !== true) return allowed;
   await dbConnect();
+  const csrf = verifyCsrf(req);
+  if (csrf !== true) return csrf;
+  const { limited, response, headers } = await takeRateLimit(req, { limit: 10, windowMs: 5 * 60 * 1000, burst: 5 }, 'api:notifications:send', String((auth.user as any)?.id || (auth.user as any)?._id || ''));
+  if (limited) {
+    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
+    return response!;
+  }
   const idk = req.headers.get('Idempotency-Key') || '';
   if (!idk) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   const cached = await getIfExists(idk);
@@ -52,7 +70,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const res = await sendNotification({ ...parsed.data, idempotencyKey: idk } as any);
   await saveResult(idk, res);
-  return NextResponse.json(res);
+  return applyRateHeaders(NextResponse.json(res), headers);
 }
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -68,6 +86,13 @@ export async function POST(req: NextRequest) {
   const allowed = await requireCan(req, auth.user, 'POS.SALE'); // cashiers can trigger transactional
   if (allowed !== true) return allowed;
   await dbConnect();
+  const csrf = verifyCsrf(req);
+  if (csrf !== true) return csrf;
+  const { limited, response, headers } = await takeRateLimit(req, { limit: 10, windowMs: 5 * 60 * 1000, burst: 5 }, 'api:notifications:send', String((auth.user as any)?.id || (auth.user as any)?._id || ''));
+  if (limited) {
+    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
+    return response!;
+  }
   const idk = req.headers.get('Idempotency-Key') || '';
   if (!idk) return NextResponse.json({ error: 'Missing Idempotency-Key' }, { status: 400 });
   const cached = await getIfExists(idk);
@@ -77,5 +102,5 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const res = await sendNotification({ ...parsed.data, idempotencyKey: idk } as any);
   await saveResult(idk, res);
-  return NextResponse.json(res);
+  return applyRateHeaders(NextResponse.json(res), headers);
 }

@@ -3,9 +3,11 @@ import Credentials from 'next-auth/providers/credentials';
 import { dbConnect } from '@/lib/db/mongo';
 import { User } from '@/lib/models/User';
 import { verifyPassword } from '@/lib/auth/password';
+import { writeAudit } from '@/lib/security/audit';
 
 const handler = NextAuth({
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt', maxAge: 15 * 60 },
+  jwt: { maxAge: 15 * 60 },
   providers: [
     Credentials({
       name: 'credentials',
@@ -39,6 +41,12 @@ const handler = NextAuth({
     async session({ session, token }) {
       (session.user as any) = { id: String(token.sub), role: (token as any).role, name: (token as any).name, email: (token as any).email };
       return session;
+    }
+  },
+  cookies: {
+    sessionToken: {
+      name: `__Host-next-auth.session-token`,
+      options: { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 15 * 60 }
     }
   },
   pages: {

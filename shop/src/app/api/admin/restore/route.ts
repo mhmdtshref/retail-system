@@ -4,6 +4,9 @@ import { requireAuth, requireCan } from '@/lib/policy/api';
 import { minRole } from '@/lib/policy/guard';
 import { getIfExists, saveResult } from '@/lib/idempotency';
 import { restoreCollections } from '@/lib/backup/restorer';
+import { takeRateLimit, applyRateHeaders } from '@/lib/security/rate-limit';
+import { verifyCsrf } from '@/lib/security/csrf';
+import { writeAudit } from '@/lib/security/audit';
 
 const postSchema = z.object({
   source: z.object({ type: z.enum(['local','s3']), path: z.string().optional(), bucket: z.string().optional(), prefix: z.string().optional() }),
@@ -27,11 +30,19 @@ export async function POST(req: NextRequest) {
 
   const { source, collections, passphrase, dryRun } = input.data;
   const idem = req.headers.get('Idempotency-Key') || '';
+  const csrf = verifyCsrf(req);
+  if (csrf !== true) return csrf;
+  const { limited, response, headers } = await takeRateLimit(req, { limit: 3, windowMs: 5 * 60 * 1000, burst: 1 }, 'api:admin:restore', String((auth.user as any)?.id || (auth.user as any)?._id || ''));
+  if (limited) {
+    await writeAudit({ action: 'restore.run', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
+    return response!;
+  }
   if (idem) {
     const existing = await getIfExists<any>(idem);
     if (existing) return NextResponse.json(existing);
   }
   const res = await restoreCollections({ source, collections, passphrase, dryRun }, auth.user?._id);
   if (idem) await saveResult(idem, res);
-  return NextResponse.json(res);
+  await writeAudit({ action: 'restore.run', status: 'success', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role } });
+  return applyRateHeaders(NextResponse.json(res), headers);
 }
