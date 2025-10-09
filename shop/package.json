@@ -9,6 +9,12 @@
     "lint": "eslint",
     "test": "node ./tests/smoke.js",
     "seed": "tsx scripts/seed.ts",
+    "backup": "tsx scripts/backup.ts",
+    "restore": "tsx scripts/restore.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "migrate:status": "tsx scripts/migrate.ts status",
+    "migrate:apply": "tsx scripts/migrate.ts up",
+    "migrate:revert": "tsx scripts/migrate.ts down",
     "pwa:analyze": "node -e \"const fs=require('fs');const sw=fs.existsSync('public/sw.js');const man=fs.existsSync('src/app/manifest.webmanifest/route.ts');console.log('SW:',sw,' Manifest route:',man)\""
   },
   "dependencies": {
@@ -35,7 +41,9 @@
     "workbox-window": "^7.3.0",
     "zod": "^4.1.11",
     "swr": "^2.2.5",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "@aws-sdk/client-s3": "^3.682.0",
+    "@aws-sdk/s3-request-presigner": "^3.682.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
