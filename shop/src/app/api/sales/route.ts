@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withObservability } from '@/lib/obs/http';
+import { posSalesTotal, posSalesValueTotal } from '@/lib/obs/metrics';
 import { z } from 'zod';
 import { mockDb } from '@/lib/mock/store';
 import { evaluateTotals } from '@/lib/tax/apply';
@@ -34,7 +36,7 @@ const OnlineSaleSchema = z.object({
   totals: z.object({ grand: z.number().nonnegative() })
 });
 
-export async function POST(req: NextRequest) {
+export const POST = withObservability(async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if ('error' in auth) return auth.error;
   const allowed = await requireCan(req, auth.user, 'POS.SALE');
@@ -123,6 +125,7 @@ export async function POST(req: NextRequest) {
     const today = new Date().toISOString().slice(0, 10);
     await cache.invalidateTag(cacheTags.reportDaily(today));
   } catch {}
+  try { posSalesTotal.inc(); posSalesValueTotal.inc({}, Math.round((input.total || 0) * 100) / 100); } catch {}
   return NextResponse.json(result);
-}
+});
 

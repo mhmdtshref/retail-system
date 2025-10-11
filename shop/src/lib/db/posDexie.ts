@@ -104,6 +104,7 @@ export class POSDexie extends Dexie {
   reportsCache!: Table<{ key: string; snapshotJson: any; updatedAt: number; ttlSec: number }, string>;
   notifDrafts!: Table<{ localId: string; event: string; entity: { type: 'order'|'layaway'; id: string }; customerId: string; channels?: Array<'email'|'sms'|'whatsapp'>; createdAt: number }, string>;
   notifOutbox!: Table<{ id: string; type: 'NOTIF_SEND'; payload: any; idempotencyKey: string; createdAt: number; retryCount: number }, string>;
+  obsLogs!: Table<{ id: string; payload: any; idempotencyKey: string; createdAt: number; retryCount: number }, string>;
 
   constructor() {
     super('pos-db-v1');
@@ -168,6 +169,10 @@ export class POSDexie extends Dexie {
     this.version(12).stores({
       locations: 'id, code, updatedAt',
       stockCache: 'key, updatedAt'
+    });
+    // Bump version for observability client logs
+    this.version(13).stores({
+      obsLogs: 'id, idempotencyKey, createdAt'
     });
   }
 }

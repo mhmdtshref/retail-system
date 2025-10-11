@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withObservability } from '@/lib/obs/http';
 import { dbConnect } from '@/lib/db/mongo';
 import { Product } from '@/lib/models/Product';
 import { z } from 'zod';
@@ -10,7 +11,7 @@ const Query = z.object({
   limit: z.coerce.number().int().positive().max(50).default(25),
 });
 
-export async function GET(req: NextRequest) {
+export const GET = withObservability(async function GET(req: NextRequest) {
   await dbConnect();
   const url = new URL(req.url);
   const parsed = Query.safeParse(Object.fromEntries(url.searchParams.entries()));
@@ -52,4 +53,4 @@ export async function GET(req: NextRequest) {
   res.headers.set('ETag', etag);
   res.headers.set('Cache-Control', 'public, max-age=15');
   return res;
-}
+});

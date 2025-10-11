@@ -308,6 +308,18 @@ export function startOutboxSyncLoop() {
       for (const item of items) {
         try { await processItem(item); } catch (e) { await posDb.outbox.update(item.id, { retryCount: (item.retryCount || 0) + 1 }); }
       }
+      // push obs logs
+      const obs = await (posDb as any).obsLogs?.orderBy('createdAt').toArray();
+      if (obs && obs.length) {
+        for (const o of obs) {
+          try {
+            await fetch('/api/obs/log', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': o.idempotencyKey }, body: JSON.stringify(o.payload) });
+            await (posDb as any).obsLogs.delete(o.id);
+          } catch (e) {
+            await (posDb as any).obsLogs.update(o.id, { retryCount: (o.retryCount || 0) + 1 });
+          }
+        }
+      }
       // process notification outbox
       const notifItems = await posDb.notifOutbox.orderBy('createdAt').toArray();
       for (const n of notifItems) {

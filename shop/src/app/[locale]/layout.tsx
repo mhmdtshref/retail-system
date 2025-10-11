@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { isRTL } from '@/i18n/config';
 import '@/app/globals.css';
+import { ErrorBoundary } from '@/components/obs/ErrorBoundary';
 import { Cairo, Tajawal } from 'next/font/google';
 
 const tajawal = Tajawal({ subsets: ['arabic'], weight: ['400','700'], variable: '--font-arabic' });
@@ -31,7 +32,9 @@ export default async function LocaleLayout(props: any) {
       <div dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </div>
     </NextIntlClientProvider>
   );

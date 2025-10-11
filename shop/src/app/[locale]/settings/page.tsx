@@ -32,6 +32,7 @@ export default function SettingsIndexPage() {
         <Link className="px-3 py-1 rounded border" href="/settings/receipts">الإيصالات</Link>
         <Link className="px-3 py-1 rounded border" href="/settings/accounting">المحاسبة</Link>
         <Link className="px-3 py-1 rounded border" href="/settings/notifications">الإشعارات</Link>
+        <Link className="px-3 py-1 rounded border" href="/settings/observability">المراقبة</Link>
       </div>
       <div className="text-sm text-neutral-600">اختر تبويبًا أعلاه لعرض الإعدادات.</div>
     </main>
