@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import { dbConnect } from '@/lib/db/mongo';
 import { requireAuth } from '@/lib/policy/api';
