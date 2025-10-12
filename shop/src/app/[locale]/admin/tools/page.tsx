@@ -55,10 +55,16 @@ export default function AdminToolsPage() {
         <section className="rounded border p-4">
           <h2 className="text-xl mb-2">إعادة التشغيل</h2>
           <p className="text-sm text-gray-600">عرض وإعادة محاولة الوظائف الفاشلة.</p>
+          <div className="mt-3">
+            {typeof window !== 'undefined' && <DynamicReplayTable />}
+          </div>
         </section>
         <section className="rounded border p-4">
           <h2 className="text-xl mb-2">المعرِّف الأحادي</h2>
           <p className="text-sm text-gray-600">بحث وإعادة التشغيل بمفتاح جديد.</p>
+          <div className="mt-3">
+            {typeof window !== 'undefined' && <DynamicIdempSearch />}
+          </div>
         </section>
       </div>
     </main>
@@ -66,3 +72,5 @@ export default function AdminToolsPage() {
 }
 
 const DynamicFixWizard = dynamic(() => import('@/components/admin/tools/FixWizard'), { ssr: false });
+const DynamicReplayTable = dynamic(() => import('@/components/admin/tools/ReplayTable'), { ssr: false });
+const DynamicIdempSearch = dynamic(() => import('@/components/admin/tools/IdempotencySearch'), { ssr: false });
