@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useLocale } from 'next-intl';
+import { isAdminToolsEnabled } from '@/lib/flags';
 
 function Tab({ id, label, defaultChecked }: { id: string; label: string; defaultChecked?: boolean }) {
   return (
@@ -25,7 +26,7 @@ export default function AdminToolsPage() {
       const res = await fetch('/api/auth/self');
       if (res.ok) { const data = await res.json(); setRole(data?.user?.role || 'viewer'); }
     } catch {}
-    setEnabled(process.env.NEXT_PUBLIC_ADMIN_TOOLS_ENABLED === 'true' || !!(globalThis as any).ADMIN_TOOLS_ENABLED);
+    try { setEnabled(isAdminToolsEnabled()); } catch { setEnabled(false); }
   })(); }, []);
 
   if (!enabled) {
