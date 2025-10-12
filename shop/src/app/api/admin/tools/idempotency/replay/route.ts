@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/policy/api';
 import { minRole } from '@/lib/policy/guard';
 import { takeRateLimit, applyRateHeaders } from '@/lib/security/rate-limit';
 import { IdempotencyRecord } from '@/lib/models/IdempotencyRecord';
+import { writeAudit } from '@/lib/security/audit';
 
 const BodySchema = z.object({ key: z.string().min(4), newKey: z.string().min(4).optional(), dryRun: z.boolean().optional() });
 
@@ -25,5 +26,6 @@ export async function POST(req: NextRequest) {
   const record = await IdempotencyRecord.findById(parsed.data.key).lean();
   if (!record) return applyRateHeaders(NextResponse.json({ error: { message: 'غير موجود' } }, { status: 404 }), headers);
 
+  await writeAudit({ action: 'settings.update', status: 'success', actor: { id: String((auth as any).user?.id || '') , role: (auth as any).user?.role }, entity: { type: 'idempotency', id: record._id }, req, meta: { replay: true, dryRun: !!parsed.data.dryRun } });
   return applyRateHeaders(NextResponse.json({ ok: true, simulate: !!parsed.data.dryRun, willUseKey: parsed.data.newKey || `${record._id}-rerun-${Date.now()}` }), headers);
 }
