@@ -193,6 +193,19 @@ async function processItem(item: OutboxItem) {
     await posDb.outbox.delete(item.id);
     return;
   }
+  if (item.type === 'RETURN_RECEIPTLESS_CREATE') {
+    const p = item.payload as any;
+    const res = await fetch('/api/returns/receiptless', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.idempotencyKey },
+      body: JSON.stringify(p.slip)
+    });
+    if (!res.ok) throw new Error('RETURN_RECEIPTLESS_CREATE failed');
+    const data = await res.json();
+    await posDb.syncLog.put({ key: `receiptless:${p.localId}`, value: data.slip?._id || data.slipId, updatedAt: Date.now() });
+    await posDb.outbox.delete(item.id);
+    return;
+  }
   if (item.type === 'EXCHANGE_CREATE') {
     const p = item.payload as any;
     const res = await fetch('/api/exchanges', {
