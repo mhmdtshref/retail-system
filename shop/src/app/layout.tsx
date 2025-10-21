@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from './providers';
 import { ThemeProvider } from './theme-provider';
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 // Base HTML wrapper for non-locale routes (redirected by middleware)
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <Providers>{children}</Providers>
-        </ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider>
+            <Providers>{children}</Providers>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

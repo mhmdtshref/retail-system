@@ -4,7 +4,7 @@ const alg = 'HS256';
 const defaultTtlSeconds = 60 * 30; // 30 minutes
 
 function getSecret() {
-  return new TextEncoder().encode(process.env.TRACK_SECRET || process.env.NEXTAUTH_SECRET || 'dev-track-secret');
+  return new TextEncoder().encode(process.env.TRACK_SECRET || 'dev-track-secret');
 }
 
 export async function signTrackToken(payload: { orderId: string; ttlSeconds?: number }) {
