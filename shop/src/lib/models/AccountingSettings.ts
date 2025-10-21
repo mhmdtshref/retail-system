@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const AccountsSchema = new Schema({
   sales: { type: String, required: true },
@@ -58,5 +58,5 @@ export type AccountingSettingsDoc = {
   createdAt: string; updatedAt: string; updatedBy?: string;
 };
 
-export const AccountingSettings = models.AccountingSettings || model('AccountingSettings', AccountingSettingsSchema);
+export const AccountingSettings = (mongoose.models as any).AccountingSettings || model('AccountingSettings', AccountingSettingsSchema);
 

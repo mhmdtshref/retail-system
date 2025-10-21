@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const StockMovementSchema = new Schema({
   sku: { type: String, required: true, index: true },
@@ -17,5 +17,5 @@ const StockMovementSchema = new Schema({
 StockMovementSchema.index({ sku: 1, occurredAt: -1 });
 StockMovementSchema.index({ locationId: 1, sku: 1, occurredAt: -1 });
 
-export const StockMovement = models.StockMovement || model('StockMovement', StockMovementSchema);
+export const StockMovement = (mongoose.models as any).StockMovement || model('StockMovement', StockMovementSchema);
 

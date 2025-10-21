@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type FixKind = 'order_totals'|'stock_reserved'|'layaway_balance'|'orphan_payments'|'transfer_state'|'customer_merge';
 
@@ -36,4 +36,4 @@ export type FixJobDoc = {
   error?: string; createdBy: string; createdAt: string; finishedAt?: string;
 };
 
-export const FixJob = models.FixJob || model('FixJob', FixJobSchema);
+export const FixJob = (mongoose.models as any).FixJob || model('FixJob', FixJobSchema);

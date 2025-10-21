@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRequestContext, setUserContext, getRequestContext } from '@/lib/obs/context';
+// Server-only imports
+import { withRequestContext, setUserContext } from '@/lib/obs/context';
 import { logger } from '@/lib/obs/logger';
 import { recordHttp } from '@/lib/obs/metrics';
 import { getSessionUserFromRequest } from '@/lib/auth/session';
@@ -12,7 +13,7 @@ export function withObservability(handler: (req: NextRequest, ...rest: any[]) =>
         const user = await getSessionUserFromRequest(req).catch(()=>null);
         if (user) setUserContext({ id: user.id, role: user.role });
         const res = await handler(req, ...rest);
-        const ctx = getRequestContext();
+        const ctx = (globalThis as any).__getRequestContext ? (globalThis as any).__getRequestContext() : undefined;
         const dur = Date.now() - started;
         recordHttp(ctx?.path || '', req.method, res.status || 200, dur);
         if (dur >= Number(process.env.OBS_SLOW_MS || '1000')) {
@@ -22,7 +23,7 @@ export function withObservability(handler: (req: NextRequest, ...rest: any[]) =>
         }
         return res;
       } catch (error) {
-        const ctx = getRequestContext();
+        const ctx = (globalThis as any).__getRequestContext ? (globalThis as any).__getRequestContext() : undefined;
         logger.error({ route: ctx?.path, method: req.method, err: String((error as any)?.message || error) }, 'handler error');
         throw error;
       }

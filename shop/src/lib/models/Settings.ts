@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const ReceiptTemplateSchema = new Schema({
   showLogo: { type: Boolean, default: true },
@@ -120,5 +120,5 @@ export type SettingsDoc = {
   updatedBy: string;
 };
 
-export const Settings = models.Settings || model('Settings', SettingsSchema);
+export const Settings = (mongoose.models as any).Settings || model('Settings', SettingsSchema);
 

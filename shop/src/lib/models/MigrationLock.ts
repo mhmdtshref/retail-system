@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const MigrationLockSchema = new Schema({
   _id: { type: String, default: 'migration-lock' },
@@ -16,4 +16,4 @@ export type MigrationLockDoc = {
   ttlSec?: number;
 };
 
-export const MigrationLock = models.MigrationLock || model('MigrationLock', MigrationLockSchema);
+export const MigrationLock = (mongoose.models as any).MigrationLock || model('MigrationLock', MigrationLockSchema);

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const ToSchema = new Schema({
   email: { type: String },
@@ -65,4 +65,4 @@ export type NotificationLogDoc = {
   createdAt: string; updatedAt: string;
 };
 
-export const NotificationLog = models.NotificationLog || model('NotificationLog', NotificationLogSchema);
+export const NotificationLog = (mongoose.models as any).NotificationLog || model('NotificationLog', NotificationLogSchema);

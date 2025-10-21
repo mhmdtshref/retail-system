@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const VariantSchema = new Schema({
   sku: { type: String, required: true, index: true, trim: true },
@@ -49,5 +49,5 @@ export type ProductDoc = {
   variants: VariantDoc[];
 };
 
-export const Product = models.Product || model('Product', ProductSchema);
+export const Product = (mongoose.models as any).Product || model('Product', ProductSchema);
 

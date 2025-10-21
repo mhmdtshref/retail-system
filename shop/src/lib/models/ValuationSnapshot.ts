@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const BySkuSchema = new Schema({
   sku: { type: String, required: true },
@@ -18,5 +18,5 @@ const ValuationSnapshotSchema = new Schema({
   updatedAt: { type: String, required: true }
 }, { minimize: false, timestamps: false });
 
-export const ValuationSnapshot = models.ValuationSnapshot || model('ValuationSnapshot', ValuationSnapshotSchema);
+export const ValuationSnapshot = (mongoose.models as any).ValuationSnapshot || model('ValuationSnapshot', ValuationSnapshotSchema);
 

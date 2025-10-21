@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const EntitySchema = new Schema({
   type: { type: String },
@@ -28,4 +28,4 @@ export type IdempotencyRecordDoc = {
   entity?: { type?: string; id?: string; code?: string }; createdAt: string; expiresAt?: string; hits: number; payloadPreview?: Record<string, any>;
 };
 
-export const IdempotencyRecord = models.IdempotencyRecord || model('IdempotencyRecord', IdempotencyRecordSchema);
+export const IdempotencyRecord = (mongoose.models as any).IdempotencyRecord || model('IdempotencyRecord', IdempotencyRecordSchema);

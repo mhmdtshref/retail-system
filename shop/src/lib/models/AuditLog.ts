@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 // Expanded schema to support structured, privacy-preserving audit events while
 // remaining backward-compatible with previous fields used in the codebase.
@@ -57,4 +57,4 @@ export type AuditLogDoc = {
   overrideByUserId?: string;
 };
 
-export const AuditLog = models.AuditLog || model('AuditLog', AuditLogSchema);
+export const AuditLog = (mongoose.models as any).AuditLog || model('AuditLog', AuditLogSchema);

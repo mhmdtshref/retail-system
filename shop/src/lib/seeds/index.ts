@@ -5,6 +5,7 @@ import { Settings } from '@/lib/models/Settings';
 import { User } from '@/lib/models/User';
 import { Product } from '@/lib/models/Product';
 import { Customer } from '@/lib/models/Customer';
+import { hashPassword } from '@/lib/auth/password';
 
 export type SeedFlags = { wipe?: boolean; append?: boolean; location?: string; arabic?: boolean; seedRandom?: number };
 
@@ -26,8 +27,17 @@ export async function runSeed(pack: 'dev-minimal'|'demo'|'test-fixtures'|'anonym
       await Settings.updateOne({ _id: 'global' }, { $setOnInsert: { _id: 'global' }, $set: { locales: { defaultLang: flags.arabic === false ? 'en' : 'ar' } } }, { upsert: true });
 
       // Users: owner + cashier with deterministic emails
-      await User.updateOne({ email: 'owner@example.com' }, { $setOnInsert: { email: 'owner@example.com', name: 'Owner', role: 'owner', status: 'active', hashedPassword: '$2a$10$P0hL1e3WvD9o6n7xkLJr0uE0f5fHq6t8b9cJpZqK4' } }, { upsert: true });
-      await User.updateOne({ email: 'cashier@example.com' }, { $setOnInsert: { email: 'cashier@example.com', name: 'Cashier', role: 'cashier', status: 'active', hashedPassword: '$2a$10$P0hL1e3WvD9o6n7xkLJr0uE0f5fHq6t8b9cJpZqK4' } }, { upsert: true });
+      const defaultHash = await hashPassword('password');
+      await User.updateOne(
+        { email: 'owner@example.com' },
+        { $setOnInsert: { email: 'owner@example.com', name: 'Owner', role: 'owner' }, $set: { hashedPassword: defaultHash, status: 'active' } },
+        { upsert: true }
+      );
+      await User.updateOne(
+        { email: 'cashier@example.com' },
+        { $setOnInsert: { email: 'cashier@example.com', name: 'Cashier', role: 'cashier' }, $set: { hashedPassword: defaultHash, status: 'active' } },
+        { upsert: true }
+      );
 
       // Products: 10 with variants
       const colors = ['أسود','أبيض'];
@@ -42,7 +52,8 @@ export async function runSeed(pack: 'dev-minimal'|'demo'|'test-fixtures'|'anonym
       }
     } else if (pack === 'test-fixtures') {
       await Settings.updateOne({ _id: 'global' }, { $setOnInsert: { _id: 'global' } }, { upsert: true });
-      await User.updateOne({ email: 'test@example.com' }, { $setOnInsert: { email: 'test@example.com', name: 'Test', role: 'manager', status: 'active', hashedPassword: '$2a$10$P0hL1e3WvD9o6n7xkLJr0uE0f5fHq6t8b9cJpZqK4' } }, { upsert: true });
+      const testHash = await hashPassword('password');
+      await User.updateOne({ email: 'test@example.com' }, { $setOnInsert: { email: 'test@example.com', name: 'Test', role: 'manager' }, $set: { hashedPassword: testHash, status: 'active' } }, { upsert: true });
       await Product.updateOne({ productCode: 'SKU-T-1' }, { $setOnInsert: { productCode: 'SKU-T-1', name_ar: 'عنصر تجريبي', name_en: 'Test Item', basePrice: 10, variants: [{ sku: 'SKU-T-1-DEF' }] } }, { upsert: true });
     } else if (pack === 'anonymize-staging') {
       const customers = await Customer.find({}).select({ _id: 1 }).lean();

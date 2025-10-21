@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const CouponBatchSchema = new Schema({
   prefix: { type: String, required: true, trim: true },
@@ -23,4 +23,4 @@ const CouponBatchSchema = new Schema({
   generated: { type: Boolean, default: false },
 }, { timestamps: true });
 
-export const CouponBatch = models.CouponBatch || model('CouponBatch', CouponBatchSchema);
+export const CouponBatch = (mongoose.models as any).CouponBatch || model('CouponBatch', CouponBatchSchema);

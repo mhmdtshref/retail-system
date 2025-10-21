@@ -1,7 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale, localePrefix } from '@/i18n/config';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUserFromRequest } from '@/lib/auth/session';
+import { getSessionUserFromRequestEdge } from '@/lib/auth/session-edge';
 import { ROUTE_RULES } from '@/lib/policy/route-config';
 import { minRole as hasMinRole } from '@/lib/policy/guard';
 import { applySecurityHeaders } from '@/lib/security/headers';
@@ -31,7 +31,7 @@ export default async function middleware(req: NextRequest) {
   const needsAuth = PROTECTED_PREFIXES.some((re) => re.test(pathname));
   if (!needsAuth) return res;
 
-  const user = await getSessionUserFromRequest(req);
+  const user = await getSessionUserFromRequestEdge(req);
   if (!user || user.status !== 'active') {
     const loginUrl = new URL('/auth/login', req.url);
     return NextResponse.redirect(loginUrl);
@@ -48,6 +48,7 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/',
-    '/((?!_next|api|offline|manifest\\.webmanifest|sw\\.js|icons|.*\\..*).*)',
+    // Exclude auth paths from locale prefixing and auth checks
+    '/((?!_next|api|auth|offline|manifest\\.webmanifest|sw\\.js|icons|.*\\..*).*)',
   ],
 };

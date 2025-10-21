@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 import type { CarrierType } from './CarrierAccount';
 
 export type ShipmentStatus = 'created'|'label_generated'|'handover'|'in_transit'|'out_for_delivery'|'delivered'|'failed'|'returned'|'cancelled';
@@ -66,5 +66,5 @@ export type ShipmentDoc = {
   createdAt: string; updatedAt: string; createdBy?: string;
 };
 
-export const Shipment = models.Shipment || model('Shipment', ShipmentSchema);
+export const Shipment = (mongoose.models as any).Shipment || model('Shipment', ShipmentSchema);
 

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const MigrationStateSchema = new Schema({
   _id: { type: String, required: true }, // version key e.g., 2025-10-09_001
@@ -20,4 +20,4 @@ export type MigrationStateDoc = {
   notes?: string;
 };
 
-export const MigrationState = models.MigrationState || model('MigrationState', MigrationStateSchema);
+export const MigrationState = (mongoose.models as any).MigrationState || model('MigrationState', MigrationStateSchema);

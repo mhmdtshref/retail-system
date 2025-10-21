@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type ReplayKind = 'webhook'|'delivery'|'notification'|'outbox';
 
@@ -30,4 +30,4 @@ export type ReplayJobDoc = {
   stats?: { success: number; failed: number }; error?: string; createdBy: string; createdAt: string; finishedAt?: string;
 };
 
-export const ReplayJob = models.ReplayJob || model('ReplayJob', ReplayJobSchema);
+export const ReplayJob = (mongoose.models as any).ReplayJob || model('ReplayJob', ReplayJobSchema);

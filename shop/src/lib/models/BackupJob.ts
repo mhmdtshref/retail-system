@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const FileSchema = new Schema({
   name: { type: String, required: true },
@@ -57,4 +57,4 @@ export type BackupJobDoc = {
   createdBy?: string; createdAt?: string;
 };
 
-export const BackupJob = models.BackupJob || model('BackupJob', BackupJobSchema);
+export const BackupJob = (mongoose.models as any).BackupJob || model('BackupJob', BackupJobSchema);

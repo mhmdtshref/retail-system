@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const ObsEventSchema = new Schema({
   kind: { type: String, enum: ['error','slow-query','request-slow'], required: true, index: true },
@@ -33,4 +33,4 @@ export type ObsEventDoc = {
   createdAt: string;
 };
 
-export const ObsEvent = models.ObsEvent || model('ObsEvent', ObsEventSchema);
+export const ObsEvent = (mongoose.models as any).ObsEvent || model('ObsEvent', ObsEventSchema);

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const TemplateSchema = new Schema({
   key: { type: String, required: true, index: true },
@@ -29,4 +29,4 @@ export type TemplateDoc = {
   updatedAt: string;
 };
 
-export const NotificationTemplate = models.NotificationTemplate || model('NotificationTemplate', TemplateSchema);
+export const NotificationTemplate = (mongoose.models as any).NotificationTemplate || model('NotificationTemplate', TemplateSchema);

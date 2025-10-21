@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const LayawayPaymentSchema = new Schema({
   paymentId: { type: String, required: true },
@@ -76,5 +76,5 @@ export type LayawayDoc = {
   audit?: { createdBy: string; updatedBy?: string };
 };
 
-export const Layaway = models.Layaway || model('Layaway', LayawaySchema);
+export const Layaway = (mongoose.models as any).Layaway || model('Layaway', LayawaySchema);
 

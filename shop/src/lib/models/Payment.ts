@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const PaymentSchema = new Schema({
   saleId: { type: Types.ObjectId, ref: 'Sale', index: true },
@@ -12,5 +12,5 @@ const PaymentSchema = new Schema({
 PaymentSchema.index({ saleId: 1, createdAt: -1 });
 PaymentSchema.index({ method: 1, createdAt: -1 });
 
-export const Payment = models.Payment || model('Payment', PaymentSchema);
+export const Payment = (mongoose.models as any).Payment || model('Payment', PaymentSchema);
 

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const ImportRowSchema = new Schema({
   idx: { type: Number, required: true },
@@ -27,6 +27,6 @@ export type ImportBatchDoc = {
   status: 'uploaded'|'validated'|'applied'|'failed';
 };
 
-export const ImportBatch = models.ImportBatch || model('ImportBatch', ImportBatchSchema);
+export const ImportBatch = (mongoose.models as any).ImportBatch || model('ImportBatch', ImportBatchSchema);
 
 

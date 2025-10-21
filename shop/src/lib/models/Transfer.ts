@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 export type TransferStatus = 'draft'|'requested'|'approved'|'picking'|'dispatched'|'received'|'closed'|'canceled';
 
@@ -26,7 +26,7 @@ TransferSchema.index({ fromLocationId: 1 });
 TransferSchema.index({ toLocationId: 1 });
 TransferSchema.index({ code: 1 }, { unique: true });
 
-export const Transfer = models.Transfer || model('Transfer', TransferSchema);
+export const Transfer = (mongoose.models as any).Transfer || model('Transfer', TransferSchema);
 
 export type TransferDoc = {
   _id: string;

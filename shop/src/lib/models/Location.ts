@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type LocationType = 'store' | 'warehouse' | 'returns';
 
@@ -23,7 +23,7 @@ const LocationSchema = new Schema({
 
 LocationSchema.index({ code: 1 }, { unique: true });
 
-export const Location = models.Location || model('Location', LocationSchema);
+export const Location = (mongoose.models as any).Location || model('Location', LocationSchema);
 
 export type LocationDoc = {
   _id: string;

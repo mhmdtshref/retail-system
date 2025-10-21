@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const FileSchema = new Schema({
   kind: { type: String, enum: ['journal','bank'], required: true },
@@ -52,5 +52,5 @@ export type ExportBatchDoc = {
   createdBy: string; createdAt: string; status: 'ready'|'posted'|'voided';
 };
 
-export const ExportBatch = models.ExportBatch || model('ExportBatch', ExportBatchSchema);
+export const ExportBatch = (mongoose.models as any).ExportBatch || model('ExportBatch', ExportBatchSchema);
 

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const TopItemSchema = new Schema({
   sku: { type: String },
@@ -61,5 +61,5 @@ const DailySnapshotSchema = new Schema({
   updatedAt: { type: String, required: true }
 }, { minimize: false, timestamps: false });
 
-export const DailySnapshot = models.DailySnapshot || model('DailySnapshot', DailySnapshotSchema);
+export const DailySnapshot = (mongoose.models as any).DailySnapshot || model('DailySnapshot', DailySnapshotSchema);
 

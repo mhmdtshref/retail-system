@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type PromoType = 'percent'|'amount'|'bogo'|'threshold';
 export type PromoLevel = 'order'|'line';
@@ -58,4 +58,4 @@ const PromotionSchema = new Schema({
 PromotionSchema.index({ active: 1, priority: 1 });
 PromotionSchema.index({ code: 1 }, { unique: false });
 
-export const Promotion = models.Promotion || model('Promotion', PromotionSchema);
+export const Promotion = (mongoose.models as any).Promotion || model('Promotion', PromotionSchema);

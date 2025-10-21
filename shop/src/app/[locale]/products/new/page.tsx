@@ -27,8 +27,13 @@ export default function NewProductPage() {
   }
 
   function generateVariants() {
-    const sizes = sizesInput.split(',').map((s) => s.trim()).filter(Boolean);
-    const colors = colorsInput.split(',').map((s) => s.trim()).filter(Boolean);
+    function parseList(input: string): string[] {
+      // Normalize and remove hidden directionality/zero-width marks that may break splitting
+      const cleaned = (input || '').replaceAll("،", ",");
+      return cleaned.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    const sizes = parseList(sizesInput);
+    const colors = parseList(colorsInput);
     const rows: Variant[] = [];
     for (const sz of sizes.length ? sizes : ['']) {
       for (const c of colors.length ? colors : ['']) {

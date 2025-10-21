@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const CouponSchema = new Schema({
   code: { type: String, required: true, unique: true, index: true, trim: true },
@@ -27,4 +27,4 @@ const CouponSchema = new Schema({
   active: { type: Boolean, default: true, index: true },
 }, { timestamps: true });
 
-export const Coupon = models.Coupon || model('Coupon', CouponSchema);
+export const Coupon = (mongoose.models as any).Coupon || model('Coupon', CouponSchema);

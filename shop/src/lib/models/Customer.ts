@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const PhoneSchema = new Schema({
   e164: { type: String, required: true, trim: true },
@@ -92,5 +92,5 @@ export type CustomerDoc = {
   status?: 'active'|'archived';
 };
 
-export const Customer = models.Customer || model('Customer', CustomerSchema);
+export const Customer = (mongoose.models as any).Customer || model('Customer', CustomerSchema);
 

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const ObsSettingsSchema = new Schema({
   _id: { type: String, default: 'global' },
@@ -19,4 +19,4 @@ export type ObsSettingsDoc = {
   updatedAt: string; updatedBy?: string;
 };
 
-export const ObsSettings = models.ObsSettings || model('ObsSettings', ObsSettingsSchema);
+export const ObsSettings = (mongoose.models as any).ObsSettings || model('ObsSettings', ObsSettingsSchema);

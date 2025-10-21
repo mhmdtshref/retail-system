@@ -1,4 +1,13 @@
-import { getRequestContext } from '@/lib/obs/context';
+// Avoid importing the server-only context module in client bundles.
+// Instead, read from a global getter that the server module attaches.
+function getCtxSafe(): any | undefined {
+  try {
+    if (typeof globalThis !== 'undefined' && (globalThis as any).__getRequestContext) {
+      return (globalThis as any).__getRequestContext();
+    }
+  } catch {}
+  return undefined;
+}
 import { maskPII } from '@/lib/obs/mask';
 import { getObsRuntimeConfig } from '@/lib/obs/config';
 
@@ -35,7 +44,7 @@ function createLogger(bindings?: Record<string, unknown>) {
   function log(level: LogLevel, meta: LogMeta = {}, msg?: string) {
     const min = getLevel();
     if (levelWeights[level] < levelWeights[min]) return;
-    const ctx = getRequestContext();
+    const ctx = getCtxSafe();
     const toLog: any = { level, time: new Date().toISOString(), ...base };
     if (ctx) {
       toLog.requestId = ctx.requestId;

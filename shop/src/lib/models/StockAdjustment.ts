@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const AdjustmentLineSchema = new Schema({
   sku: { type: String, required: true, index: true },
@@ -15,6 +15,6 @@ const StockAdjustmentSchema = new Schema({
   refMovementIds: { type: [Types.ObjectId], default: [] },
 }, { timestamps: true });
 
-export const StockAdjustment = models.StockAdjustment || model('StockAdjustment', StockAdjustmentSchema);
+export const StockAdjustment = (mongoose.models as any).StockAdjustment || model('StockAdjustment', StockAdjustmentSchema);
 
 

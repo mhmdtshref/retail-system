@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const InstallmentSchema = new Schema({
   seq: { type: Number, required: true },
@@ -39,5 +39,5 @@ SaleSchema.index({ fulfillFromLocationId: 1, createdAt: -1 });
 SaleSchema.index({ customerId: 1, createdAt: -1 });
 SaleSchema.index({ createdAt: -1 });
 
-export const Sale = models.Sale || model('Sale', SaleSchema);
+export const Sale = (mongoose.models as any).Sale || model('Sale', SaleSchema);
 

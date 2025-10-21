@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const ScopeSchema = new Schema({
   type: { type: String, enum: ['all','filter','upload'], required: true },
@@ -27,6 +27,6 @@ const StockCountSessionSchema = new Schema({
   refMovementIds: { type: [Types.ObjectId], default: [] },
 }, { timestamps: true });
 
-export const StockCountSession = models.StockCountSession || model('StockCountSession', StockCountSessionSchema);
+export const StockCountSession = (mongoose.models as any).StockCountSession || model('StockCountSession', StockCountSessionSchema);
 
 

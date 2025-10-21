@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const SeedRunSchema = new Schema({
   pack: { type: String, enum: ['dev-minimal','demo','test-fixtures','anonymize-staging'], required: true },
@@ -20,4 +20,4 @@ export type SeedRunDoc = {
   createdBy?: string; createdAt?: string; durationMs?: number; log?: string;
 };
 
-export const SeedRun = models.SeedRun || model('SeedRun', SeedRunSchema);
+export const SeedRun = (mongoose.models as any).SeedRun || model('SeedRun', SeedRunSchema);

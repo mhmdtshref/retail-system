@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type CarrierType = 'aramex'|'smsa'|'dhl'|'fedex'|'webhook_generic';
 
@@ -53,5 +53,5 @@ export type CarrierAccountDoc = {
   createdAt: string; updatedAt: string;
 };
 
-export const CarrierAccount = models.CarrierAccount || model('CarrierAccount', CarrierAccountSchema);
+export const CarrierAccount = (mongoose.models as any).CarrierAccount || model('CarrierAccount', CarrierAccountSchema);
 

@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 export type Role = 'owner'|'manager'|'cashier'|'staff'|'viewer';
 export type UserStatus = 'active'|'disabled';
@@ -24,4 +24,4 @@ export type UserDoc = {
   lastLoginAt?: Date;
 };
 
-export const User = models.User || model('User', UserSchema);
+export const User = (mongoose.models as any).User || model('User', UserSchema);

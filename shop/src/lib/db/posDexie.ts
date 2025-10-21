@@ -1,4 +1,6 @@
-import Dexie, { Table } from 'dexie';
+"use client";
+import type { Table } from 'dexie';
+import Dexie from 'dexie';
 import type { Discount } from '@/lib/pos/types';
 
 export type ProductLite = {
@@ -80,6 +82,8 @@ export type SyncLog = {
   value: string; // e.g., server saleId
   updatedAt: number;
 };
+
+// no-op: using default import directly to avoid wrapper confusion
 
 export class POSDexie extends Dexie {
   products!: Table<ProductLite, string>; // key: sku
