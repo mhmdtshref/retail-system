@@ -16,16 +16,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  if (typeof globalThis !== 'undefined') {
-    const g = globalThis as any;
-    if (!g.__deliveryCron) {
-      g.__deliveryCron = setInterval(async () => {
-        try {
-          await fetch('http://localhost:3000/api/delivery/shipments/refresh', { method: 'POST' });
-        } catch {}
-      }, 60 * 1000 * 60 * 24);
-    }
-  }
   return (
     <html suppressHydrationWarning>
       <body>

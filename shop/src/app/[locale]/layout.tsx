@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { ClerkProvider } from '@clerk/nextjs';
+// Clerk provider is already applied in root layout
 import { getMessages } from 'next-intl/server';
 import { isRTL } from '@/i18n/config';
 import '@/app/globals.css';
@@ -29,7 +29,6 @@ export default async function LocaleLayout(props: any) {
   const dir = isRTL(locale) ? 'rtl' : 'ltr';
 
   return (
-    <ClerkProvider>
       <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
         <div dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
           <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -39,7 +38,6 @@ export default async function LocaleLayout(props: any) {
           </ErrorBoundary>
         </div>
       </NextIntlClientProvider>
-    </ClerkProvider>
   );
 }
 

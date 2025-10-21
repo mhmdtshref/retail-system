@@ -13,7 +13,9 @@ export function applySecurityHeaders(req: NextRequest, res: NextResponse, opts: 
   const imgSrc = [self, 'data:', 'blob:', ...(opts.cspImgDomains || [])].join(' ');
   const connectSrc = [self, process.env.NEXT_PUBLIC_BASE_URL || ''].filter(Boolean).join(' ');
   const styleSrc = [self, nonce || "'unsafe-inline'"].join(' ');
-  const scriptSrc = [self, nonce || "'unsafe-inline'"].join(' ');
+  const scriptSrcParts = [self, nonce || "'unsafe-inline'"];
+  if (!isProd) scriptSrcParts.push("'unsafe-eval'");
+  const scriptSrc = scriptSrcParts.join(' ');
   const frameAncestors = (opts.frameAncestors && opts.frameAncestors.length)
     ? opts.frameAncestors.join(' ')
     : "'none'";
