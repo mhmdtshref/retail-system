@@ -2,6 +2,25 @@
   "app": {
     "title": "Clothing Shop"
   },
+  "receiptless": {
+    "button": "Return (No Receipt)",
+    "title": "Return (No Receipt)",
+    "amount": "Amount",
+    "method": "Refund Method",
+    "reason": "Reason",
+    "note": "Notes",
+    "inventory": "Inventory",
+    "putBack": "Put back to stock",
+    "writeOff": "Write-off",
+    "none": "No stock change",
+    "customer": "Customer (optional)",
+    "confirmAmount": "To confirm, type the amount again",
+    "created": "Return slip created. Will sync when online.",
+    "needsApproval": "Manager approval required.",
+    "denied": "Denied",
+    "voided": "Voided",
+    "slipCode": "Slip Code"
+  },
   "labels": {
     "title": "Label Printing",
     "template": "Template",

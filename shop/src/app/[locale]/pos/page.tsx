@@ -9,6 +9,7 @@ import { PayModal } from '@/components/pos/PayModal';
 import { Receipt } from '@/components/pos/Receipt';
 import { Totals } from '@/components/pos/Totals';
 import { CustomerAttachModal } from '@/components/pos/CustomerAttachModal';
+import { ReturnSlipModal } from '@/components/returns/ReturnSlipModal';
 import { MiniProfileDrawer } from '@/components/pos/MiniProfileDrawer';
 import { evaluateLocalForPos } from '@/lib/discounts/local';
 import { evaluateTaxForPos } from '@/lib/tax/local';
@@ -40,6 +41,7 @@ export default function POSPage() {
   const [offline, setOffline] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showPay, setShowPay] = useState(false);
+  const [showReceiptless, setShowReceiptless] = useState(false);
   const [role, setRole] = useState<string>('viewer');
 
   useEffect(() => {
@@ -51,6 +53,18 @@ export default function POSPage() {
       window.removeEventListener('online', update);
       window.removeEventListener('offline', update);
     };
+  }, []);
+
+  // Keyboard shortcut: R to open receiptless return modal
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setShowReceiptless(true);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   // Cache promotions and coupons index from bootstrap
@@ -252,6 +266,7 @@ export default function POSPage() {
         <div className="flex items-center gap-2">
           <Search onAdd={(line) => addLineStore(line)} />
           <button className="px-2 py-1 rounded border" onClick={()=> setShowCustomerModal(true)}>{t('customers.select') || 'اختر العميل'}</button>
+          <button className="px-2 py-1 rounded border" title="R" onClick={()=> setShowReceiptless(true)}>{t('receiptless.button') || 'إرجاع بدون فاتورة'}</button>
           {customerId && (
             <button className="px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800" onClick={()=> setShowMiniProfile(true)}>
               #{customerId.slice(-6)}
@@ -341,6 +356,10 @@ export default function POSPage() {
           onConfirmCard={async (amount) => { await startSale(); await addPayment('card', amount, {} as any); setShowPay(false); }}
           onConfirmPartial={async (amount, meta) => { await startPartialSale(amount, { schedule: meta.plan?.schedule, minDownPercent: 10, note: meta.reservationNote }); setShowPay(false); }}
         />
+      )}
+
+      {showReceiptless && (
+        <ReturnSlipModal onClose={()=> setShowReceiptless(false)} />
       )}
 
       {showCustomerModal && (

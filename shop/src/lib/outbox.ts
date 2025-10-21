@@ -37,4 +37,20 @@ export async function enqueueNotificationSend(input: { localId: string; payload:
   await posDb.outbox.add({ id, type: 'NOTIF_SEND', payload: input.payload, idempotencyKey: `notif:${input.localId}`, createdAt: Date.now(), retryCount: 0 });
 }
 
+export async function enqueueReceiptlessReturn(input: {
+  localId: string;
+  slip: {
+    amount: number;
+    currency: string;
+    method: 'CASH'|'CARD'|'STORE_CREDIT';
+    reason?: string; note?: string;
+    inventory?: { action: 'NONE'|'PUT_BACK'|'WRITE_OFF'; locationId?: string; reference?: string };
+    customerId?: string;
+    attachments?: { url: string; type: string }[];
+  };
+}) {
+  const id = uuid();
+  await posDb.outbox.add({ id, type: 'RETURN_RECEIPTLESS_CREATE', payload: input, idempotencyKey: `receiptless:${input.localId}`, createdAt: Date.now(), retryCount: 0 });
+}
+
 
