@@ -2,7 +2,7 @@
 
 This document outlines the baseline security posture for the shop app.
 
-- Authentication uses NextAuth with JWT strategy. Configure `NEXTAUTH_SECRET`.
+- Authentication uses Clerk (hosted auth). Configure `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and `CLERK_WEBHOOK_SECRET`.
 - Sessions short-lived; refresh rotation recommended behind reverse proxy.
 - Cookies should be Secure, HttpOnly where used; SameSite=Lax.
 - CSRF protection: double-submit token via `csrf-token` cookie and `X-CSRF-Token` header.

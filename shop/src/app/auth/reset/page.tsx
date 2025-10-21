@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function ResetPage() {
   const [password, setPassword] = useState('');
@@ -26,6 +27,9 @@ export default function ResetPage() {
         </label>
         <button className="w-full py-2 bg-black text-white rounded">تعيين</button>
         {ok && <div className="text-green-700 text-sm text-center">تم التعيين</div>}
+        <div className="text-center text-sm">
+          <Link href="/sign-in" className="underline">العودة لتسجيل الدخول</Link>
+        </div>
       </form>
     </main>
   );
