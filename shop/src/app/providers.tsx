@@ -30,6 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [install.supported]);
   return <>
     {children}
+    {/* Clerk mounts its own modals; nothing needed here */}
     <PwaInstallBanner />
     <IosAddToHomeSheet />
   </>;

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
 import { useTranslations, useLocale } from 'next-intl';
 
 export default function Home() {
@@ -18,6 +19,14 @@ export default function Home() {
         <Link className="underline" href={`/${locale}/sales/layaway`}>{t('layaway.title') || 'تقسيط/الحجوزات'}</Link>
         <Link className="underline" href={`/${locale}/settings`}>{t('nav.settings')}</Link>
       </nav>
+      <div className="ml-auto">
+        <SignedIn>
+          <UserButton afterSignOutUrl="/sign-in" />
+        </SignedIn>
+        <SignedOut>
+          <Link className="underline" href="/sign-in">تسجيل الدخول</Link>
+        </SignedOut>
+      </div>
     </main>
   );
 }
