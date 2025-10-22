@@ -107,9 +107,8 @@ export default function ProductsPage() {
                 <td className="p-2">{p.brand}</td>
                 <td className="p-2">
                   <div className="flex flex-wrap gap-1">
-                    {p.variants.slice(0, 5).map((v) => (
-                      <span key={v.sku} className="inline-flex items-center gap-1 rounded border px-2 py-0.5" title={v.sku}>
-                        <span className="text-xs text-gray-500">{v.size}</span>
+                    {p.variants.slice(0, 5).map((v, i) => (
+                      <span key={`${v.sku}-${p._id}-${i}`} className="inline-flex items-center gap-1 rounded border px-2 py-0.5" title={v.sku}>
                         <span className="text-xs">{v.color}</span>
                         {availability[v.sku] && (
                           <span className="text-[10px] text-green-700">{availability[v.sku].available}</span>

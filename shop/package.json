@@ -25,16 +25,16 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.682.0",
     "@aws-sdk/s3-request-presigner": "^3.682.0",
-    "@clerk/clerk-react": "latest",
-    "@clerk/nextjs": "latest",
+    "@clerk/clerk-react": "^5.53.2",
+    "@clerk/nextjs": "^6.33.7",
     "@tanstack/react-virtual": "^3.10.8",
     "bcryptjs": "^3.0.2",
     "bwip-js": "^3.4.4",
     "dexie": "^4.2.0",
     "jose": "^6.1.0",
     "mongoose": "^8.18.2",
-    "next": "15.5.4",
-    "next-intl": "^4.3.9",
+    "next": "^16.0.0",
+    "next-intl": "^4.3.12",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
@@ -68,5 +68,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"
-  }
+  },
+  "next": "16.0.0",
+  "eslint-config-next": "16.0.0"
 }

@@ -125,7 +125,7 @@ export default function EditProductPage() {
           </thead>
           <tbody>
             {p.variants.map((v, idx) => (
-              <tr key={v.sku} className="border-t">
+              <tr key={`${idx}`} className="border-t">
                 <td className="p-2"><input dir="ltr" className="border rounded px-2 py-1 w-56" value={v.sku} onChange={(e) => setP({ ...p, variants: p.variants.map((x, i) => i === idx ? { ...x, sku: e.target.value } : x) })} /></td>
                 <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={v.size || ''} onChange={(e) => setP({ ...p, variants: p.variants.map((x, i) => i === idx ? { ...x, size: e.target.value } : x) })} /></td>
                 <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={v.color || ''} onChange={(e) => setP({ ...p, variants: p.variants.map((x, i) => i === idx ? { ...x, color: e.target.value } : x) })} /></td>
