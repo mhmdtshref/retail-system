@@ -19,6 +19,16 @@ import { uuid } from '@/lib/pos/idempotency';
 import { getCachedUser } from '@/lib/offline/userRoleCache';
 import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
 import { LocationSwitcher } from '@/components/pos/LocationSwitcher';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 
 export default function POSPage() {
   const t = useTranslations();
@@ -251,91 +261,98 @@ export default function POSPage() {
   }, []);
 
   return (
-    <main className="p-4 flex flex-col gap-3">
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {offline && (
-        <div className="rounded bg-yellow-100 text-yellow-900 p-2 text-sm">
+        <Alert severity="warning" variant="outlined" sx={{ fontSize: 12 }}>
           {t('pos.offline')}
-        </div>
+        </Alert>
       )}
-      <div className="flex items-center gap-2">
-        <LocationSwitcher />
-        <span className="font-medium">{t('pos.cart')}</span>
-      </div>
 
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur p-1 rounded">
-        <div className="flex items-center gap-2">
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <LocationSwitcher />
+        <Typography fontWeight={600}>{t('pos.cart')}</Typography>
+      </Stack>
+
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', backdropFilter: 'blur(6px)', p: 1, borderRadius: 1, border: (t)=> `1px solid ${t.palette.divider}` }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
           <Search onAdd={(line) => addLineStore(line)} />
-          <button className="px-2 py-1 rounded border" onClick={()=> setShowCustomerModal(true)}>{t('customers.select') || 'اختر العميل'}</button>
-          <button className="px-2 py-1 rounded border" title="R" onClick={()=> setShowReceiptless(true)}>{t('receiptless.button') || 'إرجاع بدون فاتورة'}</button>
+          <Button variant="outlined" size="small" onClick={()=> setShowCustomerModal(true)}>{t('customers.select') || 'اختر العميل'}</Button>
+          <Button variant="outlined" size="small" title="R" onClick={()=> setShowReceiptless(true)}>{t('receiptless.button') || 'إرجاع بدون فاتورة'}</Button>
           {customerId && (
-            <button className="px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800" onClick={()=> setShowMiniProfile(true)}>
-              #{customerId.slice(-6)}
-            </button>
+            <Chip color="default" variant="outlined" onClick={()=> setShowMiniProfile(true)} label={`#${customerId.slice(-6)}`} sx={{ cursor: 'pointer' }} />
           )}
           {availableCredit != null && (
-            <span className="text-xs rounded bg-emerald-50 text-emerald-700 px-2 py-1">{t('pos.availableCredit') || 'الرصيد المتاح'}: {availableCredit?.toFixed(2)}</span>
+            <Chip color="success" variant="outlined" size="small" label={`${t('pos.availableCredit') || 'الرصيد المتاح'}: ${availableCredit?.toFixed(2)}`} />
           )}
-        </div>
-      </div>
+        </Stack>
+      </Box>
 
       <Cart />
 
-      <div className="grid gap-2">
+      <Stack gap={1}>
         <Totals subtotal={subtotal} />
-        <div className="rounded border p-3 flex items-center gap-2">
-          <span className="font-medium">{t('pos.coupon') || 'قسيمة'}</span>
-          <input value={couponCode} onChange={(e)=> { setCouponCode(e.target.value); setCouponCodeStore(e.target.value || null); }} className="border rounded px-2 py-1" dir="ltr" placeholder="RAMADAN10" />
-        </div>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography fontWeight={600}>{t('pos.coupon') || 'قسيمة'}</Typography>
+            <TextField
+              value={couponCode}
+              onChange={(e)=> { setCouponCode(e.target.value); setCouponCodeStore(e.target.value || null); }}
+              size="small"
+              placeholder="RAMADAN10"
+              inputProps={{ dir: 'ltr' }}
+            />
+          </Stack>
+        </Paper>
         {appliedDiscounts && appliedDiscounts.length > 0 && (
-          <div className="rounded border p-3 text-sm">
-            <div className="font-medium mb-1">{t('pos.discounts') || 'التخفيضات'}</div>
-            <div className="space-y-1">
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>{t('pos.discounts') || 'التخفيضات'}</Typography>
+            <Stack gap={0.5}>
               {appliedDiscounts.map((d) => (
-                <div key={d.traceId} className="flex items-center justify-between">
+                <Stack key={d.traceId} direction="row" justifyContent="space-between" alignItems="center">
                   <div>{d.label}</div>
-                  <div className="text-rose-600">-{Number(d.amount || 0).toFixed(2)}</div>
-                </div>
+                  <Typography color="error">-{Number(d.amount || 0).toFixed(2)}</Typography>
+                </Stack>
               ))}
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <div className="text-muted-foreground">{t('pos.totalSavings') || 'إجمالي التوفير'}</div>
-              <div className="text-rose-600">-{appliedDiscounts.reduce((s, a)=> s + (a.amount||0), 0).toFixed(2)}</div>
-            </div>
-          </div>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
+              <Typography color="text.secondary">{t('pos.totalSavings') || 'إجمالي التوفير'}</Typography>
+              <Typography color="error">-{appliedDiscounts.reduce((s, a)=> s + (a.amount||0), 0).toFixed(2)}</Typography>
+            </Stack>
+          </Paper>
         )}
-      </div>
+      </Stack>
 
-      <div className="sticky bottom-2 mt-2 bg-white dark:bg-black border rounded p-3 flex items-center justify-between">
-        <div className="text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">المجموع قبل الضريبة:</span>
-            <span>{(taxEval?.subtotalExclTax ?? subtotal).toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">{t('pos.discountValue') || 'قيمة الخصم'}:</span>
-            <span className="text-rose-600">-{appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0).toFixed(2)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">الضريبة:</span>
-            <span>{(taxEval?.tax ?? 0).toFixed(2)}</span>
-          </div>
+      <Paper variant="outlined" sx={{ position: 'sticky', bottom: 8, mt: 1, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ fontSize: 14 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography color="text.secondary">المجموع قبل الضريبة:</Typography>
+            <Typography component="span">{(taxEval?.subtotalExclTax ?? subtotal).toFixed(2)}</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography color="text.secondary">{t('pos.discountValue') || 'قيمة الخصم'}:</Typography>
+            <Typography color="error">-{appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0).toFixed(2)}</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography color="text.secondary">الضريبة:</Typography>
+            <Typography component="span">{(taxEval?.tax ?? 0).toFixed(2)}</Typography>
+          </Stack>
           {typeof taxEval?.roundingAdj === 'number' && (taxEval?.roundingAdj || 0) !== 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">تعديل التقريب:</span>
-              <span>{taxEval!.roundingAdj! > 0 ? '+' : ''}{taxEval!.roundingAdj!.toFixed(2)}</span>
-            </div>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography color="text.secondary">تعديل التقريب:</Typography>
+              <Typography component="span">{taxEval!.roundingAdj! > 0 ? '+' : ''}{taxEval!.roundingAdj!.toFixed(2)}</Typography>
+            </Stack>
           )}
-          <div className="flex items-center gap-2 font-semibold">
-            <span>{t('pos.grandTotal') || 'الإجمالي النهائي'}:</span>
-            <span>{(taxEval?.grandTotal ?? Math.max(0, subtotal - appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0))).toFixed(2)}</span>
-          </div>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ fontWeight: 600 }}>
+            <Typography>{t('pos.grandTotal') || 'الإجمالي النهائي'}:</Typography>
+            <Typography component="span">{(taxEval?.grandTotal ?? Math.max(0, subtotal - appliedDiscounts.reduce((s,a)=> s + (a.amount||0), 0))).toFixed(2)}</Typography>
+          </Stack>
           {taxEval?.priceMode === 'tax_inclusive' && (
-            <div className="text-[11px] text-neutral-600">الأسعار تشمل الضريبة</div>
+            <Typography variant="caption" color="text.secondary">الأسعار تشمل الضريبة</Typography>
           )}
-        </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 rounded bg-emerald-600 text-white disabled:opacity-50" disabled={lines.length===0} onClick={() => setShowPay(true)}>{t('pos.pay')}</button>
-          <button className="px-3 py-2 rounded border disabled:opacity-50" disabled={!lastReceipt} onClick={() => {
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant="contained" color="success" disabled={lines.length===0} onClick={() => setShowPay(true)}>{t('pos.pay')}</Button>
+          <Button variant="outlined" disabled={!lastReceipt} onClick={() => {
             if (!lastReceipt) return;
             const popup = window.open('', '_blank');
             if (!popup) return;
@@ -344,9 +361,9 @@ export default function POSPage() {
             popup.document.close();
             popup.focus();
             popup.print();
-          }}>{t('pos.receipt')}</button>
-        </div>
-      </div>
+          }}>{t('pos.receipt')}</Button>
+        </Stack>
+      </Paper>
 
       {showPay && (
         <PayModal
@@ -376,7 +393,7 @@ export default function POSPage() {
       <div id="__receipt_print" className="hidden print:block">
         {lastReceipt && <Receipt data={lastReceipt} />}
       </div>
-    </main>
+    </Box>
   );
 }
 
