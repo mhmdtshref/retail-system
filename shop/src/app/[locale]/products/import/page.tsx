@@ -1,6 +1,17 @@
 "use client";
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import {
+  Alert,
+  Box,
+  Button,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type Result = { idx: number; outcome: 'insert'|'update'|'error'; messages: string[]; preview?: any };
 
@@ -11,6 +22,9 @@ export default function ImportProductsPage() {
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [results, setResults] = useState<Result[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>(
+    { open: false, message: '', severity: 'success' }
+  );
 
   async function onValidate() {
     const res = await fetch('/api/products/import/validate', {
@@ -35,74 +49,101 @@ export default function ImportProductsPage() {
     });
     if (res.ok) {
       const data = await res.json();
-      alert((t('products.importApplied') || 'تم التطبيق') + `\n+${JSON.stringify(data)}`);
+      setSnack({ open: true, severity: 'success', message: (t('products.importApplied') || 'تم التطبيق') + ` +${(data?.inserted||0) + (data?.updated||0)}` });
     }
   }
 
+  const previewColumns: GridColDef[] = useMemo(() => ([
+    { field: 'idx', headerName: '#', width: 80 },
+    { field: 'outcome', headerName: t('products.outcome') || 'النتيجة', width: 140 },
+    { field: 'messages', headerName: t('products.messages') || 'رسائل', flex: 1, renderCell: (p) => (
+      <Typography variant="body2" color="error" noWrap title={p.value as string}>{p.value as string}</Typography>
+    ) },
+    { field: 'preview', headerName: t('products.preview') || 'المعاينة', flex: 1.5, sortable: false, renderCell: (p) => (
+      <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{p.value as string}</Typography>
+    ) },
+  ]), [t]);
+
+  const previewRows = useMemo(() => results.map((r) => ({
+    id: r.idx,
+    idx: r.idx,
+    outcome: r.outcome,
+    messages: (r.messages || []).join('; '),
+    preview: r.preview ? JSON.stringify(r.preview, null, 2) : '',
+  })), [results]);
+
   return (
-    <main className="p-4 flex flex-col gap-4" dir="rtl">
-      <h1 className="text-xl font-semibold">{t('products.importCsv') || 'استيراد CSV'}</h1>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600}>{t('products.importCsv') || 'استيراد CSV'}</Typography>
 
       {step === 'upload' && (
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <a className="px-3 py-2 rounded border" href={`/api/products/import/template?type=basic`}>{t('products.downloadTemplate') || 'تنزيل قالب CSV'}</a>
-          </div>
-          <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={t('products.pasteCsv') || 'ألصق CSV هنا (UTF-8)'} className="border rounded p-2 min-h-60" />
-          <div className="flex gap-2">
-            <button onClick={() => setStep('map')} disabled={!csvText} className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50">{t('products.next') || 'التالي'}</button>
-          </div>
-        </div>
+        <Stack direction="column" spacing={2}>
+          <Stack direction="row" spacing={1}>
+            <Button component="a" href={`/api/products/import/template?type=basic`} variant="outlined">
+              {t('products.downloadTemplate') || 'تنزيل قالب CSV'}
+            </Button>
+          </Stack>
+          <TextField
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            placeholder={t('products.pasteCsv') || 'ألصق CSV هنا (UTF-8)'}
+            multiline
+            minRows={10}
+          />
+          <Stack direction="row" spacing={1}>
+            <Button onClick={() => setStep('map')} disabled={!csvText} variant="contained">
+              {t('products.next') || 'التالي'}
+            </Button>
+          </Stack>
+        </Stack>
       )}
 
       {step === 'map' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-gray-600">{t('products.mappingHint') || 'يمكن تعيين الأعمدة يدويًا (اختياري)'}</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <Stack direction="column" spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            {t('products.mappingHint') || 'يمكن تعيين الأعمدة يدويًا (اختياري)'}
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1 }}>
             {['productCode','name_ar','name_en','category','brand','size','color','retailPrice','costPrice','barcode','status','sku'].map((k) => (
-              <label key={k} className="flex items-center gap-2">
-                <span className="w-32 text-sm">{k}</span>
-                <input dir="ltr" className="border rounded px-2 py-1 flex-1" value={mapping[k] || ''} onChange={(e) => setMapping({ ...mapping, [k]: e.target.value })} placeholder={`${k} => Header`} />
-              </label>
+              <TextField
+                key={k}
+                size="small"
+                label={k}
+                value={mapping[k] || ''}
+                onChange={(e) => setMapping({ ...mapping, [k]: e.target.value })}
+                placeholder={`${k} => Header`}
+                inputProps={{ dir: 'ltr' }}
+              />
             ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={onValidate} className="px-3 py-2 rounded bg-green-600 text-white">{t('products.validate') || 'تحقق/معاينة'}</button>
-          </div>
-        </div>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={onValidate} variant="contained" color="success">
+              {t('products.validate') || 'تحقق/معاينة'}
+            </Button>
+          </Stack>
+        </Stack>
       )}
 
       {step === 'preview' && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <button onClick={onApply} className="px-3 py-2 rounded bg-green-600 text-white">{t('products.apply') || 'تطبيق'}</button>
-          </div>
-          <div className="overflow-auto border rounded">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-2">#</th>
-                  <th className="p-2">{t('products.outcome') || 'النتيجة'}</th>
-                  <th className="p-2">{t('products.messages') || 'رسائل'}</th>
-                  <th className="p-2">{t('products.preview') || 'المعاينة'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r) => (
-                  <tr key={r.idx} className="border-t">
-                    <td className="p-2">{r.idx}</td>
-                    <td className="p-2">{r.outcome}</td>
-                    <td className="p-2 text-red-600">{r.messages.join('; ')}</td>
-                    <td className="p-2"><pre className="text-xs whitespace-pre-wrap">{JSON.stringify(r.preview, null, 2)}</pre></td>
-                  </tr>
-                ))}
-                {results.length === 0 && <tr><td className="p-3 text-center text-gray-500" colSpan={4}>{t('products.noResults') || 'لا نتائج'}</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Stack direction="column" spacing={2}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button onClick={onApply} variant="contained" color="success">{t('products.apply') || 'تطبيق'}</Button>
+          </Stack>
+          <DataTable rows={previewRows} columns={previewColumns} autoHeight />
+        </Stack>
       )}
-    </main>
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack({ ...snack, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnack({ ...snack, open: false })} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

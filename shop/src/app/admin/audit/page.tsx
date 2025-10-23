@@ -1,56 +1,75 @@
-import { Suspense } from 'react';
+"use client";
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
-async function fetchAudit(params: URLSearchParams) {
-  const qs = params.toString();
-  const res = await fetch(`/api/admin/audit?${qs}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('failed');
-  return res.json();
-}
+type AuditRow = {
+  _id: string;
+  action: string;
+  actor?: { id?: string; role?: string };
+  entity?: { type?: string; id?: string };
+  status?: string;
+  ip?: string;
+  ua?: string;
+  createdAt?: string;
+  ts?: string;
+};
 
-function Table({ items }: { items: any[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm" dir="rtl">
-        <thead>
-          <tr className="text-right">
-            <th className="p-2">الحدث</th>
-            <th className="p-2">المستخدم</th>
-            <th className="p-2">الكيان</th>
-            <th className="p-2">عنوان IP</th>
-            <th className="p-2">الوكيل</th>
-            <th className="p-2">الحالة</th>
-            <th className="p-2">الوقت</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it:any)=> (
-            <tr key={it._id} className="border-t">
-              <td className="p-2">{it.action}</td>
-              <td className="p-2">{it.actor?.id} ({it.actor?.role})</td>
-              <td className="p-2">{it.entity?.type} {it.entity?.id}</td>
-              <td className="p-2">{it.ip}</td>
-              <td className="p-2 truncate max-w-xs">{it.ua}</td>
-              <td className="p-2">{it.status}</td>
-              <td className="p-2">{new Date(it.createdAt || it.ts).toLocaleString('ar-SA')}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+export default function AuditPage() {
+  const [rows, setRows] = useState<AuditRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<{ action?: string; actorId?: string; entityType?: string; entityId?: string; status?: string }>(
+    {}
   );
-}
 
-export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string,string>> }) {
-  const params = new URLSearchParams(Object.entries(await searchParams || {}));
-  const data = await fetchAudit(params);
+  useEffect(() => {
+    let cancelled = false;
+    const url = new URL('/api/admin/audit', window.location.origin);
+    if (filters.action) url.searchParams.set('action', filters.action);
+    if (filters.actorId) url.searchParams.set('actorId', filters.actorId);
+    if (filters.entityType) url.searchParams.set('entityType', filters.entityType);
+    if (filters.entityId) url.searchParams.set('entityId', filters.entityId);
+    if (filters.status) url.searchParams.set('status', filters.status);
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled) setRows(data.items || []);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [filters.action, filters.actorId, filters.entityType, filters.entityId, filters.status]);
+
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'action', headerName: 'الحدث', width: 160 },
+    { field: 'actor', headerName: 'المستخدم', width: 220, valueGetter: (p) => `${p.row.actor?.id || ''} (${p.row.actor?.role || ''})` },
+    { field: 'entity', headerName: 'الكيان', width: 240, valueGetter: (p) => `${p.row.entity?.type || ''} ${p.row.entity?.id || ''}` },
+    { field: 'ip', headerName: 'عنوان IP', width: 160 },
+    { field: 'ua', headerName: 'الوكيل', flex: 1, sortable: false },
+    { field: 'status', headerName: 'الحالة', width: 140 },
+    { field: 'createdAt', headerName: 'الوقت', width: 220, valueGetter: (p) => p.row.createdAt || p.row.ts, valueFormatter: (p) => (p.value ? new Date(p.value as string).toLocaleString('ar-SA') : '-') },
+  ]), []);
+
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex gap-2 items-center">
-        <a href={`/api/admin/audit?${params.toString()}&format=csv`} className="px-3 py-2 bg-blue-600 text-white rounded">تصدير CSV</a>
-      </div>
-      <Suspense fallback={<div>...</div>}>
-        <Table items={data.items || []} />
-      </Suspense>
-    </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Button component={Link as any} href={`/api/admin/audit?format=csv`} variant="contained">تصدير CSV</Button>
+      </Stack>
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+        <TextField size="small" label="الحدث" value={filters.action || ''} onChange={(e) => setFilters({ ...filters, action: e.target.value || undefined })} />
+        <TextField size="small" label="المستخدم" value={filters.actorId || ''} onChange={(e) => setFilters({ ...filters, actorId: e.target.value || undefined })} />
+        <TextField size="small" label="الكيان" value={filters.entityType || ''} onChange={(e) => setFilters({ ...filters, entityType: e.target.value || undefined })} />
+        <TextField size="small" label="المعرف" value={filters.entityId || ''} onChange={(e) => setFilters({ ...filters, entityId: e.target.value || undefined })} />
+        <TextField size="small" label="الحالة" value={filters.status || ''} onChange={(e) => setFilters({ ...filters, status: e.target.value || undefined })} />
+      </Stack>
+
+      <DataTable rows={rows} columns={columns} getRowId={(r) => (r as AuditRow)._id} loading={loading} autoHeight />
+    </Box>
   );
 }
