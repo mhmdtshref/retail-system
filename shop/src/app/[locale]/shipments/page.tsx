@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type Shipment = {
   _id: string;
@@ -43,12 +46,27 @@ export default function ShipmentsPage() {
 
   const list = useMemo(() => shipments, [shipments]);
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'customer', headerName: t('delivery.customer') as string, flex: 1, valueGetter: (p) => p.row.to?.name },
+    { field: 'carrier', headerName: 'شركة الشحن', width: 160 },
+    { field: 'trackingNumber', headerName: 'رقم التتبع', width: 180, valueFormatter: (p) => p.value || '—' },
+    { field: 'status', headerName: t('delivery.status') as string, width: 180 },
+    { field: 'city', headerName: t('delivery.city') as string, width: 160, valueGetter: (p) => p.row.to?.city },
+    { field: 'createdAt', headerName: t('delivery.createdAt') as string, width: 220, valueFormatter: (p) => new Date(p.value as string).toLocaleString() },
+    { field: 'actions', headerName: t('delivery.actions') as string, width: 220, sortable: false, renderCell: (p) => (
+      <Stack direction="row" spacing={1}>
+        {(p.row as Shipment).labelUrl && <Button size="small" component="a" href={(p.row as Shipment).labelUrl} target="_blank">{t('delivery.label')}</Button>}
+        <Button size="small" component="a" href={`/api/shipments?id=${(p.row as Shipment)._id}`} target="_blank">تفاصيل</Button>
+      </Stack>
+    ) },
+  ]), [t]);
+
   return (
-    <main className="p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold">{t('delivery.title')}</h2>
-        <div className="ms-auto flex gap-2">
-          <select className="border rounded px-2 py-1 text-sm" value={filters.status || ''} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Stack direction="row" alignItems="center" gap={1}>
+        <Typography variant="h6" fontWeight={600}>{t('delivery.title')}</Typography>
+        <Stack direction="row" spacing={1} sx={{ ml: 'auto' }}>
+          <TextField size="small" select SelectProps={{ native: true }} value={filters.status || ''} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}>
             <option value="">— {t('delivery.status')}</option>
             <option value="created">جديدة</option>
             <option value="in_transit">جاري الشحن</option>
@@ -57,52 +75,19 @@ export default function ShipmentsPage() {
             <option value="failed">فشل التسليم</option>
             <option value="returned">مرتجع</option>
             <option value="cancelled">ملغاة</option>
-          </select>
-          <input className="border rounded px-2 py-1 text-sm" placeholder={t('delivery.city') as string} value={filters.city || ''} onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value || undefined }))} />
-          <select className="border rounded px-2 py-1 text-sm" value={filters.cod || ''} onChange={(e) => setFilters((f) => ({ ...f, cod: e.target.value || undefined }))}>
+          </TextField>
+          <TextField size="small" placeholder={t('delivery.city') as string} value={filters.city || ''} onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value || undefined }))} />
+          <TextField size="small" select SelectProps={{ native: true }} value={filters.cod || ''} onChange={(e) => setFilters((f) => ({ ...f, cod: e.target.value || undefined }))}>
             <option value="">COD</option>
             <option value="true">نعم</option>
             <option value="false">لا</option>
-          </select>
-          <button className="px-3 py-1 border rounded text-sm" onClick={() => fetchShipments()}>{t('delivery.refresh')}</button>
-        </div>
-      </div>
+          </TextField>
+          <Button variant="outlined" onClick={() => fetchShipments()}>{t('delivery.refresh')}</Button>
+        </Stack>
+      </Stack>
 
-      <div className="overflow-auto">
-        <table className="w-full text-sm border">
-          <thead>
-            <tr className="bg-neutral-50 dark:bg-neutral-900">
-              <th className="p-2 text-start">{t('delivery.customer')}</th>
-              <th className="p-2 text-start">شركة الشحن</th>
-              <th className="p-2 text-start">رقم التتبع</th>
-              <th className="p-2 text-start">{t('delivery.status')}</th>
-              <th className="p-2 text-start">{t('delivery.city')}</th>
-              <th className="p-2 text-start">{t('delivery.createdAt')}</th>
-              <th className="p-2 text-start">{t('delivery.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((s) => (
-              <tr key={s._id} className="border-t">
-                <td className="p-2">{s.to?.name}</td>
-                <td className="p-2">{s.carrier}</td>
-                <td className="p-2">{s.trackingNumber || '—'}</td>
-                <td className="p-2">{s.status}</td>
-                <td className="p-2">{s.to?.city}</td>
-                <td className="p-2">{new Date(s.createdAt).toLocaleString()}</td>
-                <td className="p-2 flex gap-2">
-                  {s.labelUrl && <a className="px-2 py-1 border rounded" href={s.labelUrl} target="_blank" rel="noreferrer">{t('delivery.label')}</a>}
-                  <a className="px-2 py-1 border rounded" href={`/api/shipments?id=${s._id}`} target="_blank" rel="noreferrer">تفاصيل</a>
-                </td>
-              </tr>
-            ))}
-            {list.length === 0 && (
-              <tr><td className="p-3 text-center text-muted-foreground" colSpan={7}>{loading ? '...' : '—'}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+      <DataTable rows={list} columns={columns} loading={loading} getRowId={(r) => (r as Shipment)._id} autoHeight />
+    </Box>
   );
 }
 

@@ -1,8 +1,11 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { upsertLocalCountSession, queueSyncCountSession } from '@/lib/offline/count-sync';
+import { Box, Button, Paper, Snackbar, Stack, TextField, Typography, Alert } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type SessionLite = { _id: string; name: string; status: 'open'|'reviewing'|'posted'; createdAt: string };
 
@@ -17,6 +20,7 @@ export default function CountsPage() {
   const [brand, setBrand] = useState('');
   const [creating, setCreating] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   async function load() {
     setLoading(true);
@@ -62,56 +66,50 @@ export default function CountsPage() {
     } finally { setCreating(false); }
   }
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'name', headerName: 'الاسم', flex: 1 },
+    { field: 'status', headerName: 'الحالة', width: 160, valueFormatter: (p) => (p.value === 'open' ? 'مفتوح' : p.value === 'reviewing' ? 'قيد المراجعة' : 'تم الترحيل') },
+    { field: 'createdAt', headerName: 'تاريخ الإنشاء', width: 220, valueFormatter: (p) => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(p.value as string)) },
+    { field: 'actions', headerName: 'إجراءات', width: 120, sortable: false, renderCell: (p) => (
+      <Button size="small" component="a" href={`/${locale}/inventory/counts/${(p.row as SessionLite)._id}`}>فتح</Button>
+    ) },
+  ]), [locale]);
+
   return (
-    <main className="p-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">الجرد الدوري</h1>
-        <a className="underline" href={`/${locale}/inventory/adjustments`}>التسويات</a>
-      </div>
-      <div className="p-3 rounded border flex flex-col gap-2">
-        <div className="font-semibold">بدء جلسة جرد</div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <input className="border rounded px-2 py-1" placeholder="اسم الجلسة" value={name} onChange={(e) => setName(e.target.value)} />
-          <select className="border rounded px-2 py-1" value={scope} onChange={(e) => setScope(e.target.value as any)}>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>الجرد الدوري</Typography>
+        <Button component="a" href={`/${locale}/inventory/adjustments`} variant="text">التسويات</Button>
+      </Stack>
+
+      <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography fontWeight={600}>بدء جلسة جرد</Typography>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }}>
+          <TextField size="small" placeholder="اسم الجلسة" value={name} onChange={(e) => setName(e.target.value)} />
+          <TextField select size="small" value={scope} onChange={(e) => setScope(e.target.value as any)} sx={{ width: 200 }}>
             <option value="all">كل الأصناف</option>
             <option value="filter">تصفية</option>
             <option value="upload">رفع ملف</option>
-          </select>
+          </TextField>
           {scope === 'filter' && (
             <>
-              <input className="border rounded px-2 py-1" placeholder="التصنيف" value={category} onChange={(e) => setCategory(e.target.value)} />
-              <input className="border rounded px-2 py-1" placeholder="العلامة" value={brand} onChange={(e) => setBrand(e.target.value)} />
+              <TextField size="small" placeholder="التصنيف" value={category} onChange={(e) => setCategory(e.target.value)} />
+              <TextField size="small" placeholder="العلامة" value={brand} onChange={(e) => setBrand(e.target.value)} />
             </>
           )}
-          <button disabled={creating || !name} onClick={createSession} className="px-3 py-2 bg-blue-600 text-white rounded">إنشاء</button>
-        </div>
-      </div>
-      {offline && <div className="text-amber-700">أنت غير متصل. سيتم إنشاء جلسة محليًا والمزامنة لاحقًا.</div>}
-      {loading ? <div>جارٍ التحميل...</div> : (
-        <div className="overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-600">
-                <th className="p-2 text-right">الاسم</th>
-                <th className="p-2 text-right">الحالة</th>
-                <th className="p-2 text-right">تاريخ الإنشاء</th>
-                <th className="p-2 text-right">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => (
-                <tr key={s._id} className="border-b">
-                  <td className="p-2">{s.name}</td>
-                  <td className="p-2">{s.status === 'open' ? 'مفتوح' : s.status === 'reviewing' ? 'قيد المراجعة' : 'تم الترحيل'}</td>
-                  <td className="p-2">{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(s.createdAt))}</td>
-                  <td className="p-2"><a className="underline" href={`/${locale}/inventory/counts/${s._id}`}>فتح</a></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <Button disabled={creating || !name} onClick={createSession} variant="contained">إنشاء</Button>
+        </Stack>
+      </Paper>
+
+      {offline && <Alert severity="warning">أنت غير متصل. سيتم إنشاء جلسة محليًا والمزامنة لاحقًا.</Alert>}
+      {loading ? <Typography>جارٍ التحميل...</Typography> : (
+        <DataTable rows={sessions} columns={columns} getRowId={(r) => (r as SessionLite)._id} autoHeight />
       )}
-    </main>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnack({ ...snack, open: false })} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>{snack.message}</Alert>
+      </Snackbar>
+    </Box>
   );
 }
 
