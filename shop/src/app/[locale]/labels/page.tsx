@@ -1,6 +1,21 @@
 "use client";
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  MenuItem,
+  Paper,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 import type { LabelItem } from '@/lib/validators/labels';
 
 export default function LabelsPage() {
@@ -13,6 +28,7 @@ export default function LabelsPage() {
   const [shopName, setShopName] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'success' });
 
   function addRow() {
     setItems((it) => [...it, { sku: '', name_ar: '', qty: 1 } as any]);
@@ -24,7 +40,7 @@ export default function LabelsPage() {
     setBusy(true);
     try {
       const res = await fetch('/api/labels/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template, items, options: { barcodeType, show, shop: { name: shopName || undefined } } }) });
-      if (!res.ok) { alert('خطأ في توليد PDF'); return; }
+      if (!res.ok) { setSnack({ open: true, severity: 'error', message: 'خطأ في توليد PDF' }); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
@@ -32,7 +48,7 @@ export default function LabelsPage() {
   }
   async function downloadZpl() {
     const res = await fetch('/api/labels/zpl', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items, options: { barcodeType, show, shop: { name: shopName || undefined } } }) });
-    if (!res.ok) { alert('خطأ في توليد ZPL'); return; }
+    if (!res.ok) { setSnack({ open: true, severity: 'error', message: 'خطأ في توليد ZPL' }); return; }
     const text = await res.text();
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
@@ -41,85 +57,85 @@ export default function LabelsPage() {
     a.click();
   }
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'sku', headerName: 'SKU', width: 150, renderCell: (p) => (
+      <TextField size="small" value={(p.row.sku || '') as string} onChange={(e)=> updateItem(p.row.id, { sku: e.target.value })} />
+    ) },
+    { field: 'barcode', headerName: 'الباركود', width: 150, renderCell: (p) => (
+      <TextField size="small" value={(p.row.barcode || '') as string} onChange={(e)=> updateItem(p.row.id, { barcode: e.target.value })} />
+    ) },
+    { field: 'name_ar', headerName: 'الاسم (ع)', width: 200, renderCell: (p) => (
+      <TextField size="small" value={(p.row.name_ar || '') as string} onChange={(e)=> updateItem(p.row.id, { name_ar: e.target.value })} />
+    ) },
+    { field: 'size', headerName: 'المقاس', width: 100, renderCell: (p) => (
+      <TextField size="small" value={(p.row.size || '') as string} onChange={(e)=> updateItem(p.row.id, { size: e.target.value })} />
+    ) },
+    { field: 'color', headerName: 'اللون', width: 100, renderCell: (p) => (
+      <TextField size="small" value={(p.row.color || '') as string} onChange={(e)=> updateItem(p.row.id, { color: e.target.value })} />
+    ) },
+    { field: 'price', headerName: 'السعر', width: 120, renderCell: (p) => (
+      <TextField size="small" type="number" value={p.row.price ?? ''} onChange={(e)=> updateItem(p.row.id, { price: e.target.value ? Number(e.target.value) : undefined })} />
+    ) },
+    { field: 'brand', headerName: 'العلامة', width: 140, renderCell: (p) => (
+      <TextField size="small" value={(p.row.brand || '') as string} onChange={(e)=> updateItem(p.row.id, { brand: e.target.value })} />
+    ) },
+    { field: 'qty', headerName: 'الكمية', width: 100, renderCell: (p) => (
+      <TextField size="small" type="number" value={p.row.qty} onChange={(e)=> updateItem(p.row.id, { qty: Number(e.target.value)||1 })} />
+    ) },
+  ]), []);
+
+  const rows = useMemo(() => items.map((it, idx) => ({ id: idx, ...it })), [items]);
+
   return (
-    <main className="p-4 flex flex-col gap-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">طباعة الملصقات</h1>
-      </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>طباعة الملصقات</Typography>
+      </Stack>
 
-      <div className="p-3 rounded border flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2 items-center">
-          <label className="text-sm">القالب</label>
-          <select className="border rounded px-2 py-1" value={template} onChange={(e) => setTemplate(e.target.value as any)}>
-            <option value="thermal-80">حراري 80مم</option>
-            <option value="thermal-58">حراري 58مم</option>
-            <option value="a4-3x8">A4 (3×8)</option>
-          </select>
-          <label className="text-sm">الباركود</label>
-          <select className="border rounded px-2 py-1" value={barcodeType} onChange={(e) => setBarcodeType(e.target.value as any)}>
-            <option value="auto">تلقائي</option>
-            <option value="code128">Code128</option>
-            <option value="ean13">EAN-13</option>
-            <option value="qr">QR</option>
-          </select>
-          <input className="border rounded px-2 py-1" placeholder="اسم المتجر (اختياري)" value={shopName} onChange={(e)=> setShopName(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap gap-4 items-center text-sm">
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={show.name} onChange={(e)=> setShow({...show, name: e.target.checked})}/> الاسم</label>
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={show.sku} onChange={(e)=> setShow({...show, sku: e.target.checked})}/> SKU</label>
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={show.sizeColor} onChange={(e)=> setShow({...show, sizeColor: e.target.checked})}/> المقاس/اللون</label>
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={show.price} onChange={(e)=> setShow({...show, price: e.target.checked})}/> السعر</label>
-          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={show.brand} onChange={(e)=> setShow({...show, brand: e.target.checked})}/> العلامة</label>
-        </div>
+      <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }}>
+          <TextField select size="small" label="القالب" value={template} onChange={(e) => setTemplate(e.target.value as any)} sx={{ width: 220 }}>
+            <MenuItem value="thermal-80">حراري 80مم</MenuItem>
+            <MenuItem value="thermal-58">حراري 58مم</MenuItem>
+            <MenuItem value="a4-3x8">A4 (3×8)</MenuItem>
+          </TextField>
+          <TextField select size="small" label="الباركود" value={barcodeType} onChange={(e) => setBarcodeType(e.target.value as any)} sx={{ width: 220 }}>
+            <MenuItem value="auto">تلقائي</MenuItem>
+            <MenuItem value="code128">Code128</MenuItem>
+            <MenuItem value="ean13">EAN-13</MenuItem>
+            <MenuItem value="qr">QR</MenuItem>
+          </TextField>
+          <TextField size="small" placeholder="اسم المتجر (اختياري)" value={shopName} onChange={(e)=> setShopName(e.target.value)} sx={{ flex: 1 }} />
+        </Stack>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
+          <FormControlLabel control={<Checkbox checked={show.name} onChange={(e)=> setShow({ ...show, name: e.target.checked })} />} label="الاسم" />
+          <FormControlLabel control={<Checkbox checked={show.sku} onChange={(e)=> setShow({ ...show, sku: e.target.checked })} />} label="SKU" />
+          <FormControlLabel control={<Checkbox checked={show.sizeColor} onChange={(e)=> setShow({ ...show, sizeColor: e.target.checked })} />} label="المقاس/اللون" />
+          <FormControlLabel control={<Checkbox checked={show.price} onChange={(e)=> setShow({ ...show, price: e.target.checked })} />} label="السعر" />
+          <FormControlLabel control={<Checkbox checked={show.brand} onChange={(e)=> setShow({ ...show, brand: e.target.checked })} />} label="العلامة" />
+        </Stack>
 
-        <div>
-          <button onClick={addRow} className="px-3 py-2 rounded bg-gray-200">إضافة سطر</button>
-        </div>
-        <div className="overflow-auto border rounded">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="p-2">SKU</th>
-                <th className="p-2">الباركود</th>
-                <th className="p-2">الاسم (ع)</th>
-                <th className="p-2">المقاس</th>
-                <th className="p-2">اللون</th>
-                <th className="p-2">السعر</th>
-                <th className="p-2">العلامة</th>
-                <th className="p-2">الكمية</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((it, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-40" value={it.sku||''} onChange={(e)=> updateItem(idx, { sku: e.target.value })} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-40" value={it.barcode||''} onChange={(e)=> updateItem(idx, { barcode: e.target.value })} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-56" value={it.name_ar||''} onChange={(e)=> updateItem(idx, { name_ar: e.target.value })} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={it.size||''} onChange={(e)=> updateItem(idx, { size: e.target.value })} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={it.color||''} onChange={(e)=> updateItem(idx, { color: e.target.value })} /></td>
-                  <td className="p-2"><input type="number" className="border rounded px-2 py-1 w-24" value={it.price ?? ''} onChange={(e)=> updateItem(idx, { price: e.target.value ? Number(e.target.value) : undefined })} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-32" value={it.brand||''} onChange={(e)=> updateItem(idx, { brand: e.target.value })} /></td>
-                  <td className="p-2"><input type="number" className="border rounded px-2 py-1 w-20" value={it.qty} onChange={(e)=> updateItem(idx, { qty: Number(e.target.value)||1 })} /></td>
-                </tr>
-              ))}
-              {items.length===0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-gray-500">أضف أسطرًا لطباعتها</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Stack direction="row">
+          <Button onClick={addRow} variant="outlined">إضافة سطر</Button>
+        </Stack>
 
-        <div className="flex gap-2">
-          <button disabled={busy || items.length===0} onClick={genPreview} className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50">معاينة PDF</button>
-          <button disabled={items.length===0} onClick={downloadZpl} className="px-3 py-2 rounded bg-emerald-600 text-white disabled:opacity-50">تنزيل ZPL</button>
-        </div>
-      </div>
+        <DataTable rows={rows} columns={columns} autoHeight />
+
+        <Stack direction="row" spacing={1}>
+          <Button disabled={busy || items.length===0} onClick={genPreview} variant="contained">معاينة PDF</Button>
+          <Button disabled={items.length===0} onClick={downloadZpl} variant="contained" color="success">تنزيل ZPL</Button>
+        </Stack>
+      </Paper>
 
       {previewUrl && (
-        <div className="border rounded overflow-hidden h-[70vh]">
-          <iframe src={previewUrl} className="w-full h-full" />
-        </div>
+        <Paper variant="outlined" sx={{ height: '70vh', overflow: 'hidden' }}>
+          <iframe src={previewUrl} style={{ width: '100%', height: '100%' }} />
+        </Paper>
       )}
-    </main>
+
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnack({ ...snack, open: false })} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>{snack.message}</Alert>
+      </Snackbar>
+    </Box>
   );
 }

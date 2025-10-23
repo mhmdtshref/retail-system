@@ -1,61 +1,79 @@
+"use client";
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
-async function fetchPOs(params: { status?: string; supplier?: string; search?: string }, baseUrl: string) {
-  const qs = new URLSearchParams();
-  if (params.status) qs.set('status', params.status);
-  if (params.supplier) qs.set('supplier', params.supplier);
-  if (params.search) qs.set('search', params.search);
-  const suffix = qs.toString();
-  const url = `${baseUrl}/api/purchase-orders${suffix ? `?${suffix}` : ''}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json();
-  return data.purchaseOrders as any[];
-}
+type PO = {
+  _id: string;
+  poNumber?: string;
+  supplierId?: string;
+  status: 'draft' | 'partial' | 'received' | 'cancelled' | string;
+  totals?: { grandTotal?: number };
+  receivedAt?: string;
+};
 
-export default async function PurchaseOrdersPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
-  const sp = await searchParams;
-  const status = typeof sp.status === 'string' ? sp.status : undefined;
-  const search = typeof sp.q === 'string' ? sp.q : undefined;
-  const h = await headers();
-  const host = h.get('host') || 'localhost:3000';
-  const proto = host.includes('localhost') || host.startsWith('127.') ? 'http' : 'https';
-  const baseUrl = `${proto}://${host}`;
-  const pos = await fetchPOs({ status, search }, baseUrl);
+export default function PurchaseOrdersPage() {
+  const [status, setStatus] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [rows, setRows] = useState<PO[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const url = new URL('/api/purchase-orders', window.location.origin);
+    if (status) url.searchParams.set('status', status);
+    if (search) url.searchParams.set('search', search);
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled) setRows(data.purchaseOrders || []);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [status, search]);
+
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'poNumber', headerName: 'رقم الأمر', width: 160, renderCell: (p) => (
+      <Link href={`/purchase-orders/${(p.row as PO)._id}`} style={{ textDecoration: 'underline' }}>{p.value as string}</Link>
+    ) },
+    { field: 'supplierId', headerName: 'المورد', width: 180 },
+    { field: 'status', headerName: 'الحالة', width: 160, valueFormatter: (p) => (
+      p.value === 'draft' ? 'مسودة' : p.value === 'partial' ? 'تم الاستلام جزئيًا' : p.value === 'received' ? 'تم الاستلام' : 'ملغي'
+    ) },
+    { field: 'grandTotal', headerName: 'الإجمالي', width: 140, valueGetter: (p) => p.row.totals?.grandTotal, valueFormatter: (p) => (
+      (typeof p.value === 'number' ? (p.value as number).toFixed(2) : '-')
+    ) },
+    { field: 'receivedAt', headerName: 'تم الاستلام', width: 220, valueFormatter: (p) => (
+      p.value ? new Date(p.value as string).toLocaleString() : '-'
+    ) },
+  ]), []);
+
   return (
-    <div className="p-4" dir="rtl">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">أوامر الشراء</h1>
-        <Link href="/purchase-orders/new" className="px-3 py-2 rounded bg-emerald-600 text-white">جديد</Link>
-      </div>
-      <div className="overflow-auto border rounded">
-        <table className="min-w-full text-right">
-          <thead className="sticky top-0 bg-gray-50">
-            <tr>
-              <th className="p-2">رقم الأمر</th>
-              <th className="p-2">المورد</th>
-              <th className="p-2">الحالة</th>
-              <th className="p-2">الإجمالي</th>
-              <th className="p-2">تم الاستلام</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pos.map((p) => (
-              <tr key={p._id} className="border-t hover:bg-gray-50">
-                <td className="p-2"><Link href={`/purchase-orders/${p._id}`} className="text-blue-600">{p.poNumber}</Link></td>
-                <td className="p-2">{p.supplierId}</td>
-                <td className="p-2">{p.status === 'draft' ? 'مسودة' : p.status === 'partial' ? 'تم الاستلام جزئيًا' : p.status === 'received' ? 'تم الاستلام' : 'ملغي'}</td>
-                <td className="p-2">{p.totals?.grandTotal?.toFixed?.(2) || '-'}</td>
-                <td className="p-2">{p.receivedAt ? new Date(p.receivedAt).toLocaleString() : '-'}</td>
-              </tr>
-            ))}
-            {pos.length === 0 && (
-              <tr><td className="p-3 text-sm text-gray-500" colSpan={5}>لا يوجد نتائج</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>أوامر الشراء</Typography>
+        <Button component={Link as any} href="/purchase-orders/new" variant="contained" color="success">جديد</Button>
+      </Stack>
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }}>
+        <TextField size="small" select SelectProps={{ native: true }} value={status} onChange={(e) => setStatus(e.target.value)} sx={{ width: { xs: '100%', md: 220 } }}>
+          <option value="">الحالة</option>
+          <option value="draft">مسودة</option>
+          <option value="partial">تم الاستلام جزئيًا</option>
+          <option value="received">تم الاستلام</option>
+          <option value="cancelled">ملغي</option>
+        </TextField>
+        <TextField size="small" placeholder="بحث" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1 }} />
+      </Stack>
+
+      <DataTable rows={rows} columns={columns} loading={loading} getRowId={(r) => (r as PO)._id} autoHeight />
+    </Box>
   );
 }
 

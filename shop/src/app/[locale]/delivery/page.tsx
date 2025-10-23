@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Box, Button, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type Shipment = {
   _id: string;
@@ -46,64 +49,45 @@ export default function DeliveryBoard() {
 
   const grouped = useMemo(() => shipments, [shipments]);
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'externalId', headerName: '#', width: 160 },
+    { field: 'status', headerName: t('delivery.status') as string, width: 180 },
+    { field: 'moneyStatus', headerName: t('delivery.moneyStatus') as string, width: 200 },
+    { field: 'createdAt', headerName: t('delivery.createdAt') as string, width: 220, valueFormatter: (p) => new Date(p.value as number).toLocaleString() },
+    { field: 'actions', headerName: t('delivery.actions') as string, width: 260, sortable: false, renderCell: (p) => {
+      const s = p.row as Shipment;
+      return (
+        <Stack direction="row" spacing={1}>
+          {s.labelUrl && <Button size="small" component="a" href={s.labelUrl} target="_blank">{t('delivery.label')}</Button>}
+          <Button size="small" variant="outlined" onClick={async () => { await fetch('/api/delivery/shipments/refresh', { method: 'POST' }); fetchShipments(); }}>{t('delivery.refresh')}</Button>
+          {s.status === 'delivered' && s.moneyStatus !== 'remitted_to_shop' && (
+            <Button size="small" variant="contained" color="success" onClick={async () => { await fetch(`/api/delivery/shipments/${s._id}/mark-remitted`, { method: 'POST', headers: { 'Idempotency-Key': `${s._id}:remit:${Date.now()}` } }); fetchShipments(); }}>{t('delivery.markRemitted')}</Button>
+          )}
+        </Stack>
+      );
+    } },
+  ]), [t]);
+
   return (
-    <main className="p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold">{t('delivery.title')}</h2>
-        <div className="ms-auto flex gap-2">
-          <input className="border rounded px-2 py-1 text-sm" placeholder={t('delivery.searchPlaceholder') as string} value={q} onChange={(e) => setQ(e.target.value)} />
-          <button className="px-3 py-1 border rounded text-sm" onClick={() => fetchShipments()}>{t('delivery.refresh')}</button>
-        </div>
-      </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Stack direction="row" alignItems="center" gap={1}>
+        <Typography variant="h6" fontWeight={600}>{t('delivery.title')}</Typography>
+        <Stack direction="row" spacing={1} sx={{ ml: 'auto' }}>
+          <TextField size="small" placeholder={t('delivery.searchPlaceholder') as string} value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button variant="outlined" onClick={() => fetchShipments()}>{t('delivery.refresh')}</Button>
+        </Stack>
+      </Stack>
 
-      <div className="flex gap-2 overflow-x-auto">
-        <button className={`px-3 py-1 rounded border ${tab==='created'?'bg-neutral-200 dark:bg-neutral-800':''}`} onClick={() => setTab('created')}>{t('delivery.new')}</button>
-        <button className={`px-3 py-1 rounded border ${tab==='in_transit'?'bg-neutral-200 dark:bg-neutral-800':''}`} onClick={() => setTab('in_transit')}>{t('delivery.inTransit')}</button>
-        <button className={`px-3 py-1 rounded border ${tab==='out_for_delivery'?'bg-neutral-200 dark:bg-neutral-800':''}`} onClick={() => setTab('out_for_delivery')}>{t('delivery.outForDelivery')}</button>
-        <button className={`px-3 py-1 rounded border ${tab==='delivered'?'bg-neutral-200 dark:bg-neutral-800':''}`} onClick={() => setTab('delivered')}>{t('delivery.delivered')}</button>
-        <button className={`px-3 py-1 rounded border ${tab==='failed_returned'?'bg-neutral-200 dark:bg-neutral-800':''}`} onClick={() => setTab('failed_returned')}>{t('delivery.failed')}/{t('delivery.returned')}</button>
-      </div>
+      <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons allowScrollButtonsMobile>
+        <Tab value="created" label={t('delivery.new') as string} />
+        <Tab value="in_transit" label={t('delivery.inTransit') as string} />
+        <Tab value="out_for_delivery" label={t('delivery.outForDelivery') as string} />
+        <Tab value="delivered" label={t('delivery.delivered') as string} />
+        <Tab value="failed_returned" label={`${t('delivery.failed')}/${t('delivery.returned')}`} />
+      </Tabs>
 
-      <div className="overflow-auto">
-        <table className="w-full text-sm border">
-          <thead>
-            <tr className="bg-neutral-50 dark:bg-neutral-900">
-              <th className="p-2 text-start">#</th>
-              <th className="p-2 text-start">{t('delivery.status')}</th>
-              <th className="p-2 text-start">{t('delivery.moneyStatus')}</th>
-              <th className="p-2 text-start">{t('delivery.createdAt')}</th>
-              <th className="p-2 text-start">{t('delivery.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grouped.map((s) => (
-              <tr key={s._id} className="border-t">
-                <td className="p-2">{s.externalId}</td>
-                <td className="p-2">{s.status}</td>
-                <td className="p-2">{s.moneyStatus}</td>
-                <td className="p-2">{new Date(s.createdAt).toLocaleString()}</td>
-                <td className="p-2 flex gap-2">
-                  {s.labelUrl && <a className="px-2 py-1 border rounded" href={s.labelUrl} target="_blank" rel="noreferrer">{t('delivery.label')}</a>}
-                  <button className="px-2 py-1 border rounded" onClick={async () => {
-                    await fetch('/api/delivery/shipments/refresh', { method: 'POST' });
-                    fetchShipments();
-                  }}>{t('delivery.refresh')}</button>
-                  {s.status === 'delivered' && s.moneyStatus !== 'remitted_to_shop' && (
-                    <button className="px-2 py-1 border rounded bg-emerald-600 text-white" onClick={async () => {
-                      await fetch(`/api/delivery/shipments/${s._id}/mark-remitted`, { method: 'POST', headers: { 'Idempotency-Key': `${s._id}:remit:${Date.now()}` } });
-                      fetchShipments();
-                    }}>{t('delivery.markRemitted')}</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {grouped.length === 0 && (
-              <tr><td className="p-3 text-center text-muted-foreground" colSpan={5}>{loading ? '...' : '—'}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+      <DataTable rows={grouped} columns={columns} loading={loading} getRowId={(r) => (r as Shipment)._id} autoHeight />
+    </Box>
   );
 }
 

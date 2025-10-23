@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Box, Button, Grid, Paper, Stack, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type Row = { id: string; customerId?: string; createdAt: number; remaining: number; nextDueDate?: string; overdueDays: number; status: string };
 
@@ -28,62 +31,56 @@ export default function LayawayPage() {
     return () => { cancelled = true; };
   }, []);
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'customerId', headerName: t('layaway.customer') || 'العميل', flex: 1 },
+    { field: 'remaining', headerName: t('layaway.remaining') || 'المتبقي', width: 140, valueFormatter: (p) => (p.value as number)?.toFixed?.(2) },
+    { field: 'nextDueDate', headerName: t('layaway.nextDue') || 'الاستحقاق التالي', width: 160, renderCell: (p) => (
+      <span dir="ltr">{p.value ? new Date(p.value as string).toLocaleDateString() : '-'}</span>
+    ) },
+    { field: 'overdueDays', headerName: t('layaway.overdueDays') || 'العمر', width: 120 },
+    { field: 'status', headerName: t('layaway.status') || 'الحالة', width: 140 },
+    { field: 'actions', headerName: '', width: 220, sortable: false, renderCell: (p) => (
+      <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ width: '100%' }}>
+        <Button variant="outlined" size="small">{t('layaway.collect') || 'تحصيل دفعة'}</Button>
+        <Button variant="outlined" size="small">{t('layaway.cancel') || 'إلغاء الحجز'}</Button>
+      </Stack>
+    ) },
+  ]), [t]);
+
   return (
-    <main className="p-4" dir="rtl">
-      <h1 className="text-xl font-semibold mb-3">{t('layaway.title') || 'تقسيط/الحجوزات'}</h1>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600}>{t('layaway.title') || 'تقسيط/الحجوزات'}</Typography>
       {rollup && (
-        <div className="grid grid-cols-4 gap-2 mb-4 text-center">
-          <div className="rounded border p-2">
-            <div className="text-xs text-neutral-500">0–7</div>
-            <div className="font-semibold">{rollup['0-7'].toFixed(2)}</div>
-          </div>
-          <div className="rounded border p-2">
-            <div className="text-xs text-neutral-500">8–14</div>
-            <div className="font-semibold">{rollup['8-14'].toFixed(2)}</div>
-          </div>
-          <div className="rounded border p-2">
-            <div className="text-xs text-neutral-500">15–30</div>
-            <div className="font-semibold">{rollup['15-30'].toFixed(2)}</div>
-          </div>
-          <div className="rounded border p-2">
-            <div className="text-xs text-neutral-500">{t('layaway.over30') || 'أكثر من 30'}</div>
-            <div className="font-semibold">{rollup['>30'].toFixed(2)}</div>
-          </div>
-        </div>
+        <Grid container spacing={1}>
+          <Grid item xs={6} md={3}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">0–7</Typography>
+              <Typography fontWeight={600}>{rollup['0-7'].toFixed(2)}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">8–14</Typography>
+              <Typography fontWeight={600}>{rollup['8-14'].toFixed(2)}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">15–30</Typography>
+              <Typography fontWeight={600}>{rollup['15-30'].toFixed(2)}</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary">{t('layaway.over30') || 'أكثر من 30'}</Typography>
+              <Typography fontWeight={600}>{rollup['>30'].toFixed(2)}</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
       )}
 
-      <div className="rounded border overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50">
-            <tr>
-              <th className="p-2 text-right">{t('layaway.customer') || 'العميل'}</th>
-              <th className="p-2">{t('layaway.remaining') || 'المتبقي'}</th>
-              <th className="p-2">{t('layaway.nextDue') || 'الاستحقاق التالي'}</th>
-              <th className="p-2">{t('layaway.overdueDays') || 'العمر'}</th>
-              <th className="p-2">{t('layaway.status') || 'الحالة'}</th>
-              <th className="p-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="p-2">{r.customerId || '-'}</td>
-                <td className="p-2">{r.remaining.toFixed(2)}</td>
-                <td className="p-2" dir="ltr">{r.nextDueDate ? new Date(r.nextDueDate).toLocaleDateString() : '-'}</td>
-                <td className="p-2">{r.overdueDays || 0}</td>
-                <td className="p-2">{r.status}</td>
-                <td className="p-2 text-left">
-                  <div className="flex gap-2 justify-end">
-                    <button className="px-2 py-1 rounded border">{t('layaway.collect') || 'تحصيل دفعة'}</button>
-                    <button className="px-2 py-1 rounded border">{t('layaway.cancel') || 'إلغاء الحجز'}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </main>
+      <DataTable rows={rows} columns={columns} loading={loading} getRowId={(r) => (r as Row).id} autoHeight />
+    </Box>
   );
 }
 

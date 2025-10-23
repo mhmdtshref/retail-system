@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import { GridColDef } from '@mui/x-data-grid';
 
 type Adjustment = {
   _id: string;
@@ -80,37 +83,58 @@ export default function AdjustmentsPage() {
     document.body.removeChild(link);
   }
 
+  const columns: GridColDef[] = useMemo(() => ([
+    { field: 'sku', headerName: 'SKU', width: 160, renderCell: (p) => <bdi dir="ltr">{p.value as string}</bdi> },
+    { field: 'quantity', headerName: 'الكمية', width: 120, valueFormatter: (p) => new Intl.NumberFormat(locale).format(p.value as number) },
+    { field: 'reason', headerName: 'السبب', width: 160 },
+    { field: 'createdBy', headerName: 'المستخدم', width: 160 },
+    { field: 'postedAt', headerName: 'التاريخ', width: 220, valueFormatter: (p) => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(p.value as string)) },
+    { field: 'note', headerName: 'ملاحظات', flex: 1 },
+  ]), [locale]);
+
+  const rows = useMemo(() => items.flatMap((a) => a.lines.map((l, idx) => ({
+    id: `${a._id}-${idx}`,
+    sku: l.sku,
+    quantity: l.quantity,
+    reason: l.reason,
+    createdBy: a.createdBy || '',
+    postedAt: a.postedAt,
+    note: l.note || a.note || '',
+  }))), [items]);
+
   return (
-    <main className="p-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">التسويات</h1>
-        <div className="flex gap-2">
-          <a className="underline" href={`/${locale}/inventory/counts`}>الجرد الدوري</a>
-          <button className="px-3 py-2 bg-blue-600 text-white rounded" onClick={exportCsv}>تصدير CSV</button>
-        </div>
-      </div>
-      <div className="p-3 border rounded flex flex-wrap gap-2 items-end">
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-600">SKU</label>
-          <input className="border rounded px-2 py-1" placeholder="SKU/باركود" value={filters.sku || ''} onChange={(e) => setFilters({ ...filters, sku: e.target.value })} />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-600">السبب</label>
-          <input className="border rounded px-2 py-1" placeholder="السبب" value={filters.reason || ''} onChange={(e) => setFilters({ ...filters, reason: e.target.value })} />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-600">المستخدم</label>
-          <input className="border rounded px-2 py-1" placeholder="المستخدم" value={filters.user || ''} onChange={(e) => setFilters({ ...filters, user: e.target.value })} />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-600">من تاريخ</label>
-          <input type="date" className="border rounded px-2 py-1" value={filters.dateFrom || ''} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs text-gray-600">إلى تاريخ</label>
-          <input type="date" className="border rounded px-2 py-1" value={filters.dateTo || ''} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
-        </div>
-        <button className="px-3 py-2 bg-gray-200 rounded" onClick={async () => {
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>التسويات</Typography>
+        <Stack direction="row" spacing={1}>
+          <Button component="a" href={`/${locale}/inventory/counts`} variant="text">الجرد الدوري</Button>
+          <Button variant="contained" onClick={exportCsv}>تصدير CSV</Button>
+        </Stack>
+      </Stack>
+
+      <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'flex-end' }}>
+          <Stack>
+            <Typography variant="caption" color="text.secondary">SKU</Typography>
+            <TextField size="small" placeholder="SKU/باركود" value={filters.sku || ''} onChange={(e) => setFilters({ ...filters, sku: e.target.value })} />
+          </Stack>
+        <Stack>
+          <Typography variant="caption" color="text.secondary">السبب</Typography>
+          <TextField size="small" placeholder="السبب" value={filters.reason || ''} onChange={(e) => setFilters({ ...filters, reason: e.target.value })} />
+        </Stack>
+        <Stack>
+          <Typography variant="caption" color="text.secondary">المستخدم</Typography>
+          <TextField size="small" placeholder="المستخدم" value={filters.user || ''} onChange={(e) => setFilters({ ...filters, user: e.target.value })} />
+        </Stack>
+        <Stack>
+          <Typography variant="caption" color="text.secondary">من تاريخ</Typography>
+          <TextField size="small" type="date" value={filters.dateFrom || ''} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+        </Stack>
+        <Stack>
+          <Typography variant="caption" color="text.secondary">إلى تاريخ</Typography>
+          <TextField size="small" type="date" value={filters.dateTo || ''} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+        </Stack>
+        <Button variant="outlined" onClick={async () => {
           const url = new URL('/api/inventory/adjustments', window.location.origin);
           if (filters.sku) url.searchParams.set('sku', filters.sku);
           if (filters.reason) url.searchParams.set('reason', filters.reason);
@@ -122,61 +146,14 @@ export default function AdjustmentsPage() {
             const data = await res.json();
             setItems(data.adjustments || []);
           }
-        }}>تطبيق التصفية</button>
-      </div>
-      <div className="p-3 border rounded flex flex-col gap-2">
-        <div className="font-semibold">تسوية جديدة</div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <input className="border rounded px-2 py-1" placeholder="SKU/باركود" value={sku} onChange={(e) => setSku(e.target.value)} />
-          <input className="border rounded px-2 py-1 w-28" type="number" placeholder="الكمية ±" value={Number.isNaN(qty) ? '' : qty} onChange={(e) => setQty(Number(e.target.value))} />
-          <select className="border rounded px-2 py-1" value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="">اختر السبب</option>
-            {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-          <input className="border rounded px-2 py-1 flex-1" placeholder="ملاحظات" value={note} onChange={(e) => setNote(e.target.value)} />
-          {onHand !== null && <div className="text-sm text-gray-700">على المخزون: {new Intl.NumberFormat(locale).format(onHand)}</div>}
-          <button disabled={posting || !sku || !reason || !qty} className="px-3 py-2 bg-green-600 text-white rounded" onClick={async () => {
-            setPosting(true);
-            try {
-              const res = await fetch('/api/inventory/adjustments', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `${Date.now()}-${Math.random()}` }, body: JSON.stringify({ lines: [{ sku, quantity: qty, reason, note }] }) });
-              if (res.ok) {
-                setSku(''); setQty(0); setReason(''); setNote('');
-                const data = await (await fetch('/api/inventory/adjustments')).json();
-                setItems(data.adjustments || []);
-              }
-            } finally { setPosting(false); }
-          }}>حفظ</button>
-        </div>
-      </div>
-      {loading ? <div>جارٍ التحميل...</div> : error ? <div className="text-red-600">{error}</div> : (
-        <div className="overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-600">
-                <th className="p-2 text-right">SKU</th>
-                <th className="p-2 text-right">الكمية</th>
-                <th className="p-2 text-right">السبب</th>
-                <th className="p-2 text-right">المستخدم</th>
-                <th className="p-2 text-right">التاريخ</th>
-                <th className="p-2 text-right">ملاحظات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.flatMap((a) => a.lines.map((l, idx) => (
-                <tr key={`${a._id}-${idx}`} className="border-b">
-                  <td className="p-2"><bdi dir="ltr">{l.sku}</bdi></td>
-                  <td className="p-2">{new Intl.NumberFormat(locale).format(l.quantity)}</td>
-                  <td className="p-2">{l.reason}</td>
-                  <td className="p-2">{a.createdBy || ''}</td>
-                  <td className="p-2">{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(a.postedAt))}</td>
-                  <td className="p-2">{l.note || a.note || ''}</td>
-                </tr>
-              )))}
-            </tbody>
-          </table>
-        </div>
+        }}>تطبيق التصفية</Button>
+        </Stack>
+      </Paper>
+
+      {loading ? <Typography>جارٍ التحميل...</Typography> : error ? <Typography color="error.main">{error}</Typography> : (
+        <DataTable rows={rows} columns={columns} autoHeight />
       )}
-    </main>
+    </Box>
   );
 }
 
