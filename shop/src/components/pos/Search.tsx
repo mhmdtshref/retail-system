@@ -5,6 +5,7 @@ import { PosCartLine } from '@/lib/pos/types';
 import { useTranslations } from 'next-intl';
 import { VariantPicker } from './VariantPicker';
 import { attachScanner, loadScannerConfig } from '@/lib/scanner/hid';
+import { Box, ButtonBase, Paper, Stack, TextField, Typography } from '@mui/material';
 
 type Props = {
   onAdd: (line: Omit<PosCartLine, 'qty'> & { qty?: number }) => void;
@@ -78,28 +79,28 @@ export function Search({ onAdd }: Props) {
   }, [results]);
 
   return (
-    <div className="w-full">
-      <input
-        ref={inputRef}
+    <Box sx={{ width: '100%' }}>
+      <TextField
+        inputRef={inputRef}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t('pos.searchPlaceholder') || 'ابحث برقم الباركود أو الاسم (F2)'}
-        className="w-full border rounded px-3 py-2 outline-none focus:ring"
-        dir="rtl"
+        fullWidth
+        size="small"
+        inputProps={{ dir: 'rtl' }}
       />
-      <div className="mt-1 text-[10px] text-gray-500">
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
         {scannerActive ? 'قارئ الباركود متصل' : '—'}{scannerBuffer ? ` (${scannerBuffer})` : ''}
-      </div>
+      </Typography>
 
       {query && (
-        <div className="mt-2 max-h-64 overflow-auto rounded border divide-y bg-white dark:bg-black">
+        <Paper variant="outlined" sx={{ mt: 1, maxHeight: 256, overflow: 'auto' }}>
           {grouped.map(([code, variants]) => {
             const multiple = variants.length > 1;
             const first = variants[0];
             return (
-              <button
+              <ButtonBase
                 key={code}
-                className="w-full text-right p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => {
                   if (multiple) {
                     setOpenPickerFor({ productCode: code, variants });
@@ -109,23 +110,26 @@ export function Search({ onAdd }: Props) {
                     setQuery('');
                   }
                 }}
+                sx={{ width: '100%', textAlign: 'right', p: 1, '&:not(:last-of-type)': { borderBottom: (t)=> `1px solid ${t.palette.divider}` } }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="truncate">
-                    <div className="font-medium">{first.name_ar || first.name_en}</div>
-                    <div className="text-xs text-gray-500">
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ width: '100%' }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography noWrap fontWeight={600}>{first.name_ar || first.name_en}</Typography>
+                    <Typography variant="caption" color="text.secondary">
                       {multiple ? (t('pos.pickVariant') || 'اختر المقاس/اللون') : [first.size, first.color].filter(Boolean).join(' / ')}
-                    </div>
-                  </div>
-                  <div className="text-sm">{first.retailPrice.toFixed(2)}</div>
-                </div>
-              </button>
+                    </Typography>
+                  </Box>
+                  <Typography fontSize={14}>{first.retailPrice.toFixed(2)}</Typography>
+                </Stack>
+              </ButtonBase>
             );
           })}
           {grouped.length === 0 && (
-            <div className="p-2 text-sm text-gray-500">{t('pos.noResults') || 'لا نتائج'}</div>
+            <Box sx={{ p: 1 }}>
+              <Typography color="text.secondary" fontSize={14}>{t('pos.noResults') || 'لا نتائج'}</Typography>
+            </Box>
           )}
-        </div>
+        </Paper>
       )}
 
       {openPickerFor && (
@@ -140,7 +144,7 @@ export function Search({ onAdd }: Props) {
           }}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

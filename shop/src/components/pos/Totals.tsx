@@ -5,6 +5,7 @@ import { usePosStore } from '@/lib/store/posStore';
 import type { Discount } from '@/lib/pos/types';
 import { MANUAL_DISCOUNT_LIMIT } from '@/lib/policy/policies';
 import { getCachedSettings } from '@/lib/offline/settings-cache';
+import { Alert, Box, MenuItem, Paper, Select, SelectChangeEvent, Stack, TextField, Typography } from '@mui/material';
 
 type Props = {
   subtotal: number;
@@ -72,52 +73,49 @@ export function Totals({ subtotal }: Props) {
   }, [type, valueNum, isValid, setDiscount]);
 
   return (
-    <div className="rounded border p-3 space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="font-medium">{t('pos.discount') || 'الخصم'}</div>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as Discount['type'])}
-          className="border rounded px-2 py-1 bg-transparent"
-        >
-          <option value="percent">{t('pos.percent') || 'نسبة %'}</option>
-          <option value="fixed">{t('pos.fixed') || 'قيمة ثابتة'}</option>
-        </select>
-        <input
-          dir="ltr"
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography fontWeight={600}>{t('pos.discount') || 'الخصم'}</Typography>
+        <Select size="small" value={type} onChange={(e: SelectChangeEvent) => setType(e.target.value as Discount['type'])}>
+          <MenuItem value="percent">{t('pos.percent') || 'نسبة %'}</MenuItem>
+          <MenuItem value="fixed">{t('pos.fixed') || 'قيمة ثابتة'}</MenuItem>
+        </Select>
+        <TextField
+          inputProps={{ dir: 'ltr' }}
           inputMode="decimal"
           type="number"
-          className="ms-auto border rounded px-3 py-1 w-28 text-end"
+          size="small"
+          sx={{ marginInlineStart: 'auto', width: 120 }}
           value={valueInput}
           onChange={(e) => setValueInput(e.target.value)}
         />
-      </div>
+      </Stack>
 
       {!percentValid && (
-        <div className="text-red-600 text-xs">{t('pos.percentBetweenZeroAndHundred') || 'النسبة يجب أن تكون بين 0 و 100.'}</div>
+        <Alert severity="error" variant="outlined" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: 12 } }}>{t('pos.percentBetweenZeroAndHundred') || 'النسبة يجب أن تكون بين 0 و 100.'}</Alert>
       )}
       {!fixedValid && (
-        <div className="text-red-600 text-xs">{t('pos.discountExceedsSubtotal') || 'لا يمكن أن يتجاوز الخصم قيمة الإجمالي.'}</div>
+        <Alert severity="error" variant="outlined" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: 12 } }}>{t('pos.discountExceedsSubtotal') || 'لا يمكن أن يتجاوز الخصم قيمة الإجمالي.'}</Alert>
       )}
 
-      <div className="space-y-1 text-sm">
-        <div className="flex items-center justify-between">
-          <div className="text-muted-foreground">{t('pos.preDiscountTotal') || 'الإجمالي قبل الخصم'}</div>
-          <div>{nf.format(subtotal)}</div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-muted-foreground">
+      <Box sx={{ mt: 1, fontSize: 14 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography color="text.secondary">{t('pos.preDiscountTotal') || 'الإجمالي قبل الخصم'}</Typography>
+          <Typography>{nf.format(subtotal)}</Typography>
+        </Stack>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography color="text.secondary">
             {t('pos.discountValue') || 'قيمة الخصم'}
             {type === 'percent' && isValid && valueNum > 0 ? ` (%${valueNum})` : ''}
-          </div>
-          <div className="text-rose-600">-{nf.format(discountValue)}</div>
-        </div>
-        <div className="flex items-center justify-between font-semibold">
-          <div>{t('pos.grandTotal') || 'الإجمالي النهائي'}</div>
-          <div>{nf.format(grand)}</div>
-        </div>
-      </div>
-    </div>
+          </Typography>
+          <Typography color="error">-{nf.format(discountValue)}</Typography>
+        </Stack>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ fontWeight: 600 }}>
+          <Typography>{t('pos.grandTotal') || 'الإجمالي النهائي'}</Typography>
+          <Typography>{nf.format(grand)}</Typography>
+        </Stack>
+      </Box>
+    </Paper>
   );
 }
 

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 
 type Product = {
   _id: string;
@@ -60,83 +62,75 @@ export default function ProductsPage() {
   }, [q, filters.status, filters.category, filters.brand, filters.size, filters.color, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: t('products.name') || 'المنتج', flex: 1, valueGetter: (p) => p.row.name_ar || p.row.name_en },
+    { field: 'productCode', headerName: t('products.code') || 'الرمز', width: 160, renderCell: (p) => <bdi dir="ltr">{p.value as string}</bdi> },
+    { field: 'category', headerName: t('products.category') || 'التصنيف', width: 140 },
+    { field: 'brand', headerName: t('products.brand') || 'العلامة', width: 140 },
+    { field: 'variants', headerName: t('products.variants') || 'الخيارات', flex: 1, sortable: false, renderCell: (p) => {
+      const list = (p.row.variants || []).slice(0, 5);
+      return (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+          {list.map((v: any, i: number) => (
+            <Chip key={`${v.sku}-${p.row._id}-${i}`} variant="outlined" size="small" label={v.color} title={v.sku} />
+          ))}
+          {(p.row.variants?.length || 0) > 5 && (
+            <Typography variant="caption" color="text.secondary">+{p.row.variants.length - 5}</Typography>
+          )}
+        </Stack>
+      );
+    }},
+    { field: 'updatedAt', headerName: t('products.updatedAt') || 'آخر تحديث', width: 200, valueFormatter: (p) => new Date(p.value as string).toLocaleString(locale) },
+    { field: 'actions', headerName: t('products.actions') || 'إجراءات', width: 140, sortable: false, renderCell: (p) => (
+      <Link href={`/${locale}/products/${p.row._id}`} style={{ textDecoration: 'underline' }}>{t('products.edit') || 'تعديل'}</Link>
+    ) },
+  ];
 
   return (
-    <main className="p-4 flex flex-col gap-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{t('products.title') || 'المنتجات'}</h1>
-        <div className="flex gap-2">
-          <Link href={`/${locale}/products/import`} className="px-3 py-2 rounded bg-blue-600 text-white">{t('products.importCsv') || 'استيراد CSV'}</Link>
-          <Link href={`/${locale}/products/new`} className="px-3 py-2 rounded bg-green-600 text-white">{t('products.add') || 'إضافة منتج'}</Link>
-          <button onClick={() => router.push(`/${locale}/labels`)} className="px-3 py-2 rounded border">طباعة ملصقات</button>
-        </div>
-      </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6" fontWeight={600}>{t('products.title') || 'المنتجات'}</Typography>
+        <Stack direction="row" spacing={1}>
+          <Button component={Link as any} href={`/${locale}/products/import`} variant="contained">{t('products.importCsv') || 'استيراد CSV'}</Button>
+          <Button component={Link as any} href={`/${locale}/products/new`} variant="contained" color="success">{t('products.add') || 'إضافة منتج'}</Button>
+          <Button variant="outlined" onClick={() => router.push(`/${locale}/labels`)}>طباعة ملصقات</Button>
+        </Stack>
+      </Stack>
 
-      <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} placeholder={t('products.searchPlaceholder') || 'بحث'} className="border rounded px-3 py-2" />
-        <select value={filters.status || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, status: e.target.value || undefined }); }} className="border rounded px-3 py-2">
+      <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+        <TextField size="small" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} placeholder={t('products.searchPlaceholder') || 'بحث'} />
+        <TextField size="small" select value={filters.status || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, status: (e.target as HTMLInputElement).value || undefined }); }}>
           <option value="">{t('products.status') || 'الحالة'}</option>
           <option value="active">{t('products.active') || 'نشط'}</option>
           <option value="archived">{t('products.archived') || 'مؤرشف'}</option>
-        </select>
-        <input value={filters.category || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, category: e.target.value || undefined }); }} placeholder={t('products.category') || 'التصنيف'} className="border rounded px-3 py-2" />
-        <input value={filters.brand || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, brand: e.target.value || undefined }); }} placeholder={t('products.brand') || 'العلامة'} className="border rounded px-3 py-2" />
-        <input value={filters.size || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, size: e.target.value || undefined }); }} placeholder={t('products.size') || 'المقاس'} className="border rounded px-3 py-2" />
-        <input value={filters.color || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, color: e.target.value || undefined }); }} placeholder={t('products.color') || 'اللون'} className="border rounded px-3 py-2" />
-      </div>
+        </TextField>
+        <TextField size="small" value={filters.category || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, category: e.target.value || undefined }); }} placeholder={t('products.category') || 'التصنيف'} />
+        <TextField size="small" value={filters.brand || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, brand: e.target.value || undefined }); }} placeholder={t('products.brand') || 'العلامة'} />
+        <TextField size="small" value={filters.size || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, size: e.target.value || undefined }); }} placeholder={t('products.size') || 'المقاس'} />
+        <TextField size="small" value={filters.color || ''} onChange={(e) => { setPage(1); setFilters({ ...filters, color: e.target.value || undefined }); }} placeholder={t('products.color') || 'اللون'} />
+      </Stack>
 
-      <div className="overflow-auto border rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="p-2 text-right">{t('products.name') || 'المنتج'}</th>
-              <th className="p-2 text-right">{t('products.code') || 'الرمز'}</th>
-              <th className="p-2 text-right">{t('products.category') || 'التصنيف'}</th>
-              <th className="p-2 text-right">{t('products.brand') || 'العلامة'}</th>
-              <th className="p-2 text-right">{t('products.variants') || 'الخيارات'}</th>
-              <th className="p-2 text-right">{t('products.updatedAt') || 'آخر تحديث'}</th>
-              <th className="p-2 text-right">{t('products.actions') || 'إجراءات'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((p) => (
-              <tr key={p._id} className="border-t">
-                <td className="p-2">{p.name_ar || p.name_en}</td>
-                <td className="p-2"><bdi dir="ltr">{p.productCode}</bdi></td>
-                <td className="p-2">{p.category}</td>
-                <td className="p-2">{p.brand}</td>
-                <td className="p-2">
-                  <div className="flex flex-wrap gap-1">
-                    {p.variants.slice(0, 5).map((v, i) => (
-                      <span key={`${v.sku}-${p._id}-${i}`} className="inline-flex items-center gap-1 rounded border px-2 py-0.5" title={v.sku}>
-                        <span className="text-xs">{v.color}</span>
-                        {availability[v.sku] && (
-                          <span className="text-[10px] text-green-700">{availability[v.sku].available}</span>
-                        )}
-                      </span>
-                    ))}
-                    {p.variants.length > 5 && <span className="text-xs text-gray-500">+{p.variants.length - 5}</span>}
-                  </div>
-                </td>
-                <td className="p-2">{new Date(p.updatedAt).toLocaleString(locale)}</td>
-                <td className="p-2">
-                  <Link href={`/${locale}/products/${p._id}`} className="underline">{t('products.edit') || 'تعديل'}</Link>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr><td className="p-3 text-center text-gray-500" colSpan={7}>{t('products.noResults') || 'لا نتائج'}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Box sx={{ height: 560, width: '100%' }}>
+        <DataGrid
+          rows={items}
+          getRowId={(r) => r._id}
+          rowCount={total}
+          paginationMode="server"
+          paginationModel={{ page: page - 1, pageSize }}
+          onPaginationModelChange={(m) => setPage(m.page + 1)}
+          columns={columns}
+          disableRowSelectionOnClick
+          density="compact"
+          loading={false}
+        />
+      </Box>
 
-      <div className="flex items-center justify-center gap-2">
-        <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t('products.prev') || 'السابق'}</button>
-        <span className="text-sm">{page} / {totalPages}</span>
-        <button className="px-2 py-1 border rounded disabled:opacity-50" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t('products.next') || 'التالي'}</button>
-      </div>
-    </main>
+      <Stack direction="row" justifyContent="center" alignItems="center" spacing={1}>
+        <Button variant="outlined" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t('products.prev') || 'السابق'}</Button>
+        <Typography fontSize={14}>{page} / {totalPages}</Typography>
+        <Button variant="outlined" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t('products.next') || 'التالي'}</Button>
+      </Stack>
+    </Box>
   );
 }
 
