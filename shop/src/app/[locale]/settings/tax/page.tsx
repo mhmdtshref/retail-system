@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, FormControlLabel, Grid, MenuItem, Paper, Radio, RadioGroup, Select, Snackbar, Stack, TextField, Typography } from '@mui/material';
 
 export default function TaxSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -29,74 +30,89 @@ export default function TaxSettingsPage() {
     } catch { return '١٬٢٣٤٫٥٦ ر.س'; }
   }, [curr]);
 
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
+
   async function save() {
     setSaving(true);
     try {
       await fetch('/api/settings/tax', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `tax:${Date.now()}` }, body: JSON.stringify(cfg) });
       await fetch('/api/settings/currency', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `cur:${Date.now()}` }, body: JSON.stringify(curr) });
-      alert('تم الحفظ');
+      setSnack({ open: true, message: 'تم الحفظ', severity: 'success' });
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="p-4">...</div>;
+  if (loading) return <Box sx={{ p: 2 }}>...</Box>;
 
   return (
-    <main className="p-4 space-y-4" dir="rtl">
-      <h1 className="text-xl font-semibold">الضرائب والعملات</h1>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600}>الضرائب والعملات</Typography>
 
-      <div className="border rounded p-3 space-y-2">
-        <div className="font-medium">وضع الأسعار</div>
-        <div className="flex gap-2">
-          <label className="inline-flex items-center gap-1"><input type="radio" checked={cfg?.priceMode==='tax_inclusive'} onChange={()=> setCfg((c:any)=> ({ ...c, priceMode: 'tax_inclusive' }))} /> شامل الضريبة</label>
-          <label className="inline-flex items-center gap-1"><input type="radio" checked={cfg?.priceMode==='tax_exclusive'} onChange={()=> setCfg((c:any)=> ({ ...c, priceMode: 'tax_exclusive' }))} /> غير شامل الضريبة</label>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-sm">النسبة الافتراضية (%)
-            <input className="w-full border rounded px-2 py-1" type="number" dir="ltr" value={(cfg?.defaultRate||0)*100} onChange={(e)=> setCfg((c:any)=> ({ ...c, defaultRate: Math.max(0, Number(e.target.value))/100 }))} />
-          </label>
-          <label className="text-sm">الدقة (خانات عشرية)
-            <input className="w-full border rounded px-2 py-1" type="number" dir="ltr" value={cfg?.precision||2} onChange={(e)=> setCfg((c:any)=> ({ ...c, precision: Math.max(0, Number(e.target.value)) }))} />
-          </label>
-          <label className="text-sm">تقريب السطر/الفاتورة
-            <select className="w-full border rounded px-2 py-1" value={cfg?.receiptRounding||'none'} onChange={(e)=> setCfg((c:any)=> ({ ...c, receiptRounding: e.target.value }))}>
-              <option value="none">تقريب على مستوى السطر</option>
-              <option value="half_up">تقريب الفاتورة (Half-up)</option>
-              <option value="bankers">تقريب الفاتورة (Bankers)</option>
-            </select>
-          </label>
-          <label className="text-sm">طريقة التقريب
-            <select className="w-full border rounded px-2 py-1" value={cfg?.roundingStrategy||'half_up'} onChange={(e)=> setCfg((c:any)=> ({ ...c, roundingStrategy: e.target.value }))}>
-              <option value="half_up">Half-up</option>
-              <option value="bankers">Bankers</option>
-            </select>
-          </label>
-          <label className="text-sm">تقريب النقد
-            <select className="w-full border rounded px-2 py-1" value={cfg?.cashRounding?.increment || 0.05} onChange={(e)=> setCfg((c:any)=> ({ ...c, cashRounding: { enabled: true, increment: Number(e.target.value) } }))}>
-              <option value={0.05}>0.05</option>
-              <option value={0.1}>0.10</option>
-            </select>
-          </label>
-        </div>
-      </div>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography fontWeight={600} sx={{ mb: 1 }}>وضع الأسعار</Typography>
+        <RadioGroup row value={cfg?.priceMode || ''} onChange={(_, v)=> setCfg((c:any)=> ({ ...c, priceMode: v }))}>
+          <FormControlLabel value="tax_inclusive" control={<Radio />} label="شامل الضريبة" />
+          <FormControlLabel value="tax_exclusive" control={<Radio />} label="غير شامل الضريبة" />
+        </RadioGroup>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">النسبة الافتراضية (%)</Typography>
+            <TextField size="small" type="number" inputProps={{ dir: 'ltr' }} fullWidth value={(cfg?.defaultRate||0)*100} onChange={(e)=> setCfg((c:any)=> ({ ...c, defaultRate: Math.max(0, Number(e.target.value))/100 }))} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">الدقة (خانات عشرية)</Typography>
+            <TextField size="small" type="number" inputProps={{ dir: 'ltr' }} fullWidth value={cfg?.precision||2} onChange={(e)=> setCfg((c:any)=> ({ ...c, precision: Math.max(0, Number(e.target.value)) }))} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">تقريب السطر/الفاتورة</Typography>
+            <Select size="small" fullWidth value={cfg?.receiptRounding||'none'} onChange={(e)=> setCfg((c:any)=> ({ ...c, receiptRounding: e.target.value }))}>
+              <MenuItem value="none">تقريب على مستوى السطر</MenuItem>
+              <MenuItem value="half_up">تقريب الفاتورة (Half-up)</MenuItem>
+              <MenuItem value="bankers">تقريب الفاتورة (Bankers)</MenuItem>
+            </Select>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">طريقة التقريب</Typography>
+            <Select size="small" fullWidth value={cfg?.roundingStrategy||'half_up'} onChange={(e)=> setCfg((c:any)=> ({ ...c, roundingStrategy: e.target.value }))}>
+              <MenuItem value="half_up">Half-up</MenuItem>
+              <MenuItem value="bankers">Bankers</MenuItem>
+            </Select>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">تقريب النقد</Typography>
+            <Select size="small" fullWidth value={String(cfg?.cashRounding?.increment ?? 0.05)} onChange={(e)=> setCfg((c:any)=> ({ ...c, cashRounding: { enabled: true, increment: Number(e.target.value) } }))}>
+              <MenuItem value="0.05">0.05</MenuItem>
+              <MenuItem value="0.1">0.10</MenuItem>
+            </Select>
+          </Grid>
+        </Grid>
+      </Paper>
 
-      <div className="border rounded p-3 space-y-2">
-        <div className="font-medium">العملة</div>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-sm">العملة الافتراضية
-            <input className="w-full border rounded px-2 py-1" value={curr?.defaultCurrency || 'SAR'} onChange={(e)=> setCurr((c:any)=> ({ ...c, defaultCurrency: e.target.value }))} />
-          </label>
-          <label className="text-sm">اللغة/المنطقة للعرض
-            <input className="w-full border rounded px-2 py-1" value={curr?.displayLocale || 'ar-SA'} onChange={(e)=> setCurr((c:any)=> ({ ...c, displayLocale: e.target.value }))} />
-          </label>
-        </div>
-        <div className="text-sm">معاينة: <span dir="ltr">{preview}</span></div>
-      </div>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography fontWeight={600} sx={{ mb: 1 }}>العملة</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">العملة الافتراضية</Typography>
+            <TextField size="small" fullWidth value={curr?.defaultCurrency || 'SAR'} onChange={(e)=> setCurr((c:any)=> ({ ...c, defaultCurrency: e.target.value }))} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="caption">اللغة/المنطقة للعرض</Typography>
+            <TextField size="small" fullWidth value={curr?.displayLocale || 'ar-SA'} onChange={(e)=> setCurr((c:any)=> ({ ...c, displayLocale: e.target.value }))} />
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="caption">معاينة: <Box component="span" dir="ltr">{preview}</Box></Typography>
+          </Grid>
+        </Grid>
+      </Paper>
 
-      <div className="flex gap-2">
-        <button disabled={saving} onClick={save} className="px-3 py-2 bg-blue-600 text-white rounded">حفظ</button>
-      </div>
-    </main>
+      <Stack direction="row" spacing={1}>
+        <Button disabled={saving} onClick={save} variant="contained">حفظ</Button>
+      </Stack>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={()=> setSnack((s)=> ({ ...s, open: false }))}>
+        <Alert severity={snack.severity} onClose={()=> setSnack((s)=> ({ ...s, open: false }))}>{snack.message}</Alert>
+      </Snackbar>
+    </Box>
   );
 }

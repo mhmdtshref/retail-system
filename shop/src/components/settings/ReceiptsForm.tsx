@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Grid, Paper, Snackbar, Alert, TextField, Typography, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import { ReceiptPreview } from './ReceiptPreview';
 
 type ReceiptTemplate = {
@@ -29,6 +30,7 @@ export function ReceiptsForm() {
     thermal80: { showLogo: true, showReceiptBarcode: true, showTaxSummary: true, showCashier: true, showCustomer: true, showReturnPolicy: false, showStoreCredit: true, labels: {}, header: {}, footer: {} },
     a4: { showLogo: true, showReceiptBarcode: true, showTaxSummary: true, showCashier: true, showCustomer: true, showReturnPolicy: false, showStoreCredit: true, labels: {}, header: {}, footer: {} }
   });
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -51,7 +53,7 @@ export function ReceiptsForm() {
   }, []);
 
   async function save() {
-    if (!online) return alert('يتطلب هذا الإجراء اتصالاً بالإنترنت.');
+    if (!online) { setSnack({ open: true, message: 'يتطلب هذا الإجراء اتصالاً بالإنترنت.', severity: 'warning' }); return; }
     setSaving(true);
     try {
       const idk = Math.random().toString(36).slice(2);
@@ -59,9 +61,9 @@ export function ReceiptsForm() {
       const res = await fetch('/api/settings/receipts', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idk, 'X-CSRF-Token': csrf }, body: JSON.stringify(conf) });
       if (res.ok) {
         try { const { refreshSettingsConfig } = await import('@/lib/tax/cache'); await refreshSettingsConfig(); } catch {}
-        alert('تم الحفظ');
+        setSnack({ open: true, message: 'تم الحفظ', severity: 'success' });
       } else {
-        const e = await res.json(); console.error(e); alert('فشل الحفظ');
+        const e = await res.json(); console.error(e); setSnack({ open: true, message: 'فشل الحفظ', severity: 'error' });
       }
     } finally { setSaving(false); }
   }
@@ -73,72 +75,71 @@ export function ReceiptsForm() {
     totals: { subtotal: 50, tax: 7.5, grand: 57.5, discountValue: 0, roundingAdj: 0 },
   } as any), []);
 
-  if (loading) return <div>...تحميل</div>;
+  if (loading) return <Box sx={{ p: 1 }}>...تحميل</Box>;
 
   const tpl = conf[template];
 
-  const boolToggle = (key: keyof ReceiptTemplate) => (
-    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!(tpl as any)[key]} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], [key]: e.target.checked } }))} />{key}</label>
+  const boolToggle = (key: keyof ReceiptTemplate, label: string) => (
+    <FormRow>
+      <FormControlLabel control={<Checkbox checked={!!(tpl as any)[key]} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], [key]: e.target.checked } }))} />} label={label} />
+    </FormRow>
   );
 
+  function FormRow({ children }: { children: React.ReactNode }) { return <Box sx={{ mb: 1 }}>{children}</Box>; }
+
   return (
-    <div className="grid md:grid-cols-2 gap-4">
-      <div className="space-y-3">
-        <div className="p-3 border rounded space-y-2">
-          <div className="font-semibold">القالب</div>
-          <div className="flex items-center gap-2">
-            <button className={`px-3 py-1 rounded border ${template==='thermal80'?'bg-emerald-50 border-emerald-300':''}`} onClick={()=> setTemplate('thermal80')}>حراري 80مم</button>
-            <button className={`px-3 py-1 rounded border ${template==='a4'?'bg-emerald-50 border-emerald-300':''}`} onClick={()=> setTemplate('a4')}>A4</button>
-          </div>
-        </div>
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={6}>
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography fontWeight={600} sx={{ mb: 1 }}>القالب</Typography>
+          <ToggleButtonGroup size="small" value={template} exclusive onChange={(_, v) => v && setTemplate(v)}>
+            <ToggleButton value="thermal80">حراري 80مم</ToggleButton>
+            <ToggleButton value="a4">A4</ToggleButton>
+          </ToggleButtonGroup>
+        </Paper>
 
-        <div className="p-3 border rounded space-y-2">
-          <div className="font-semibold">العناصر الظاهرة</div>
-          <div className="grid grid-cols-2 gap-2">
-            {boolToggle('showLogo')}
-            {boolToggle('showReceiptBarcode')}
-            {boolToggle('showTaxSummary')}
-            {boolToggle('showCashier')}
-            {boolToggle('showCustomer')}
-            {boolToggle('showReturnPolicy')}
-            {boolToggle('showStoreCredit')}
-          </div>
-        </div>
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography fontWeight={600} sx={{ mb: 1 }}>العناصر الظاهرة</Typography>
+          <Grid container spacing={1}>
+            <Grid item xs={6}>{boolToggle('showLogo','الشعار')}</Grid>
+            <Grid item xs={6}>{boolToggle('showReceiptBarcode','باركود الإيصال')}</Grid>
+            <Grid item xs={6}>{boolToggle('showTaxSummary','ملخص الضريبة')}</Grid>
+            <Grid item xs={6}>{boolToggle('showCashier','إظهار الكاشير')}</Grid>
+            <Grid item xs={6}>{boolToggle('showCustomer','إظهار العميل')}</Grid>
+            <Grid item xs={6}>{boolToggle('showReturnPolicy','سياسة الإرجاع')}</Grid>
+            <Grid item xs={6}>{boolToggle('showStoreCredit','رصيد المتجر')}</Grid>
+          </Grid>
+        </Paper>
 
-        <div className="p-3 border rounded space-y-2">
-          <div className="font-semibold">الترويسة (ع/En)</div>
-          <textarea className="border rounded p-2 min-h-[80px]" value={tpl.header?.ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], header: { ...((c as any)[template]?.header||{}), ar: e.target.value } } }))} />
-          <textarea className="border rounded p-2 min-h-[80px]" dir="ltr" value={tpl.header?.en || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], header: { ...((c as any)[template]?.header||{}), en: e.target.value } } }))} />
-        </div>
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography fontWeight={600} sx={{ mb: 1 }}>الترويسة (ع/En)</Typography>
+          <TextField fullWidth multiline minRows={3} value={tpl.header?.ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], header: { ...((c as any)[template]?.header||{}), ar: e.target.value } } }))} sx={{ mb: 1 }} />
+          <TextField fullWidth multiline minRows={3} inputProps={{ dir: 'ltr' }} value={tpl.header?.en || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], header: { ...((c as any)[template]?.header||{}), en: e.target.value } } }))} />
+        </Paper>
 
-        <div className="p-3 border rounded space-y-2">
-          <div className="font-semibold">التذييل (ع/En)</div>
-          <textarea className="border rounded p-2 min-h-[80px]" value={tpl.footer?.ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], footer: { ...((c as any)[template]?.footer||{}), ar: e.target.value } } }))} />
-          <textarea className="border rounded p-2 min-h-[80px]" dir="ltr" value={tpl.footer?.en || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], footer: { ...((c as any)[template]?.footer||{}), en: e.target.value } } }))} />
-        </div>
+        <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Typography fontWeight={600} sx={{ mb: 1 }}>التذييل (ع/En)</Typography>
+          <TextField fullWidth multiline minRows={3} value={tpl.footer?.ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], footer: { ...((c as any)[template]?.footer||{}), ar: e.target.value } } }))} sx={{ mb: 1 }} />
+          <TextField fullWidth multiline minRows={3} inputProps={{ dir: 'ltr' }} value={tpl.footer?.en || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], footer: { ...((c as any)[template]?.footer||{}), en: e.target.value } } }))} />
+        </Paper>
 
-        <div className="p-3 border rounded space-y-2">
-          <div className="font-semibold">العناوين المخصصة</div>
-          {['subtotal','discounts','tax','rounding','total','paid','change','balance'].map((k) => (
-            <div key={k} className="grid grid-cols-3 gap-2 items-center">
-              <div className="text-xs text-neutral-600">{k}</div>
-              <input value={tpl.labels?.[`${k}.ar`] || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], labels: { ...((c as any)[template]?.labels||{}), [`${k}.ar`]: e.target.value } } }))} className="border rounded px-2 py-1" placeholder="عربية" />
-              <input value={tpl.labels?.[`${k}.en`] || ''} onChange={(e)=> setConf((c)=> ({ ...c, [template]: { ...(c as any)[template], labels: { ...((c as any)[template]?.labels||{}), [`${k}.en`]: e.target.value } } }))} className="border rounded px-2 py-1" dir="ltr" placeholder="English" />
-            </div>
-          ))}
-        </div>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button variant="contained" onClick={save} disabled={!online || saving}>حفظ</Button>
+          {!online && <Typography variant="caption" color="text.secondary">يتطلب هذا الإجراء اتصالاً بالإنترنت.</Typography>}
+        </Stack>
+      </Grid>
 
-        <div className="flex items-center gap-2">
-          <button disabled={!online || saving} onClick={save} className={`px-4 py-2 rounded ${(!online||saving)?'bg-gray-200 text-gray-500':'bg-blue-600 text-white'}`}>حفظ</button>
-          {!online && <span className="text-xs text-neutral-600">يتطلب هذا الإجراء اتصالاً بالإنترنت.</span>}
-        </div>
-      </div>
-
-      <div>
-        <div className="font-semibold mb-2">المعاينة</div>
+      <Grid item xs={12} md={6}>
+        <Typography fontWeight={600} sx={{ mb: 1 }}>المعاينة</Typography>
         <ReceiptPreview data={mockReceipt} template={template} />
-      </div>
-    </div>
+      </Grid>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Grid>
   );
 }
 

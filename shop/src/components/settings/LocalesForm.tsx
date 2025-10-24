@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Checkbox, FormControlLabel, Grid, Paper, Snackbar, Alert, TextField, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Stack } from '@mui/material';
 
 type LocalesConfig = {
   defaultLang: 'ar'|'en';
@@ -16,6 +18,7 @@ export function LocalesForm() {
   const [saving, setSaving] = useState(false);
   const [online, setOnline] = useState(true);
   const [conf, setConf] = useState<LocalesConfig>({ defaultLang: 'ar', rtlByLang: { ar: true, en: false }, currency: 'SAR', displayLocale: 'ar-SA', dateFormat: 'dd/MM/yyyy', timeFormat: '12h', shopInfo: { name_ar: '' } });
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -46,7 +49,7 @@ export function LocalesForm() {
   }, [conf.displayLocale, conf.timeFormat]);
 
   async function save() {
-    if (!online) return alert('يتطلب هذا الإجراء اتصالاً بالإنترنت.');
+    if (!online) { setSnack({ open: true, message: 'يتطلب هذا الإجراء اتصالاً بالإنترنت.', severity: 'warning' }); return; }
     setSaving(true);
     try {
       const idk = Math.random().toString(36).slice(2);
@@ -54,106 +57,120 @@ export function LocalesForm() {
       if (res.ok) {
         // refresh cached settings
         try { const { refreshSettingsConfig } = await import('@/lib/tax/cache'); await refreshSettingsConfig(); } catch {}
-        alert('تم الحفظ');
+        setSnack({ open: true, message: 'تم الحفظ', severity: 'success' });
       } else {
-        const e = await res.json(); console.error(e); alert('فشل الحفظ');
+        const e = await res.json(); console.error(e); setSnack({ open: true, message: 'فشل الحفظ', severity: 'error' });
       }
     } finally { setSaving(false); }
   }
 
-  if (loading) return <div>...تحميل</div>;
+  if (loading) return <Box sx={{ p: 1 }}>...تحميل</Box>;
 
   return (
-    <div className="p-3 border rounded space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">اللغة والاتجاه</div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs">اللغة الافتراضية</div>
-              <select value={conf.defaultLang} onChange={(e)=> setConf((c)=> ({ ...c, defaultLang: e.target.value as any }))} className="w-full border rounded px-2 py-1">
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-            <div>
-              <div className="text-xs">المحلية (Intl)</div>
-              <input value={conf.displayLocale} onChange={(e)=> setConf((c)=> ({ ...c, displayLocale: e.target.value }))} className="w-full border rounded px-2 py-1" dir="ltr" placeholder="ar-SA" />
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={conf.rtlByLang.ar} onChange={(e)=> setConf((c)=> ({ ...c, rtlByLang: { ...c.rtlByLang, ar: e.target.checked } }))} />RTL للعربية</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={conf.rtlByLang.en} onChange={(e)=> setConf((c)=> ({ ...c, rtlByLang: { ...c.rtlByLang, en: e.target.checked } }))} />RTL للإنجليزية</label>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs">تنسيق التاريخ</div>
-              <input value={conf.dateFormat} onChange={(e)=> setConf((c)=> ({ ...c, dateFormat: e.target.value }))} className="w-full border rounded px-2 py-1" placeholder="dd/MM/yyyy" />
-            </div>
-            <div>
-              <div className="text-xs">الوقت</div>
-              <select value={conf.timeFormat} onChange={(e)=> setConf((c)=> ({ ...c, timeFormat: e.target.value as any }))} className="w-full border rounded px-2 py-1">
-                <option value="12h">12 ساعة</option>
-                <option value="24h">24 ساعة</option>
-              </select>
-            </div>
-          </div>
-        </div>
+    <Box sx={{ p: 2 }}>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>اللغة والاتجاه</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption">اللغة الافتراضية</Typography>
+                <TextField select size="small" fullWidth value={conf.defaultLang} onChange={(e)=> setConf((c)=> ({ ...c, defaultLang: e.target.value as any }))}>
+                  <option value="ar">العربية</option>
+                  <option value="en">English</option>
+                </TextField>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption">المحلية (Intl)</Typography>
+                <TextField size="small" fullWidth value={conf.displayLocale} onChange={(e)=> setConf((c)=> ({ ...c, displayLocale: e.target.value }))} inputProps={{ dir: 'ltr' }} placeholder="ar-SA" />
+              </Grid>
+            </Grid>
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+              <FormControlLabel control={<Checkbox checked={conf.rtlByLang.ar} onChange={(e)=> setConf((c)=> ({ ...c, rtlByLang: { ...c.rtlByLang, ar: e.target.checked } }))} />} label="RTL للعربية" />
+              <FormControlLabel control={<Checkbox checked={conf.rtlByLang.en} onChange={(e)=> setConf((c)=> ({ ...c, rtlByLang: { ...c.rtlByLang, en: e.target.checked } }))} />} label="RTL للإنجليزية" />
+            </Stack>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={6}>
+                <Typography variant="caption">تنسيق التاريخ</Typography>
+                <TextField size="small" fullWidth value={conf.dateFormat} onChange={(e)=> setConf((c)=> ({ ...c, dateFormat: e.target.value }))} placeholder="dd/MM/yyyy" />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption">الوقت</Typography>
+                <TextField select size="small" fullWidth value={conf.timeFormat} onChange={(e)=> setConf((c)=> ({ ...c, timeFormat: e.target.value as any }))}>
+                  <option value="12h">12 ساعة</option>
+                  <option value="24h">24 ساعة</option>
+                </TextField>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
 
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">العملة والتنسيق</div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs">رمز العملة</div>
-              <input value={conf.currency} onChange={(e)=> setConf((c)=> ({ ...c, currency: e.target.value.toUpperCase() }))} className="w-full border rounded px-2 py-1" dir="ltr" placeholder="SAR" />
-            </div>
-            <div>
-              <div className="text-xs">معاينة</div>
-              <div className="border rounded px-2 py-1 bg-neutral-50" dir="ltr">{numberPreview}</div>
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">تاريخ/وقت (Intl)</div>
-            <div className="border rounded px-2 py-1 bg-neutral-50" dir="ltr">{datePreview}</div>
-          </div>
-        </div>
-      </div>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>العملة والتنسيق</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption">رمز العملة</Typography>
+                <TextField size="small" fullWidth value={conf.currency} onChange={(e)=> setConf((c)=> ({ ...c, currency: e.target.value.toUpperCase() }))} inputProps={{ dir: 'ltr' }} placeholder="SAR" />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption">معاينة</Typography>
+                <Paper variant="outlined" sx={{ px: 1, py: 0.5 }}><Box component="span" dir="ltr">{numberPreview}</Box></Paper>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="caption">تاريخ/وقت (Intl)</Typography>
+                <Paper variant="outlined" sx={{ px: 1, py: 0.5 }}><Box component="span" dir="ltr">{datePreview}</Box></Paper>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
 
-      <div className="p-3 rounded border space-y-2">
-        <div className="font-semibold">معلومات المتجر</div>
-        <div className="grid md:grid-cols-2 gap-2">
-          <div>
-            <div className="text-xs">اسم المتجر (ع)</div>
-            <input value={conf.shopInfo.name_ar} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, name_ar: e.target.value } }))} className="w-full border rounded px-2 py-1" />
-          </div>
-          <div>
-            <div className="text-xs">اسم المتجر (E)</div>
-            <input value={conf.shopInfo.name_en || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, name_en: e.target.value } }))} className="w-full border rounded px-2 py-1" dir="ltr" />
-          </div>
-          <div>
-            <div className="text-xs">الهاتف</div>
-            <input value={conf.shopInfo.phone || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, phone: e.target.value } }))} className="w-full border rounded px-2 py-1" dir="ltr" />
-          </div>
-          <div>
-            <div className="text-xs">الرقم الضريبي</div>
-            <input value={conf.shopInfo.taxNumber || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, taxNumber: e.target.value } }))} className="w-full border rounded px-2 py-1" dir="ltr" />
-          </div>
-          <div>
-            <div className="text-xs">العنوان (ع)</div>
-            <input value={conf.shopInfo.address_ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, address_ar: e.target.value } }))} className="w-full border rounded px-2 py-1" />
-          </div>
-          <div>
-            <div className="text-xs">العنوان (E)</div>
-            <input value={conf.shopInfo.address_en || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, address_en: e.target.value } }))} className="w-full border rounded px-2 py-1" dir="ltr" />
-          </div>
-        </div>
-      </div>
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>معلومات المتجر</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">اسم المتجر (ع)</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.name_ar} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, name_ar: e.target.value } }))} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">اسم المتجر (E)</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.name_en || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, name_en: e.target.value } }))} inputProps={{ dir: 'ltr' }} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">الهاتف</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.phone || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, phone: e.target.value } }))} inputProps={{ dir: 'ltr' }} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">الرقم الضريبي</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.taxNumber || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, taxNumber: e.target.value } }))} inputProps={{ dir: 'ltr' }} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">العنوان (ع)</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.address_ar || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, address_ar: e.target.value } }))} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption">العنوان (E)</Typography>
+                <TextField size="small" fullWidth value={conf.shopInfo.address_en || ''} onChange={(e)=> setConf((c)=> ({ ...c, shopInfo: { ...c.shopInfo, address_en: e.target.value } }))} inputProps={{ dir: 'ltr' }} />
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
 
-      <div className="flex items-center gap-2">
-        <button disabled={!online || saving} onClick={save} className={`px-4 py-2 rounded ${(!online||saving)?'bg-gray-200 text-gray-500':'bg-blue-600 text-white'}`}>حفظ</button>
-        {!online && <span className="text-xs text-neutral-600">يتطلب هذا الإجراء اتصالاً بالإنترنت.</span>}
-      </div>
-    </div>
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button variant="contained" onClick={save} disabled={!online || saving}>حفظ</Button>
+            {!online && <Typography variant="caption" color="text.secondary">يتطلب هذا الإجراء اتصالاً بالإنترنت.</Typography>}
+          </Stack>
+        </Grid>
+      </Grid>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

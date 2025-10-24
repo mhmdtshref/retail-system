@@ -1,7 +1,7 @@
 "use client";
 import * as React from 'react';
 import { CacheProvider } from '@emotion/react';
-import { CssBaseline, ThemeProvider } from '@mui/material';
+import { ThemeProvider } from '@mui/material';
 import { StyledEngineProvider } from '@mui/material/styles';
 import { createAppTheme } from '@/lib/theme/mui-theme';
 import { createEmotionCacheLtr, createEmotionCacheRtl } from '@/lib/theme/rtl-cache';
@@ -21,7 +21,6 @@ export function MuiProviders({ children, mode = 'light', dir = 'rtl', locale = '
     <CacheProvider value={cache}>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={theme}>
-          <CssBaseline />
           {children}
         </ThemeProvider>
       </StyledEngineProvider>

@@ -1,12 +1,13 @@
 "use client";
 import { SignIn } from '@clerk/nextjs';
+import { Box } from '@mui/material';
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen grid place-items-center" dir="rtl">
+    <Box component="main" dir="rtl" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
       <SignIn appearance={{ elements: { card: 'shadow-lg', formButtonPrimary: 'bg-black hover:bg-gray-900' } }}
               redirectUrl="/"
       />
-    </main>
+    </Box>
   );
 }

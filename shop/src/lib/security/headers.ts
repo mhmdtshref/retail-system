@@ -4,6 +4,9 @@ export type HeaderOptions = {
   cspNonce?: string;
   cspImgDomains?: string[];
   frameAncestors?: string[]; // if empty -> DENY
+  scriptSrcDomains?: string[]; // extra script-src hosts
+  connectSrcDomains?: string[]; // extra connect-src hosts
+  frameSrcDomains?: string[]; // extra frame-src hosts (iframes)
 };
 
 export function applySecurityHeaders(req: NextRequest, res: NextResponse, opts: HeaderOptions = {}): NextResponse {
@@ -11,14 +14,17 @@ export function applySecurityHeaders(req: NextRequest, res: NextResponse, opts: 
   const self = "'self'";
   const nonce = opts.cspNonce ? `'nonce-${opts.cspNonce}'` : '';
   const imgSrc = [self, 'data:', 'blob:', ...(opts.cspImgDomains || [])].join(' ');
-  const connectSrc = [self, process.env.NEXT_PUBLIC_BASE_URL || ''].filter(Boolean).join(' ');
+  const connectSrc = [self, process.env.NEXT_PUBLIC_BASE_URL || '', ...(opts.connectSrcDomains || [])]
+    .filter(Boolean)
+    .join(' ');
   const styleSrc = [self, nonce || "'unsafe-inline'"].join(' ');
-  const scriptSrcParts = [self, nonce || "'unsafe-inline'"];
+  const scriptSrcParts = [self, nonce || "'unsafe-inline'", ...(opts.scriptSrcDomains || [])];
   if (!isProd) scriptSrcParts.push("'unsafe-eval'");
   const scriptSrc = scriptSrcParts.join(' ');
   const frameAncestors = (opts.frameAncestors && opts.frameAncestors.length)
     ? opts.frameAncestors.join(' ')
     : "'none'";
+  const frameSrc = [self, ...(opts.frameSrcDomains || [])].join(' ');
 
   const csp = [
     `default-src ${self}`,
@@ -26,6 +32,7 @@ export function applySecurityHeaders(req: NextRequest, res: NextResponse, opts: 
     `style-src ${styleSrc}`,
     `script-src ${scriptSrc}`,
     `connect-src ${connectSrc}`,
+    `frame-src ${frameSrc}`,
     `font-src ${self} data:`,
     `object-src 'none'`,
     `base-uri 'none'`,

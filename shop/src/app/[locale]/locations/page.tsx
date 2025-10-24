@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { Box, Paper, Stack, Typography } from '@mui/material';
 
 export default function LocationsPage() {
-  const t = useTranslations();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,34 +20,34 @@ export default function LocationsPage() {
   }, []);
 
   return (
-    <main className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-xl font-bold">{t('locations.title') || 'المواقع'}</h1>
-      </div>
+    <Box component="main" sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Typography variant="h6" fontWeight={600}>المواقع</Typography>
+      </Stack>
       {loading ? (
-        <div>…</div>
+        <Typography variant="body2">…</Typography>
       ) : (
-        <div className="rounded border divide-y">
-          <div className="grid grid-cols-6 gap-2 p-2 text-xs text-muted-foreground">
-            <div>CODE</div>
-            <div>{t('locations.name') || 'الاسم'}</div>
-            <div>{t('locations.type') || 'النوع'}</div>
-            <div>POS</div>
-            <div>Storage</div>
-            <div>{t('locations.updatedAt') || 'آخر تحديث'}</div>
-          </div>
+        <Paper variant="outlined" sx={{ '& > *': { px: 1, py: 0.5 } }}>
+          <Stack direction="row" sx={{ gap: 2, p: 1, fontSize: 12, color: 'text.secondary' }}>
+            <Typography sx={{ width: 120 }}>CODE</Typography>
+            <Typography sx={{ flex: 1 }}>{'الاسم'}</Typography>
+            <Typography sx={{ width: 120 }}>{'النوع'}</Typography>
+            <Typography sx={{ width: 80 }}>POS</Typography>
+            <Typography sx={{ width: 100 }}>Storage</Typography>
+            <Typography sx={{ width: 220 }}>{'آخر تحديث'}</Typography>
+          </Stack>
           {list.map((l: any) => (
-            <div key={l._id} className="grid grid-cols-6 gap-2 p-2 text-sm">
-              <div className="font-mono">{l.code}</div>
-              <div className="truncate">{l.name_ar || l.name}</div>
-              <div>{l.type}</div>
-              <div>{l.isSellable ? '✓' : '—'}</div>
-              <div>{l.isStorageOnly ? '✓' : '—'}</div>
-              <div>{new Date(l.updatedAt || l.createdAt).toLocaleString('ar-SA')}</div>
-            </div>
+            <Stack key={l._id} direction="row" sx={{ gap: 2, p: 1, borderTop: (t)=> `1px solid ${t.palette.divider}` }}>
+              <Typography sx={{ width: 120, fontFamily: 'monospace' }}>{l.code}</Typography>
+              <Typography sx={{ flex: 1 }} noWrap>{l.name_ar || l.name}</Typography>
+              <Typography sx={{ width: 120 }}>{l.type}</Typography>
+              <Typography sx={{ width: 80 }}>{l.isSellable ? '✓' : '—'}</Typography>
+              <Typography sx={{ width: 100 }}>{l.isStorageOnly ? '✓' : '—'}</Typography>
+              <Typography sx={{ width: 220 }}>{new Date(l.updatedAt || l.createdAt).toLocaleString('ar-SA')}</Typography>
+            </Stack>
           ))}
-        </div>
+        </Paper>
       )}
-    </main>
+    </Box>
   );
 }

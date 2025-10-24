@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { usePosStore } from '@/lib/store/posStore';
 import { posDb } from '@/lib/db/posDexie';
+import { Box, MenuItem, Select, Typography } from '@mui/material';
 
 export function LocationSwitcher() {
   const t = useTranslations();
@@ -36,15 +37,15 @@ export function LocationSwitcher() {
   const active = locations.find((l) => l.id === activeLocationId);
 
   return (
-    <div className="inline-flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">{t('pos.location') || 'الموقع'}</span>
-      <select className="border rounded px-2 py-1" value={active?.id || ''} onChange={(e)=> setActive(e.target.value)}>
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+      <Typography variant="caption" color="text.secondary">{t('pos.location') || 'الموقع'}</Typography>
+      <Select size="small" value={active?.id || ''} onChange={(e)=> setActive(e.target.value as string)}>
         {locations.map((l) => (
-          <option key={l.id} value={l.id}>
+          <MenuItem key={l.id} value={l.id}>
             {l.code} — {l.name}
-          </option>
+          </MenuItem>
         ))}
-      </select>
-    </div>
+      </Select>
+    </Box>
   );
 }

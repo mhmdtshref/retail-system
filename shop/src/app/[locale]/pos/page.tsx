@@ -25,6 +25,7 @@ import {
   Button,
   Chip,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -53,6 +54,7 @@ export default function POSPage() {
   const [showPay, setShowPay] = useState(false);
   const [showReceiptless, setShowReceiptless] = useState(false);
   const [role, setRole] = useState<string>('viewer');
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
@@ -160,7 +162,7 @@ export default function POSPage() {
     async function onApplyCredit(e: any) {
       const requested = Number(e.detail?.amount || 0);
       if (!requested || requested <= 0) return;
-      if (!customerId) { alert('الرجاء اختيار العميل لاستخدام رصيد المتجر'); return; }
+      if (!customerId) { setSnack({ open: true, message: 'الرجاء اختيار العميل لاستخدام رصيد المتجر', severity: 'warning' }); return; }
       // Read local instruments and split across earliest expiry first
       const list = await posDb.storeCreditsLocal.where('customerId').equals(customerId).toArray();
       let remaining = requested;
@@ -181,8 +183,9 @@ export default function POSPage() {
       if (applied > 0) {
         await addPayment('store_credit', applied, { customerId });
         setAvailableCredit((v) => (v==null?null:Math.max(0, v - applied)));
+        setSnack({ open: true, message: 'تم تطبيق رصيد المتجر', severity: 'success' });
       } else {
-        alert('لا يوجد رصيد كافٍ للاستخدام');
+        setSnack({ open: true, message: 'لا يوجد رصيد كافٍ للاستخدام', severity: 'warning' });
       }
     }
     window.addEventListener('pos:applyStoreCredit', onApplyCredit as any);
@@ -309,7 +312,7 @@ export default function POSPage() {
             <Stack gap={0.5}>
               {appliedDiscounts.map((d) => (
                 <Stack key={d.traceId} direction="row" justifyContent="space-between" alignItems="center">
-                  <div>{d.label}</div>
+                  <Typography component="span">{d.label}</Typography>
                   <Typography color="error">-{Number(d.amount || 0).toFixed(2)}</Typography>
                 </Stack>
               ))}
@@ -390,9 +393,15 @@ export default function POSPage() {
         <MiniProfileDrawer customerId={customerId} onClose={() => setShowMiniProfile(false)} />
       )}
 
-      <div id="__receipt_print" className="hidden print:block">
+      <Box id="__receipt_print" className="hidden print:block">
         {lastReceipt && <Receipt data={lastReceipt} />}
-      </div>
+      </Box>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

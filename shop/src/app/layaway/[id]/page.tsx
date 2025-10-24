@@ -1,11 +1,12 @@
 import React from 'react';
+import { Box, Typography } from '@mui/material';
 
 export default function LayawayDetailPage() {
   return (
-    <div dir="rtl" className="p-4">
-      <h1 className="text-xl font-bold">تفاصيل الحجز</h1>
-      <p className="text-sm text-gray-600">سيتم بناء تفاصيل الحجز لاحقًا.</p>
-    </div>
+    <Box dir="rtl" sx={{ p: 2 }}>
+      <Typography variant="h6" fontWeight={600}>تفاصيل الحجز</Typography>
+      <Typography variant="body2" color="text.secondary">سيتم بناء تفاصيل الحجز لاحقًا.</Typography>
+    </Box>
   );
 }
 

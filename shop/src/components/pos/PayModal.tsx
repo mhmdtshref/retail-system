@@ -152,10 +152,10 @@ export function PayModal({ total, onConfirmCash, onConfirmCard, onConfirmPartial
             {schedule && schedule.length > 0 && (
               <Box sx={{ maxHeight: 180, overflow: 'auto', border: (t)=> `1px solid ${t.palette.divider}`, borderRadius: 1, p: 1, mt: 1 }}>
                 {schedule.map((s) => (
-                  <Stack key={s.seq} direction="row" justifyContent="space-between" fontSize={12}>
-                    <div>#{s.seq}</div>
-                    <div dir="ltr">{new Date(s.dueDate).toLocaleDateString()}</div>
-                    <div>{s.amount.toFixed(2)}</div>
+                  <Stack key={s.seq} direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+                    <Typography component="span">#{s.seq}</Typography>
+                    <Typography component="span" dir="ltr">{new Date(s.dueDate).toLocaleDateString()}</Typography>
+                    <Typography component="span">{s.amount.toFixed(2)}</Typography>
                   </Stack>
                 ))}
               </Box>

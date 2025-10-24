@@ -7,6 +7,7 @@ import '@/app/globals.css';
 import { ErrorBoundary } from '@/components/obs/ErrorBoundary';
 import { MuiProviders } from '@/app/mui-providers';
 import { Cairo, Tajawal } from 'next/font/google';
+import { Box } from '@mui/material';
 
 const tajawal = Tajawal({ subsets: ['arabic'], weight: ['400','700'], variable: '--font-arabic' });
 const cairo = Cairo({ subsets: ['arabic'], weight: ['400','700'], variable: '--font-arabic-2' });
@@ -32,13 +33,13 @@ export default async function LocaleLayout(props: any) {
   return (
       <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
         <MuiProviders dir={dir as any} locale={locale}>
-          <div dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
+          <Box dir={dir} className={`${tajawal.variable} ${cairo.variable} antialiased`}>
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
-          </div>
+          </Box>
         </MuiProviders>
       </NextIntlClientProvider>
   );

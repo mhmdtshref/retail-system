@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useInstallPrompt, isIosSafari } from '@/lib/pwa/install';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 
 export function PwaInstallBanner() {
   const install = useInstallPrompt();
@@ -12,13 +13,15 @@ export function PwaInstallBanner() {
   }, []);
   if (!show) return null;
   return (
-    <div className="fixed bottom-4 inset-x-4 bg-white border rounded p-4 shadow-lg" dir="rtl">
-      <div className="text-sm mb-2">أضِف التطبيق للشاشة الرئيسية لتجربة أسرع دون اتصال.</div>
-      <div className="flex gap-2 justify-end">
-        <button className="px-3 py-1 border rounded" onClick={() => setShow(false)}>إغلاق</button>
-        <button className="px-3 py-1 bg-black text-white rounded" onClick={async () => { await install.prompt(); setShow(false); }}>إضافة</button>
-      </div>
-    </div>
+    <Box dir="rtl" sx={{ position: 'fixed', bottom: 16, left: 16, right: 16, zIndex: (t)=> t.zIndex.snackbar }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="body2" sx={{ mb: 1 }}>أضِف التطبيق للشاشة الرئيسية لتجربة أسرع دون اتصال.</Typography>
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button variant="outlined" size="small" onClick={() => setShow(false)}>إغلاق</Button>
+          <Button variant="contained" size="small" onClick={async () => { await install.prompt(); setShow(false); }}>إضافة</Button>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }
 
@@ -32,12 +35,14 @@ export function IosAddToHomeSheet() {
   }, []);
   if (!show) return null;
   return (
-    <div className="fixed bottom-4 inset-x-4 bg-white border rounded p-4 shadow-lg" dir="rtl">
-      <div className="text-sm mb-2">على iOS: اضغط على مشاركة ثم «أضِف إلى الشاشة الرئيسية».</div>
-      <div className="flex justify-end">
-        <button className="px-3 py-1 border rounded" onClick={() => setShow(false)}>حسناً</button>
-      </div>
-    </div>
+    <Box dir="rtl" sx={{ position: 'fixed', bottom: 16, left: 16, right: 16, zIndex: (t)=> t.zIndex.snackbar }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="body2" sx={{ mb: 1 }}>على iOS: اضغط على مشاركة ثم «أضِف إلى الشاشة الرئيسية».</Typography>
+        <Stack direction="row" justifyContent="flex-end">
+          <Button variant="outlined" size="small" onClick={() => setShow(false)}>حسناً</Button>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }
 

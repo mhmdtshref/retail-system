@@ -58,7 +58,7 @@ export default function PurchaseOrdersPage() {
     <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h6" fontWeight={600}>أوامر الشراء</Typography>
-        <Button component={Link as any} href="/purchase-orders/new" variant="contained" color="success">جديد</Button>
+        <Button onClick={() => window.location.href='/purchase-orders/new'} variant="contained" color="success">جديد</Button>
       </Stack>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }}>

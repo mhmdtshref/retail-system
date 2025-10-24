@@ -62,8 +62,8 @@ export default function ProductsPage() {
   }, [q, filters.status, filters.category, filters.brand, filters.size, filters.color, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const columns: GridColDef[] = [
-    { field: 'name', headerName: t('products.name') || 'المنتج', flex: 1, valueGetter: (p) => p.row.name_ar || p.row.name_en },
+  const columns: GridColDef<Product>[] = [
+    { field: 'name', headerName: t('products.name') || 'المنتج', flex: 1, valueGetter: (_value, row) => row.name_ar || row.name_en },
     { field: 'productCode', headerName: t('products.code') || 'الرمز', width: 160, renderCell: (p) => <bdi dir="ltr">{p.value as string}</bdi> },
     { field: 'category', headerName: t('products.category') || 'التصنيف', width: 140 },
     { field: 'brand', headerName: t('products.brand') || 'العلامة', width: 140 },
@@ -80,7 +80,7 @@ export default function ProductsPage() {
         </Stack>
       );
     }},
-    { field: 'updatedAt', headerName: t('products.updatedAt') || 'آخر تحديث', width: 200, valueFormatter: (p) => new Date(p.value as string).toLocaleString(locale) },
+    { field: 'updatedAt', headerName: t('products.updatedAt') || 'آخر تحديث', width: 200, valueGetter: (_value, row) => row.updatedAt, valueFormatter: (value) => new Date(String(value as any)).toLocaleString(locale) },
     { field: 'actions', headerName: t('products.actions') || 'إجراءات', width: 140, sortable: false, renderCell: (p) => (
       <Link href={`/${locale}/products/${p.row._id}`} style={{ textDecoration: 'underline' }}>{t('products.edit') || 'تعديل'}</Link>
     ) },
@@ -91,8 +91,8 @@ export default function ProductsPage() {
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h6" fontWeight={600}>{t('products.title') || 'المنتجات'}</Typography>
         <Stack direction="row" spacing={1}>
-          <Button component={Link as any} href={`/${locale}/products/import`} variant="contained">{t('products.importCsv') || 'استيراد CSV'}</Button>
-          <Button component={Link as any} href={`/${locale}/products/new`} variant="contained" color="success">{t('products.add') || 'إضافة منتج'}</Button>
+          <Button variant="contained" onClick={() => router.push(`/${locale}/products/import`)}>{t('products.importCsv') || 'استيراد CSV'}</Button>
+          <Button variant="contained" color="success" onClick={() => router.push(`/${locale}/products/new`)}>{t('products.add') || 'إضافة منتج'}</Button>
           <Button variant="outlined" onClick={() => router.push(`/${locale}/labels`)}>طباعة ملصقات</Button>
         </Stack>
       </Stack>

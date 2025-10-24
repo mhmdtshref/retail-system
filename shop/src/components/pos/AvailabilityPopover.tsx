@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { usePosStore } from '@/lib/store/posStore';
+import { Box, Stack, Typography } from '@mui/material';
 
 export function AvailabilityPopover({ skus }: { skus: string[] }) {
   const activeLocationId = usePosStore((s: any) => s.activeLocationId);
@@ -24,13 +25,15 @@ export function AvailabilityPopover({ skus }: { skus: string[] }) {
 
   if (!map) return null;
   return (
-    <div className="text-xs text-muted-foreground">
-      {skus.map((sku) => (
-        <div key={sku} className="flex items-center justify-between gap-2">
-          <span className="font-mono">{sku}</span>
-          <span>{map[sku]?.available ?? 0}</span>
-        </div>
-      ))}
-    </div>
+    <Box>
+      <Stack spacing={0.5} sx={{ fontSize: 12 }}>
+        {skus.map((sku) => (
+          <Stack key={sku} direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+            <Typography component="span" sx={{ fontFamily: 'monospace' }}>{sku}</Typography>
+            <Typography component="span">{map[sku]?.available ?? 0}</Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
   );
 }

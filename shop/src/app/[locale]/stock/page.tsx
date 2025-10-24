@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { LocationSwitcher } from '@/components/pos/LocationSwitcher';
 import { VirtualTable } from '@/components/virtualized/VirtualTable';
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
 
 export default function StockPage() {
   const t = useTranslations();
@@ -48,16 +49,16 @@ export default function StockPage() {
   ]), []);
 
   return (
-    <main className="p-4 space-y-3">
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {offline && (
-        <div className="rounded bg-yellow-100 text-yellow-900 p-2 text-sm">{t('reports.offlineBanner') || 'عرض بيانات مخزنة مؤقتًا'}</div>
+        <Alert severity="warning" variant="outlined" sx={{ fontSize: 12 }}>{t('reports.offlineBanner') || 'عرض بيانات مخزنة مؤقتًا'}</Alert>
       )}
-      <div className="flex items-center gap-2">
+      <Stack direction="row" alignItems="center" spacing={1}>
         <LocationSwitcher />
-        <input className="border rounded px-2 py-1" placeholder={t('products.searchPlaceholder') || 'بحث'} value={q} onChange={(e)=> setQ(e.target.value)} />
-        <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} download={`stock-${locationId}.csv`} className="px-2 py-1 rounded border">CSV</a>
-      </div>
+        <TextField size="small" placeholder={t('products.searchPlaceholder') || 'بحث'} value={q} onChange={(e)=> setQ(e.target.value)} />
+        <Button component="a" href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} download={`stock-${locationId}.csv`} variant="outlined">CSV</Button>
+      </Stack>
       <VirtualTable rows={rows} columns={columns as any} rowKey={(r:any)=> r.sku} />
-    </main>
+    </Box>
   );
 }

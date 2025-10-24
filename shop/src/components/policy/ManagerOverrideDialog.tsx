@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 
 export function ManagerOverrideDialog({ onToken, onClose }: { onToken: (t: string) => void; onClose: ()=>void }) {
   const [email, setEmail] = useState('');
@@ -22,23 +23,19 @@ export function ManagerOverrideDialog({ onToken, onClose }: { onToken: (t: strin
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center">
-      <form onSubmit={submit} className="w-96 bg-white rounded p-4 space-y-3" dir="rtl">
-        <div className="font-semibold">يتطلب هذا الإجراء موافقة المدير.</div>
-        <label className="block text-sm">
-          بريد المدير
-          <input className="mt-1 w-full border rounded px-3 py-2" type="email" dir="ltr" value={email} onChange={(e)=> setEmail(e.target.value)} required />
-        </label>
-        <label className="block text-sm">
-          رقم PIN/كلمة المرور
-          <input className="mt-1 w-full border rounded px-3 py-2" type="password" value={pin} onChange={(e)=> setPin(e.target.value)} required />
-        </label>
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <div className="flex gap-2 justify-end">
-          <button type="button" className="px-3 py-2 rounded border" onClick={onClose}>إلغاء</button>
-          <button disabled={loading} className="px-3 py-2 rounded bg-black text-white">تأكيد</button>
-        </div>
-      </form>
-    </div>
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle>يتطلب هذا الإجراء موافقة المدير.</DialogTitle>
+      <DialogContent>
+        <Stack spacing={1} sx={{ mt: 1 }}>
+          <TextField type="email" label="بريد المدير" inputProps={{ dir: 'ltr' }} value={email} onChange={(e)=> setEmail(e.target.value)} required fullWidth />
+          <TextField type="password" label="رقم PIN/كلمة المرور" value={pin} onChange={(e)=> setPin(e.target.value)} required fullWidth />
+          {error && <Typography color="error" variant="body2">{error}</Typography>}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>إلغاء</Button>
+        <Button onClick={(e)=> submit(e as any)} disabled={loading} variant="contained">تأكيد</Button>
+      </DialogActions>
+    </Dialog>
   );
 }

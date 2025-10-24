@@ -1,8 +1,10 @@
 "use client";
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 
 export default function ResetPage() {
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [ok, setOk] = useState(false);
@@ -14,23 +16,19 @@ export default function ResetPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center" dir="rtl">
-      <form onSubmit={onSubmit} className="w-96 space-y-3 border rounded p-4 bg-white">
-        <h1 className="text-xl font-semibold text-center">إعادة تعيين كلمة المرور</h1>
-        <label className="block text-sm">
-          كلمة المرور الجديدة
-          <input className="mt-1 w-full border rounded px-3 py-2" type="password" value={password} onChange={(e)=> setPassword(e.target.value)} required />
-        </label>
-        <label className="block text-sm">
-          تأكيد كلمة المرور
-          <input className="mt-1 w-full border rounded px-3 py-2" type="password" value={confirm} onChange={(e)=> setConfirm(e.target.value)} required />
-        </label>
-        <button className="w-full py-2 bg-black text-white rounded">تعيين</button>
-        {ok && <div className="text-green-700 text-sm text-center">تم التعيين</div>}
-        <div className="text-center text-sm">
-          <Link href="/sign-in" className="underline">العودة لتسجيل الدخول</Link>
-        </div>
-      </form>
-    </main>
+    <Box component="main" dir="rtl" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+      <Paper component="form" onSubmit={onSubmit} sx={{ width: 420, p: 3 }}>
+        <Typography variant="h6" textAlign="center" sx={{ mb: 2 }}>إعادة تعيين كلمة المرور</Typography>
+        <Stack spacing={2}>
+          <TextField type="password" label="كلمة المرور الجديدة" value={password} onChange={(e)=> setPassword(e.target.value)} required fullWidth />
+          <TextField type="password" label="تأكيد كلمة المرور" value={confirm} onChange={(e)=> setConfirm(e.target.value)} required fullWidth />
+          <Button type="submit" variant="contained" fullWidth>تعيين</Button>
+          {ok && <Typography color="success.main" variant="body2" textAlign="center">تم التعيين</Typography>}
+          <Typography textAlign="center" variant="body2">
+            <Button onClick={() => router.push('/sign-in')} variant="text">العودة لتسجيل الدخول</Button>
+          </Typography>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

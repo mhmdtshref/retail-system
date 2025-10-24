@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { saveTrackSnapshot, loadTrackSnapshot } from '@/lib/offline/track-cache';
+import { Box, Typography, Alert, Stack, Paper, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 
 type TrackData = {
   header: { orderId: string; code: string; status: string; progressPct: number };
@@ -88,84 +89,91 @@ export default function TrackOrderPage({ params }: { params: { id: string } }) {
   const cod = shipments.some((s: any) => s?.cod?.enabled);
 
   return (
-    <div className="max-w-3xl mx-auto p-4" dir="rtl">
-      <h1 className="text-xl font-semibold mb-2">تتبع الطلب <bdi dir="ltr">{header?.code}</bdi></h1>
+    <Box sx={{ maxWidth: 900, mx: 'auto', p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>تتبع الطلب <bdi dir="ltr">{header?.code}</bdi></Typography>
       {header?.status === 'delivered' && (
-        <div role="status" aria-live="polite" className="mb-3 rounded bg-green-50 text-green-800 px-3 py-2 text-sm">تم التسليم</div>
+        <Alert severity="success" sx={{ mb: 2 }}>تم التسليم</Alert>
       )}
       {cod && header?.status !== 'delivered' && (
-        <div role="status" aria-live="polite" className="mb-3 rounded bg-yellow-50 text-yellow-800 px-3 py-2 text-sm">المبلغ سيتم تحصيله عند التسليم</div>
+        <Alert severity="warning" sx={{ mb: 2 }}>المبلغ سيتم تحصيله عند التسليم</Alert>
       )}
       {offline && (
-        <div role="status" aria-live="polite" className="mb-3 rounded bg-blue-50 text-blue-800 px-3 py-2 text-sm">تم عرض آخر حالة معروفة. سيتم التحديث عند الاتصال.</div>
+        <Alert severity="info" sx={{ mb: 2 }}>تم عرض آخر حالة معروفة. سيتم التحديث عند الاتصال.</Alert>
       )}
-      {error && <div className="text-red-600 text-sm">حدث خطأ في التحميل</div>}
-      {loading && <div className="text-sm text-gray-500">جاري التحميل…</div>}
+      {error && <Typography color="error" variant="body2">حدث خطأ في التحميل</Typography>}
+      {loading && <Typography variant="body2" color="text.secondary">جاري التحميل…</Typography>}
       {header && (
-        <div className="sticky top-0 bg-white/80 backdrop-blur border rounded p-3 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm">الحالة: <span className="font-semibold">{translateStatus(header.status)}</span></div>
-            <div className="text-sm">التقدم: {header.progressPct}%</div>
-          </div>
-        </div>
+        <Paper variant="outlined" sx={{ position: 'sticky', top: 0, backdropFilter: 'blur(6px)', p: 2, mb: 2 }}>
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="body2">الحالة: <b>{translateStatus(header.status)}</b></Typography>
+            <Typography variant="body2">التقدم: {header.progressPct}%</Typography>
+          </Stack>
+        </Paper>
       )}
-      <div className="space-y-4">
-        {/* Address */}
+      <Stack spacing={2}>
         {shippingTo && (
-          <div className="border rounded p-3 text-sm">
-            <div className="font-medium mb-1">العنوان</div>
-            <div>{shippingTo.name}</div>
-            <div>{shippingTo.address1}</div>
-            <div>{shippingTo.city}، {shippingTo.country}</div>
-          </div>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>العنوان</Typography>
+            <Typography variant="body2">{shippingTo.name}</Typography>
+            <Typography variant="body2">{shippingTo.address1}</Typography>
+            <Typography variant="body2">{shippingTo.city}، {shippingTo.country}</Typography>
+          </Paper>
         )}
-        {/* Items */}
+
         {items.length > 0 && (
-          <div className="border rounded">
-            <table className="w-full text-sm">
-              <thead><tr className="bg-neutral-50"><th className="p-2 text-start">العنصر</th><th className="p-2 text-start">الخيارات</th><th className="p-2 text-start">الكمية</th><th className="p-2 text-start">السعر</th></tr></thead>
-              <tbody>
+          <Paper variant="outlined">
+            <Table size="small" aria-label="items">
+              <TableHead>
+                <TableRow>
+                  <TableCell align="right">العنصر</TableCell>
+                  <TableCell align="right">الخيارات</TableCell>
+                  <TableCell align="right">الكمية</TableCell>
+                  <TableCell align="right">السعر</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {items.map((it: any, idx: number) => (
-                  <tr key={idx} className="border-t">
-                    <td className="p-2">{it.name}</td>
-                    <td className="p-2">{[it.size, it.color].filter(Boolean).join(' / ')}</td>
-                    <td className="p-2">{it.qty}</td>
-                    <td className="p-2"><bdi dir="ltr">{Number(it.price).toFixed(2)}</bdi></td>
-                  </tr>
+                  <TableRow key={idx} hover>
+                    <TableCell align="right">{it.name}</TableCell>
+                    <TableCell align="right">{[it.size, it.color].filter(Boolean).join(' / ')}</TableCell>
+                    <TableCell align="right">{it.qty}</TableCell>
+                    <TableCell align="right"><bdi dir="ltr">{Number(it.price).toFixed(2)}</bdi></TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Paper>
         )}
-        {/* Payments */}
+
         {payments && (
-          <div className="border rounded p-3 text-sm">
-            <div className="font-medium mb-2">ملخص الدفع</div>
-            <div className="flex justify-between"><span>الإجمالي الفرعي</span><bdi dir="ltr">{Number(payments.subtotal || 0).toFixed(2)}</bdi></div>
-            <div className="flex justify-between"><span>الإجمالي</span><bdi dir="ltr">{Number(payments.grand || 0).toFixed(2)}</bdi></div>
-            <div className="flex justify-between"><span>المدفوع</span><bdi dir="ltr">{Number(payments.paid || 0).toFixed(2)}</bdi></div>
-            <div className="flex justify-between"><span>المتبقي</span><bdi dir="ltr">{Number(payments.balance || 0).toFixed(2)}</bdi></div>
-          </div>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>ملخص الدفع</Typography>
+            <Stack direction="row" justifyContent="space-between"><Typography component="span">الإجمالي الفرعي</Typography><bdi dir="ltr">{Number(payments.subtotal || 0).toFixed(2)}</bdi></Stack>
+            <Stack direction="row" justifyContent="space-between"><Typography component="span">الإجمالي</Typography><bdi dir="ltr">{Number(payments.grand || 0).toFixed(2)}</bdi></Stack>
+            <Stack direction="row" justifyContent="space-between"><Typography component="span">المدفوع</Typography><bdi dir="ltr">{Number(payments.paid || 0).toFixed(2)}</bdi></Stack>
+            <Stack direction="row" justifyContent="space-between"><Typography component="span">المتبقي</Typography><bdi dir="ltr">{Number(payments.balance || 0).toFixed(2)}</bdi></Stack>
+          </Paper>
         )}
+
         {shipments.map((s: any) => (
-          <div key={s.id} className="border rounded p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm">شركة الشحن: <span className="font-medium">{s.carrier?.toUpperCase()}</span></div>
-              <div className="text-sm">رقم التتبع: <bdi dir="ltr">{s.trackingNumber || '-'}</bdi></div>
-            </div>
-            <div className="text-xs text-gray-600 mb-2">الحالة: {translateStatus(s.status)}</div>
-            <ol className="text-sm space-y-1">
+          <Paper key={s.id} variant="outlined" sx={{ p: 2 }}>
+            <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Typography variant="body2">شركة الشحن: <b>{s.carrier?.toUpperCase()}</b></Typography>
+              <Typography variant="body2">رقم التتبع: <bdi dir="ltr">{s.trackingNumber || '-'}</bdi></Typography>
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>الحالة: {translateStatus(s.status)}</Typography>
+            <Stack component="ol" spacing={0.5} sx={{ listStyle: 'none', p: 0, m: 0 }}>
               {(s.events || []).slice().reverse().map((e: any, idx: number) => (
-                <li key={idx} aria-label={`الحدث ${translateStatus(e.status)} عند ${new Date(e.at).toLocaleString('ar-SA')}`}>• {translateStatus(e.status)} — <bdi dir="ltr">{new Date(e.at).toLocaleString('ar-SA')}</bdi></li>
+                <Typography component="li" key={idx} aria-label={`الحدث ${translateStatus(e.status)} عند ${new Date(e.at).toLocaleString('ar-SA')}`} variant="body2">• {translateStatus(e.status)} — <bdi dir="ltr">{new Date(e.at).toLocaleString('ar-SA')}</bdi></Typography>
               ))}
-            </ol>
-          </div>
+            </Stack>
+          </Paper>
         ))}
-        {!shipments.length && !isLoading && (
-          <div className="text-sm text-gray-500">لا توجد شحنات بعد.</div>
+        {!shipments.length && !loading && (
+          <Typography variant="body2" color="text.secondary">لا توجد شحنات بعد.</Typography>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, Button, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material';
 
 export default function NewPOPage() {
   const router = useRouter();
@@ -25,47 +26,45 @@ export default function NewPOPage() {
   }
 
   return (
-    <div className="p-4" dir="rtl">
-      <h1 className="text-xl font-semibold mb-4">إنشاء أمر شراء</h1>
-      <div className="mb-4">
-        <label className="block text-sm mb-1">المورد</label>
-        <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className="border rounded px-3 py-2">
+    <Box sx={{ p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>إنشاء أمر شراء</Typography>
+      <Stack spacing={1} sx={{ mb: 2 }}>
+        <Typography variant="caption">المورد</Typography>
+        <Select size="small" value={supplierId} onChange={(e) => setSupplierId(e.target.value as string)} sx={{ maxWidth: 360 }}>
           {suppliers.map((s) => (
-            <option key={s._id} value={s._id}>{s.name}</option>
+            <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
           ))}
-        </select>
-      </div>
-      <div className="mb-4 overflow-auto border rounded">
-        <table className="min-w-full text-right">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="p-2">الكود/الرمز</th>
-              <th className="p-2">المقاس</th>
-              <th className="p-2">اللون</th>
-              <th className="p-2">الكمية</th>
-              <th className="p-2">سعر الوحدة</th>
-            </tr>
-          </thead>
-          <tbody>
+        </Select>
+      </Stack>
+      <Paper variant="outlined" sx={{ overflowX: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="right">الكود/الرمز</TableCell>
+              <TableCell align="right">المقاس</TableCell>
+              <TableCell align="right">اللون</TableCell>
+              <TableCell align="right">الكمية</TableCell>
+              <TableCell align="right">سعر الوحدة</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {lines.map((l, idx) => (
-              <tr key={idx} className="border-t">
-                <td className="p-2"><input value={l.sku || ''} onChange={(e)=>{
-                  const next=[...lines]; next[idx].sku=e.target.value; setLines(next);
-                }} className="border rounded px-2 py-1 w-40" /></td>
-                <td className="p-2"><input value={l.size || ''} onChange={(e)=>{ const next=[...lines]; next[idx].size=e.target.value; setLines(next); }} className="border rounded px-2 py-1 w-28" /></td>
-                <td className="p-2"><input value={l.color || ''} onChange={(e)=>{ const next=[...lines]; next[idx].color=e.target.value; setLines(next); }} className="border rounded px-2 py-1 w-28" /></td>
-                <td className="p-2"><input type="number" value={l.quantityOrdered || 0} onChange={(e)=>{ const next=[...lines]; next[idx].quantityOrdered=Number(e.target.value); setLines(next); }} className="border rounded px-2 py-1 w-24" /></td>
-                <td className="p-2"><input type="number" value={l.unitCost || 0} onChange={(e)=>{ const next=[...lines]; next[idx].unitCost=Number(e.target.value); setLines(next); }} className="border rounded px-2 py-1 w-24" /></td>
-              </tr>
+              <TableRow key={idx}>
+                <TableCell align="right"><TextField size="small" value={l.sku || ''} onChange={(e)=>{ const next=[...lines]; next[idx].sku=e.target.value; setLines(next); }} sx={{ width: 200 }} /></TableCell>
+                <TableCell align="right"><TextField size="small" value={l.size || ''} onChange={(e)=>{ const next=[...lines]; next[idx].size=e.target.value; setLines(next); }} sx={{ width: 140 }} /></TableCell>
+                <TableCell align="right"><TextField size="small" value={l.color || ''} onChange={(e)=>{ const next=[...lines]; next[idx].color=e.target.value; setLines(next); }} sx={{ width: 140 }} /></TableCell>
+                <TableCell align="right"><TextField size="small" type="number" value={l.quantityOrdered || 0} onChange={(e)=>{ const next=[...lines]; next[idx].quantityOrdered=Number(e.target.value); setLines(next); }} sx={{ width: 120 }} /></TableCell>
+                <TableCell align="right"><TextField size="small" type="number" value={l.unitCost || 0} onChange={(e)=>{ const next=[...lines]; next[idx].unitCost=Number(e.target.value); setLines(next); }} sx={{ width: 120 }} /></TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex gap-2">
-        <button className="px-3 py-2 rounded border" onClick={()=>setLines([...lines, {}])}>إضافة بند</button>
-        <button className="px-3 py-2 rounded bg-emerald-600 text-white" onClick={create}>حفظ ومتابعة</button>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+      </Paper>
+      <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+        <Button variant="outlined" onClick={()=>setLines([...lines, {}])}>إضافة بند</Button>
+        <Button variant="contained" color="success" onClick={create}>حفظ ومتابعة</Button>
+      </Stack>
+    </Box>
   );
 }
 

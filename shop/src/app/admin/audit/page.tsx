@@ -58,7 +58,7 @@ export default function AuditPage() {
   return (
     <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
       <Stack direction="row" spacing={1} alignItems="center">
-        <Button component={Link as any} href={`/api/admin/audit?format=csv`} variant="contained">تصدير CSV</Button>
+        <Button onClick={() => { window.location.href='/api/admin/audit?format=csv'; }} variant="contained">تصدير CSV</Button>
       </Stack>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>

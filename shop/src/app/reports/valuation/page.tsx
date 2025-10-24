@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Box, Stack, Typography, TextField, Select, MenuItem, FormControlLabel, Checkbox, Snackbar, Alert } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import type { GridColDef, GridRowId } from '@mui/x-data-grid';
 
 function todayIso() {
   const d = new Date();
@@ -17,72 +20,58 @@ export default function ValuationReportPage() {
   const [includeReserved, setIncludeReserved] = useState(false);
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/reports/valuation?asOf=${asOf}&method=${method}&includeReserved=${includeReserved}`);
+        const res = await fetch(`/api/reports/valuation?asOf=${asOf}&method=${method}&includeReserved=${includeReserved}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('failed');
         const json = await res.json();
         setData(json.data);
+      } catch {
+        setSnack({ open: true, message: 'تعذر تحميل التقرير', severity: 'error' });
       } finally { setLoading(false); }
     })();
   }, [asOf, method, includeReserved]);
 
   const totals = useMemo(() => data?.totals || { units: 0, value: 0 }, [data]);
+  const rows = useMemo(() => {
+    const list = (data?.rows || []).map((r: any, idx: number) => ({ id: idx, ...r }));
+    const totalRow = { id: 'total', sku: 'المجموع', name: '', units: totals.units, unitCost: null, value: totals.value } as any;
+    return list.concat(totalRow);
+  }, [data, totals.units, totals.value]);
+
+  const columns: GridColDef[] = [
+    { field: 'sku', headerName: t('valuation.sku'), width: 180 },
+    { field: 'name', headerName: t('valuation.name'), flex: 1, minWidth: 200 },
+    { field: 'units', headerName: t('valuation.units'), width: 140, valueFormatter: ({ value, id }) => id === 'total' ? String(Number(value || 0).toFixed(2)) : String(Number(value || 0).toFixed(2)) },
+    { field: 'unitCost', headerName: t('valuation.unitCost'), width: 160, valueFormatter: ({ value, id }) => id === 'total' ? '—' : String(Number(value || 0).toFixed(2)) },
+    { field: 'value', headerName: t('valuation.value'), width: 160, valueFormatter: ({ value }) => String(Number(value || 0).toFixed(2)) },
+  ];
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold">{t('valuation')}</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1">{t('filters.asOf')}<input type="date" value={asOf} onChange={(e)=> setAsOf(e.target.value)} className="border rounded px-2 py-1" /></label>
-        <label className="flex items-center gap-1">{t('filters.method')}
-          <select value={method} onChange={(e)=> setMethod(e.target.value as any)} className="border rounded px-2 py-1">
-            <option value="WAVG">WAVG</option>
-            <option value="FIFO">FIFO</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-1">{t('filters.includeReserved')}<input type="checkbox" checked={includeReserved} onChange={(e)=> setIncludeReserved(e.target.checked)} /></label>
-      </div>
-      {loading && <div>...</div>}
-      {data && (
-        <div className="space-y-2">
-          <div className="text-sm text-gray-600">{t('valuation.method')}: {data.method}</div>
-          <div className="border rounded overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead className="sticky top-0 bg-gray-50">
-                <tr>
-                  <th className="p-2 text-right">{t('valuation.sku')}</th>
-                  <th className="p-2 text-right">{t('valuation.name')}</th>
-                  <th className="p-2 text-right">{t('valuation.units')}</th>
-                  <th className="p-2 text-right">{t('valuation.unitCost')}</th>
-                  <th className="p-2 text-right">{t('valuation.value')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows?.map((r: any) => (
-                  <tr key={r.sku} className="odd:bg-white even:bg-gray-50">
-                    <td className="p-2">{r.sku}</td>
-                    <td className="p-2">{r.name || ''}</td>
-                    <td className="p-2">{Number(r.units||0).toFixed(2)}</td>
-                    <td className="p-2">{Number(r.unitCost||0).toFixed(2)}</td>
-                    <td className="p-2">{Number(r.value||0).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-bold">
-                  <td className="p-2" colSpan={2}>المجموع</td>
-                  <td className="p-2">{Number(totals.units||0).toFixed(2)}</td>
-                  <td className="p-2">—</td>
-                  <td className="p-2">{Number(totals.value||0).toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600}>{t('valuation')}</Typography>
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+        <TextField size="small" type="date" value={asOf} onChange={(e)=> setAsOf(e.target.value)} sx={{ width: { xs: '100%', sm: 220 } }} />
+        <Select size="small" value={method} onChange={(e)=> setMethod(e.target.value as any)} sx={{ width: { xs: '100%', sm: 160 } }}>
+          <MenuItem value="WAVG">WAVG</MenuItem>
+          <MenuItem value="FIFO">FIFO</MenuItem>
+        </Select>
+        <FormControlLabel control={<Checkbox checked={includeReserved} onChange={(e)=> setIncludeReserved(e.target.checked)} />} label={t('filters.includeReserved')} />
+      </Stack>
+
+      <DataTable rows={rows} columns={columns} loading={loading} getRowId={(r) => (r as any).id as GridRowId} autoHeight />
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

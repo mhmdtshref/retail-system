@@ -32,10 +32,9 @@ export function createAppTheme({ mode = 'light', dir = 'rtl', locale = 'ar' }: C
       info: {
         main: '#0288d1',
       },
-      background: mode === 'dark' ? {
-        default: '#0a0a0a',
-        paper: '#111111',
-      } : undefined,
+      background: mode === 'dark'
+        ? { default: '#0a0a0a', paper: '#111111' }
+        : { default: '#ffffff', paper: '#ffffff' },
     },
     shape: {
       borderRadius: 10,

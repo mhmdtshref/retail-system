@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 
 export default function SettingsIndexPage() {
   const [role, setRole] = useState<string>('viewer');
@@ -18,24 +19,26 @@ export default function SettingsIndexPage() {
     })();
   }, []);
 
-  if (loading) return <main className="p-4">...تحميل</main>;
+  if (loading) return <Box component="main" sx={{ p: 2 }}>...تحميل</Box>;
   if (!(role === 'owner' || role === 'manager')) {
-    return <main className="p-4"><div className="rounded border p-4 text-rose-700">مرفوض: يتطلب صلاحيات مدير</div></main>;
+    return <Box component="main" sx={{ p: 2 }}><Paper variant="outlined" sx={{ p: 2, color: 'error.main' }}>مرفوض: يتطلب صلاحيات مدير</Paper></Box>;
   }
 
   return (
-    <main className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">الإعدادات</h1>
-      <div className="flex items-center gap-2 border rounded p-2 bg-white dark:bg-neutral-900 sticky top-0 z-10">
-        <Link className="px-3 py-1 rounded border" href="/settings/payments">المدفوعات</Link>
-        <Link className="px-3 py-1 rounded border" href="/settings/locales">اللغة والتنسيق</Link>
-        <Link className="px-3 py-1 rounded border" href="/settings/receipts">الإيصالات</Link>
-        <Link className="px-3 py-1 rounded border" href="/settings/accounting">المحاسبة</Link>
-        <Link className="px-3 py-1 rounded border" href="/settings/notifications">الإشعارات</Link>
-        <Link className="px-3 py-1 rounded border" href="/settings/observability">المراقبة</Link>
-      </div>
-      <div className="text-sm text-neutral-600">اختر تبويبًا أعلاه لعرض الإعدادات.</div>
-    </main>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography variant="h6" fontWeight={600}>الإعدادات</Typography>
+      <Paper variant="outlined" sx={{ p: 1, position: 'sticky', top: 0, zIndex: 10 }}>
+        <Stack direction="row" spacing={1}>
+          <Button onClick={() => window.location.href='/settings/payments'} variant="outlined">المدفوعات</Button>
+          <Button onClick={() => window.location.href='/settings/locales'} variant="outlined">اللغة والتنسيق</Button>
+          <Button onClick={() => window.location.href='/settings/receipts'} variant="outlined">الإيصالات</Button>
+          <Button onClick={() => window.location.href='/settings/accounting'} variant="outlined">المحاسبة</Button>
+          <Button onClick={() => window.location.href='/settings/notifications'} variant="outlined">الإشعارات</Button>
+          <Button onClick={() => window.location.href='/settings/observability'} variant="outlined">المراقبة</Button>
+        </Stack>
+      </Paper>
+      <Typography variant="body2" color="text.secondary">اختر تبويبًا أعلاه لعرض الإعدادات.</Typography>
+    </Box>
   );
 }
 

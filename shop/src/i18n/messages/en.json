@@ -121,6 +121,9 @@
     "inventory": "Adjustments & Counts",
     "settings": "Settings"
   },
+  "customers": {
+    "select": "Select Customer"
+  },
   "pos": {
     "cart": "Cart",
     "pay": "Pay",
@@ -152,12 +155,14 @@
     "couponInvalid": "Invalid coupon",
     "discounts": "Discounts",
     "totalSavings": "Total savings",
-    "pendingCoupon": "Pending coupon verification"
+    "pendingCoupon": "Pending coupon verification",
+    "removeLineConfirm": "Remove this item from the cart?"
   },
   "common": {
     "confirm": "Confirm",
     "close": "Close",
-    "remove": "Remove"
+    "remove": "Remove",
+    "cancel": "Cancel"
   },
   "offline": {
     "fallback": {

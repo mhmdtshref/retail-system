@@ -1,47 +1,48 @@
 "use client";
+import { Box, Divider, Table, TableBody, TableRow, TableCell, Typography } from '@mui/material';
 export function ExchangeReceipt({ exchangeId, returnLines, newLines, settlement, pending }: { exchangeId: string; returnLines: Array<{ sku: string; qty: number; unitPrice: number }>; newLines: Array<{ sku: string; qty: number; unitPrice: number }>; settlement: { customerOwes: number; shopOwes: number; paidMethod?: string; refundMethod?: string }; pending?: boolean }) {
 	const returnedTotal = returnLines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
 	const newTotal = newLines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
 	return (
-		<div className="receipt w-[300px] text-right" dir="rtl">
-			<div className="text-center font-bold text-lg">إيصال الاستبدال</div>
-			{pending && <div className="text-center text-red-600">معلّق للمزامنة</div>}
-			<div>معرف: <bdi dir="ltr">{exchangeId.slice(-6)}</bdi></div>
-			<hr />
-			<div className="font-semibold">عناصر مرتجعة</div>
-			<table className="w-full text-sm">
-				<tbody>
+		<Box dir="rtl" sx={{ width: 300, textAlign: 'right' }}>
+			<Typography align="center" fontWeight={700}>إيصال الاستبدال</Typography>
+			{pending && <Typography align="center" color="error">معلّق للمزامنة</Typography>}
+			<Typography>معرف: <bdi dir="ltr">{exchangeId.slice(-6)}</bdi></Typography>
+			<Divider sx={{ my: 1 }} />
+			<Typography fontWeight={600}>عناصر مرتجعة</Typography>
+			<Table size="small" aria-label="returned-lines">
+				<TableBody>
 					{returnLines.map((l, idx) => (
-						<tr key={idx}>
-							<td><bdi dir="ltr">{l.sku}</bdi></td>
-							<td>x{l.qty}</td>
-							<td>{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</td>
-						</tr>
+						<TableRow key={idx}>
+							<TableCell align="right"><bdi dir="ltr">{l.sku}</bdi></TableCell>
+							<TableCell align="right">x{l.qty}</TableCell>
+							<TableCell align="right">{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</TableCell>
+						</TableRow>
 					))}
-				</tbody>
-			</table>
-			<div className="font-semibold mt-2">عناصر جديدة</div>
-			<table className="w-full text-sm">
-				<tbody>
+				</TableBody>
+			</Table>
+			<Typography fontWeight={600} sx={{ mt: 1 }}>عناصر جديدة</Typography>
+			<Table size="small" aria-label="new-lines">
+				<TableBody>
 					{newLines.map((l, idx) => (
-						<tr key={idx}>
-							<td><bdi dir="ltr">{l.sku}</bdi></td>
-							<td>x{l.qty}</td>
-							<td>{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</td>
-						</tr>
+						<TableRow key={idx}>
+							<TableCell align="right"><bdi dir="ltr">{l.sku}</bdi></TableCell>
+							<TableCell align="right">x{l.qty}</TableCell>
+							<TableCell align="right">{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</TableCell>
+						</TableRow>
 					))}
-				</tbody>
-			</table>
-			<hr />
-			<div>مرتجع: {returnedTotal.toLocaleString('ar-SA')} — جديد: {newTotal.toLocaleString('ar-SA')}</div>
+				</TableBody>
+			</Table>
+			<Divider sx={{ my: 1 }} />
+			<Typography>مرتجع: {returnedTotal.toLocaleString('ar-SA')} — جديد: {newTotal.toLocaleString('ar-SA')}</Typography>
 			{settlement.customerOwes > 0 ? (
-				<div>مستحق من العميل: {settlement.customerOwes.toLocaleString('ar-SA')} — {settlement.paidMethod}</div>
+				<Typography>مستحق من العميل: {settlement.customerOwes.toLocaleString('ar-SA')} — {settlement.paidMethod}</Typography>
 			) : settlement.shopOwes > 0 ? (
-				<div>مسترد للعميل: {settlement.shopOwes.toLocaleString('ar-SA')} — {settlement.refundMethod}</div>
+				<Typography>مسترد للعميل: {settlement.shopOwes.toLocaleString('ar-SA')} — {settlement.refundMethod}</Typography>
 			) : (
-				<div>لا فرق.</div>
+				<Typography>لا فرق.</Typography>
 			)}
-		</div>
+		</Box>
 	);
 }
 

@@ -3,15 +3,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useLocale } from 'next-intl';
 import { isAdminToolsEnabled } from '@/lib/flags';
-
-function Tab({ id, label, defaultChecked }: { id: string; label: string; defaultChecked?: boolean }) {
-  return (
-    <>
-      <input type="radio" name="tabs" id={id} defaultChecked={defaultChecked} />
-      <label htmlFor={id} className="tab">{label}</label>
-    </>
-  );
-}
+import { Box, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 
 export default function AdminToolsPage() {
   const t = (s: string) => {
@@ -19,6 +11,7 @@ export default function AdminToolsPage() {
   };
   const [role, setRole] = useState<string>('viewer');
   const [enabled, setEnabled] = useState<boolean>(false);
+  const [tab, setTab] = useState<'fixes'|'replays'|'idemp'>('fixes');
   const locale = useLocale();
 
   useEffect(() => { (async () => {
@@ -30,45 +23,44 @@ export default function AdminToolsPage() {
   })(); }, []);
 
   if (!enabled) {
-    return <main className="p-6" dir="rtl"><div className="rounded border p-4 text-gray-700">هذه الأداة غير متاحة</div></main>;
+    return <Box component="main" sx={{ p: 2 }} dir="rtl"><Paper variant="outlined" sx={{ p: 2, color: 'text.secondary' }}>هذه الأداة غير متاحة</Paper></Box>;
   }
   if (!(role === 'owner' || role === 'manager')) {
-    return <main className="p-6" dir="rtl"><div className="rounded border p-4 text-rose-700">مرفوض: يتطلب صلاحيات مدير</div></main>;
+    return <Box component="main" sx={{ p: 2 }} dir="rtl"><Paper variant="outlined" sx={{ p: 2, color: 'error.main' }}>مرفوض: يتطلب صلاحيات مدير</Paper></Box>;
   }
 
   return (
-    <main className="p-6" dir="rtl">
-      <h1 className="text-2xl font-bold mb-4">أدوات المدير</h1>
-      <div className="tabs">
-        <Tab id="tab-fixes" label="إصلاح البيانات" defaultChecked />
-        <Tab id="tab-replays" label="إعادة التشغيل" />
-        <Tab id="tab-idemp" label="المعرِّف الأحادي" />
-      </div>
-      <div className="mt-6 grid gap-6">
-        <section className="rounded border p-4">
-          <h2 className="text-xl mb-2">إصلاح البيانات</h2>
-          <p className="text-sm text-gray-600">تشغيل جاف: يعرض الفروقات فقط.</p>
-          <div className="mt-3">
-            {/* Minimal wizard scaffold; detailed diff views later */}
-            {typeof window !== 'undefined' && <DynamicFixWizard />}
-          </div>
-        </section>
-        <section className="rounded border p-4">
-          <h2 className="text-xl mb-2">إعادة التشغيل</h2>
-          <p className="text-sm text-gray-600">عرض وإعادة محاولة الوظائف الفاشلة.</p>
-          <div className="mt-3">
-            {typeof window !== 'undefined' && <DynamicReplayTable />}
-          </div>
-        </section>
-        <section className="rounded border p-4">
-          <h2 className="text-xl mb-2">المعرِّف الأحادي</h2>
-          <p className="text-sm text-gray-600">بحث وإعادة التشغيل بمفتاح جديد.</p>
-          <div className="mt-3">
-            {typeof window !== 'undefined' && <DynamicIdempSearch />}
-          </div>
-        </section>
-      </div>
-    </main>
+    <Box component="main" sx={{ p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>أدوات المدير</Typography>
+      <Tabs value={tab} onChange={(_e, v)=> setTab(v)}>
+        <Tab value="fixes" label="إصلاح البيانات" />
+        <Tab value="replays" label="إعادة التشغيل" />
+        <Tab value="idemp" label="المعرِّف الأحادي" />
+      </Tabs>
+      <Stack spacing={2} sx={{ mt: 2 }}>
+        {tab==='fixes' && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 0.5 }}>إصلاح البيانات</Typography>
+            <Typography variant="caption" color="text.secondary">تشغيل جاف: يعرض الفروقات فقط.</Typography>
+            <Box sx={{ mt: 2 }}>{typeof window !== 'undefined' && <DynamicFixWizard />}</Box>
+          </Paper>
+        )}
+        {tab==='replays' && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 0.5 }}>إعادة التشغيل</Typography>
+            <Typography variant="caption" color="text.secondary">عرض وإعادة محاولة الوظائف الفاشلة.</Typography>
+            <Box sx={{ mt: 2 }}>{typeof window !== 'undefined' && <DynamicReplayTable />}</Box>
+          </Paper>
+        )}
+        {tab==='idemp' && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ mb: 0.5 }}>المعرِّف الأحادي</Typography>
+            <Typography variant="caption" color="text.secondary">بحث وإعادة التشغيل بمفتاح جديد.</Typography>
+            <Box sx={{ mt: 2 }}>{typeof window !== 'undefined' && <DynamicIdempSearch />}</Box>
+          </Paper>
+        )}
+      </Stack>
+    </Box>
   );
 }
 

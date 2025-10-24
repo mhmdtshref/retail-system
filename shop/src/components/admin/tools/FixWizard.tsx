@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { Box, Button, Checkbox, FormControlLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 
 export default function FixWizard() {
   const [kind, setKind] = useState<'order_totals'|'stock_reserved'|'layaway_balance'|'orphan_payments'|'transfer_state'|'customer_merge'>('order_totals');
@@ -17,22 +18,22 @@ export default function FixWizard() {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2 items-center">
-        <select value={kind} onChange={(e)=> setKind(e.target.value as any)} className="border rounded px-2 py-1">
-          <option value="order_totals">إعادة حساب إجمالي الطلب</option>
-          <option value="stock_reserved">إعادة احتساب المحجوز</option>
-          <option value="layaway_balance">إعادة احتساب رصيد التقسيط</option>
-          <option value="orphan_payments">مدفوعات يتيمة</option>
-          <option value="transfer_state">إصلاح حالات التحويل</option>
-          <option value="customer_merge">دمج العملاء (مُرشد)</option>
-        </select>
-        <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={dry} onChange={(e)=> setDry(e.target.checked)} /> تشغيل جاف</label>
-        <button disabled={running} onClick={run} className="px-3 py-1 rounded bg-blue-600 text-white">تشغيل</button>
-      </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Select size="small" value={kind} onChange={(e)=> setKind(e.target.value as any)}>
+          <MenuItem value="order_totals">إعادة حساب إجمالي الطلب</MenuItem>
+          <MenuItem value="stock_reserved">إعادة احتساب المحجوز</MenuItem>
+          <MenuItem value="layaway_balance">إعادة احتساب رصيد التقسيط</MenuItem>
+          <MenuItem value="orphan_payments">مدفوعات يتيمة</MenuItem>
+          <MenuItem value="transfer_state">إصلاح حالات التحويل</MenuItem>
+          <MenuItem value="customer_merge">دمج العملاء (مُرشد)</MenuItem>
+        </Select>
+        <FormControlLabel control={<Checkbox checked={dry} onChange={(e)=> setDry(e.target.checked)} />} label="تشغيل جاف" />
+        <Button disabled={running} onClick={run} variant="contained">تشغيل</Button>
+      </Stack>
       {report && (
-        <pre className="p-2 bg-gray-50 rounded overflow-auto text-xs" dir="ltr">{JSON.stringify(report, null, 2)}</pre>
+        <Box component="pre" sx={{ p: 1, bgcolor: 'background.default', borderRadius: 1, border: (t)=> `1px solid ${t.palette.divider}`, overflow: 'auto', fontSize: 12 }} dir="ltr">{JSON.stringify(report, null, 2)}</Box>
       )}
-    </div>
+    </Box>
   );
 }

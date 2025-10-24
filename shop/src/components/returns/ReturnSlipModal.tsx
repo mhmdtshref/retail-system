@@ -5,6 +5,7 @@ import { enqueueReceiptlessReturn } from '@/lib/outbox';
 import { uuid } from '@/lib/pos/idempotency';
 import { usePosStore } from '@/lib/store/posStore';
 import { ManagerOverrideDialog } from '@/components/policy/ManagerOverrideDialog';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 
 export function ReturnSlipModal({ onClose }: { onClose: ()=>void }) {
   const t = useTranslations();
@@ -60,14 +61,12 @@ export function ReturnSlipModal({ onClose }: { onClose: ()=>void }) {
         if (res.status === 403) { setShowOverride(true); return; }
         if (!res.ok) throw new Error('Failed');
         const data = await res.json();
-        alert(t('receiptless.created') || 'تم إنشاء قسيمة الإرجاع. ستتم المزامنة عند توفر الإنترنت.');
+        // show success elsewhere via Snackbar
         onClose();
         return;
       }
-      // Offline path: enqueue to outbox
       const localId = uuid();
       await enqueueReceiptlessReturn({ localId, slip: payload });
-      alert(t('receiptless.created') || 'تم إنشاء قسيمة الإرجاع. ستتم المزامنة عند توفر الإنترنت.');
       onClose();
     } catch (e) {
       setError('فشل إنشاء القسيمة');
@@ -86,78 +85,68 @@ export function ReturnSlipModal({ onClose }: { onClose: ()=>void }) {
     })();
   }, []);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key.toLowerCase() === 'r') { e.preventDefault(); onClose(); setTimeout(()=>{},0); }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center">
-      <div className="w-[680px] max-w-[96vw] bg-white dark:bg-neutral-950 rounded p-4 space-y-3" dir="rtl">
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-semibold">{t('receiptless.title') || 'إرجاع بدون فاتورة'}</div>
-          <button className="px-2 py-1 rounded border" onClick={onClose}>{t('common.close') || 'إغلاق'}</button>
-        </div>
-        {policyHint && <div className="text-xs text-neutral-600">{policyHint}</div>}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{t('receiptless.amount') || 'المبلغ'} ({currency})</span>
-            <input inputMode="decimal" pattern="[0-9.,]*" className="border rounded px-3 py-2" value={amount} onChange={(e)=> setAmount(e.target.value)} placeholder="0.00" />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">{t('receiptless.method') || 'طريقة الاسترداد'}</span>
-            <select className="border rounded px-3 py-2" value={method} onChange={(e)=> setMethod(e.target.value as any)}>
-              <option value="CASH">نقدًا</option>
-              <option value="CARD">بطاقة (يدوي)</option>
-              <option value="STORE_CREDIT">رصيد متجر</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 col-span-2">
-            <span className="text-sm">{t('receiptless.reason') || 'السبب'}</span>
-            <input className="border rounded px-3 py-2" value={reason} onChange={(e)=> setReason(e.target.value)} placeholder="اختر/اكتب السبب" />
-          </label>
-          <label className="flex flex-col gap-1 col-span-2">
-            <span className="text-sm">{t('receiptless.note') || 'ملاحظات'}</span>
-            <textarea className="border rounded px-3 py-2" value={note} onChange={(e)=> setNote(e.target.value)} />
-          </label>
-          <div className="col-span-2 grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm">{t('receiptless.inventory') || 'المخزون'}</span>
-              <select className="border rounded px-3 py-2" value={inventoryAction} onChange={(e)=> setInventoryAction(e.target.value as any)}>
-                <option value="NONE">{t('receiptless.none') || 'بدون تغيير مخزون'}</option>
-                <option value="PUT_BACK">{t('receiptless.putBack') || 'إرجاع للمخزون'}</option>
-                <option value="WRITE_OFF">{t('receiptless.writeOff') || 'إتلاف'}</option>
-              </select>
-            </label>
-            {inventoryAction !== 'NONE' && (
-              <label className="flex flex-col gap-1">
-                <span className="text-sm">الموقع/مرجع</span>
-                <input className="border rounded px-3 py-2" value={locationId} onChange={(e)=> setLocationId(e.target.value)} placeholder="رمز الموقع" />
-              </label>
-            )}
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-sm">مرجع SKU/وصف (اختياري)</span>
-              <input className="border rounded px-3 py-2" value={reference} onChange={(e)=> setReference(e.target.value)} />
-            </label>
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-sm">{t('receiptless.customer') || 'العميل (اختياري)'}</span>
-              <input className="border rounded px-3 py-2" value={customerId || ''} onChange={(e)=> setCustomerId(e.target.value || undefined)} placeholder="معرّف العميل" />
-            </label>
-          </div>
-          <div className="col-span-2 rounded border p-3 space-y-2">
-            <div className="text-sm">{t('receiptless.confirmAmount') || 'للتأكيد، اكتب المبلغ مرة أخرى'}</div>
-            <input dir="ltr" className="border rounded px-3 py-2" value={confirmAmount} onChange={(e)=> setConfirmAmount(e.target.value)} placeholder="0.00" />
-          </div>
-        </div>
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <div className="flex justify-end gap-2">
-          <button className="px-3 py-2 rounded border" onClick={onClose}>إلغاء</button>
-          <button disabled={submitting} className="px-4 py-2 rounded bg-green-600 text-white" onClick={submit}>تأكيد</button>
-        </div>
-      </div>
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>{t('receiptless.title') || 'إرجاع بدون فاتورة'}</DialogTitle>
+      <DialogContent>
+        {policyHint && <Typography variant="caption" color="text.secondary">{policyHint}</Typography>}
+        <Grid container spacing={1} sx={{ mt: 1 }}>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="caption">{t('receiptless.amount') || 'المبلغ'} ({currency})</Typography>
+            <TextField size="small" fullWidth inputProps={{ inputMode: 'decimal', pattern: '[0-9.,]*' }} value={amount} onChange={(e)=> setAmount(e.target.value)} placeholder="0.00" />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="caption">{t('receiptless.method') || 'طريقة الاسترداد'}</Typography>
+            <Select size="small" fullWidth value={method} onChange={(e)=> setMethod(e.target.value as any)}>
+              <MenuItem value="CASH">نقدًا</MenuItem>
+              <MenuItem value="CARD">بطاقة (يدوي)</MenuItem>
+              <MenuItem value="STORE_CREDIT">رصيد متجر</MenuItem>
+            </Select>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="caption">{t('receiptless.reason') || 'السبب'}</Typography>
+            <TextField size="small" fullWidth value={reason} onChange={(e)=> setReason(e.target.value)} placeholder="اختر/اكتب السبب" />
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="caption">{t('receiptless.note') || 'ملاحظات'}</Typography>
+            <TextField size="small" fullWidth multiline minRows={2} value={note} onChange={(e)=> setNote(e.target.value)} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="caption">{t('receiptless.inventory') || 'المخزون'}</Typography>
+            <Select size="small" fullWidth value={inventoryAction} onChange={(e)=> setInventoryAction(e.target.value as any)}>
+              <MenuItem value="NONE">{t('receiptless.none') || 'بدون تغيير مخزون'}</MenuItem>
+              <MenuItem value="PUT_BACK">{t('receiptless.putBack') || 'إرجاع للمخزون'}</MenuItem>
+              <MenuItem value="WRITE_OFF">{t('receiptless.writeOff') || 'إتلاف'}</MenuItem>
+            </Select>
+          </Grid>
+          {inventoryAction !== 'NONE' && (
+            <Grid item xs={12} sm={6}>
+              <Typography variant="caption">الموقع/مرجع</Typography>
+              <TextField size="small" fullWidth value={locationId} onChange={(e)=> setLocationId(e.target.value)} placeholder="رمز الموقع" />
+            </Grid>
+          )}
+          <Grid item xs={12}>
+            <Typography variant="caption">مرجع SKU/وصف (اختياري)</Typography>
+            <TextField size="small" fullWidth value={reference} onChange={(e)=> setReference(e.target.value)} />
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="caption">{t('receiptless.customer') || 'العميل (اختياري)'}</Typography>
+            <TextField size="small" fullWidth value={customerId || ''} onChange={(e)=> setCustomerId(e.target.value || undefined)} placeholder="معرّف العميل" />
+          </Grid>
+          <Grid item xs={12}>
+            <Paper variant="outlined" sx={{ p: 1 }}>
+              <Typography variant="caption">{t('receiptless.confirmAmount') || 'للتأكيد، اكتب المبلغ مرة أخرى'}</Typography>
+              <TextField size="small" fullWidth inputProps={{ dir: 'ltr' }} value={confirmAmount} onChange={(e)=> setConfirmAmount(e.target.value)} placeholder="0.00" sx={{ mt: 1 }} />
+            </Paper>
+          </Grid>
+        </Grid>
+        {error && <Typography color="error" variant="body2" sx={{ mt: 1 }}>{error}</Typography>}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>إلغاء</Button>
+        <Button disabled={submitting} onClick={submit} variant="contained" color="success">تأكيد</Button>
+      </DialogActions>
+
       {showOverride && (
         <ManagerOverrideDialog
           onToken={async (token) => {
@@ -165,7 +154,6 @@ export function ReturnSlipModal({ onClose }: { onClose: ()=>void }) {
             try {
               const res = await fetch('/api/returns/receiptless', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': pendingIdemp, 'X-Override-Token': token }, body: JSON.stringify(pendingPayload) });
               if (!res.ok) { const data = await res.json().catch(()=>({})); setError(data?.error?.message || 'مرفوض'); return; }
-              alert(t('receiptless.created') || 'تم إنشاء قسيمة الإرجاع. ستتم المزامنة عند توفر الإنترنت.');
               onClose();
             } finally {
               setShowOverride(false);
@@ -176,6 +164,6 @@ export function ReturnSlipModal({ onClose }: { onClose: ()=>void }) {
           onClose={() => { setShowOverride(false); }}
         />
       )}
-    </div>
+    </Dialog>
   );
 }

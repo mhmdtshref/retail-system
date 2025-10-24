@@ -4,6 +4,9 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { uuid } from '@/lib/pos/idempotency';
 import { generateSku } from '@/lib/sku';
+import { Box, Button, Grid, Stack, TextField, Typography, Select, MenuItem, Snackbar, Alert } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import type { GridColDef, GridRowModel } from '@mui/x-data-grid';
 
 type Variant = { sku: string; size?: string; color?: string; barcode?: string; costPrice?: number; retailPrice?: number };
 
@@ -21,6 +24,7 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [sizesInput, setSizesInput] = useState('');
   const [colorsInput, setColorsInput] = useState('');
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   function addVariantRow() {
     setVariants((arr) => arr.concat([{ sku: '', size: '', color: '', retailPrice: basePrice ? Number(basePrice) : undefined }]));
@@ -28,7 +32,6 @@ export default function NewProductPage() {
 
   function generateVariants() {
     function parseList(input: string): string[] {
-      // Normalize and remove hidden directionality/zero-width marks that may break splitting
       const cleaned = (input || '').replaceAll("،", ",");
       return cleaned.split(",").map((s) => s.trim()).filter(Boolean);
     }
@@ -44,6 +47,21 @@ export default function NewProductPage() {
     setVariants(rows);
   }
 
+  function onVariantRowUpdate(newRow: GridRowModel, oldRow: GridRowModel) {
+    const idx = Number(newRow.id);
+    const updated = [...variants];
+    updated[idx] = {
+      sku: String(newRow.sku || ''),
+      size: newRow.size ? String(newRow.size) : undefined,
+      color: newRow.color ? String(newRow.color) : undefined,
+      barcode: newRow.barcode ? String(newRow.barcode) : undefined,
+      costPrice: newRow.costPrice === '' || newRow.costPrice === null || newRow.costPrice === undefined ? undefined : Number(newRow.costPrice),
+      retailPrice: newRow.retailPrice === '' || newRow.retailPrice === null || newRow.retailPrice === undefined ? undefined : Number(newRow.retailPrice),
+    };
+    setVariants(updated);
+    return { ...newRow };
+  }
+
   async function save() {
     const idk = uuid();
     const res = await fetch('/api/products', {
@@ -54,95 +72,79 @@ export default function NewProductPage() {
     if (res.ok) {
       const data = await res.json();
       router.push(`/${locale}/products/${data.product._id}`);
+    } else {
+      setSnack({ open: true, message: t('common.error') || 'حدث خطأ', severity: 'error' });
     }
   }
 
+  const columns: GridColDef[] = [
+    { field: 'sku', headerName: 'SKU', width: 200, editable: true, renderCell: (p) => <Typography component="span" dir="ltr">{String(p.value || '')}</Typography> },
+    { field: 'size', headerName: t('products.size') || 'المقاس', width: 140, editable: true },
+    { field: 'color', headerName: t('products.color') || 'اللون', width: 140, editable: true },
+    { field: 'costPrice', headerName: t('products.costPrice') || 'سعر الكلفة', width: 160, editable: true, type: 'number', valueFormatter: (p) => p.value === undefined || p.value === null || p.value === '' ? '' : Number(p.value as any).toFixed(2) },
+    { field: 'retailPrice', headerName: t('products.retailPrice') || 'سعر البيع', width: 160, editable: true, type: 'number', valueFormatter: (p) => p.value === undefined || p.value === null || p.value === '' ? '' : Number(p.value as any).toFixed(2) },
+    { field: 'barcode', headerName: t('products.barcode') || 'الباركود', width: 180, editable: true },
+  ];
+
   return (
-    <main className="p-4 flex flex-col gap-4" dir="rtl">
-      <h1 className="text-xl font-semibold">{t('products.add') || 'إضافة منتج'}</h1>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600}>{t('products.add') || 'إضافة منتج'}</Typography>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.code') || 'رمز المنتج'}</span>
-          <input className="border rounded px-3 py-2" value={productCode} onChange={(e) => setProductCode(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.name_ar') || 'الاسم (ع)'}</span>
-          <input className="border rounded px-3 py-2" value={name_ar} onChange={(e) => setNameAr(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.name_en') || 'الاسم (E)'}</span>
-          <input dir="ltr" className="border rounded px-3 py-2" value={name_en} onChange={(e) => setNameEn(e.target.value)} />
-        </label>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={4}>
+          <TextField size="small" fullWidth label={t('products.code') || 'رمز المنتج'} value={productCode} onChange={(e) => setProductCode(e.target.value)} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <TextField size="small" fullWidth label={t('products.name_ar') || 'الاسم (ع)'} value={name_ar} onChange={(e) => setNameAr(e.target.value)} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <TextField size="small" fullWidth label={t('products.name_en') || 'الاسم (E)'} inputProps={{ dir: 'ltr' }} value={name_en} onChange={(e) => setNameEn(e.target.value)} />
+        </Grid>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.category') || 'التصنيف'}</span>
-          <input className="border rounded px-3 py-2" value={category} onChange={(e) => setCategory(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.brand') || 'العلامة'}</span>
-          <input className="border rounded px-3 py-2" value={brand} onChange={(e) => setBrand(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.basePrice') || 'السعر الأساسي'}</span>
-          <input className="border rounded px-3 py-2" value={basePrice} onChange={(e) => setBasePrice(e.target.value === '' ? '' : Number(e.target.value))} type="number" min="0" step="0.01" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t('products.status') || 'الحالة'}</span>
-          <select className="border rounded px-3 py-2" value={status} onChange={(e) => setStatus(e.target.value as any)}>
-            <option value="active">{t('products.active') || 'نشط'}</option>
-            <option value="archived">{t('products.archived') || 'مؤرشف'}</option>
-          </select>
-        </label>
-      </div>
+        <Grid item xs={12} md={4}>
+          <TextField size="small" fullWidth label={t('products.category') || 'التصنيف'} value={category} onChange={(e) => setCategory(e.target.value)} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <TextField size="small" fullWidth label={t('products.brand') || 'العلامة'} value={brand} onChange={(e) => setBrand(e.target.value)} />
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <TextField size="small" fullWidth type="number" inputProps={{ step: '0.01', min: '0' }} label={t('products.basePrice') || 'السعر الأساسي'} value={basePrice} onChange={(e) => setBasePrice(e.target.value === '' ? '' : Number(e.target.value))} />
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Select size="small" fullWidth value={status} onChange={(e) => setStatus(e.target.value as any)} displayEmpty>
+            <MenuItem value="active">{t('products.active') || 'نشط'}</MenuItem>
+            <MenuItem value="archived">{t('products.archived') || 'مؤرشف'}</MenuItem>
+          </Select>
+        </Grid>
+      </Grid>
 
-      <div className="border rounded p-3 flex flex-col gap-3">
-        <div className="flex items-end gap-2">
-          <label className="flex-1">
-            <div className="text-sm">{t('products.sizes') || 'المقاسات (مفصولة بفواصل)'}</div>
-            <input value={sizesInput} onChange={(e) => setSizesInput(e.target.value)} className="border rounded px-3 py-2 w-full" />
-          </label>
-          <label className="flex-1">
-            <div className="text-sm">{t('products.colors') || 'الألوان (مفصولة بفواصل)'}</div>
-            <input value={colorsInput} onChange={(e) => setColorsInput(e.target.value)} className="border rounded px-3 py-2 w-full" />
-          </label>
-          <button onClick={generateVariants} className="px-3 py-2 rounded bg-gray-800 text-white">{t('products.generateVariants') || 'توليد الخيارات'}</button>
-          <button onClick={addVariantRow} className="px-3 py-2 rounded border">{t('products.addVariant') || 'إضافة سطر'}</button>
-        </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'flex-end' }}>
+          <TextField size="small" fullWidth label={t('products.sizes') || 'المقاسات (مفصولة بفواصل)'} value={sizesInput} onChange={(e) => setSizesInput(e.target.value)} />
+          <TextField size="small" fullWidth label={t('products.colors') || 'الألوان (مفصولة بفواصل)'} value={colorsInput} onChange={(e) => setColorsInput(e.target.value)} />
+          <Button onClick={generateVariants} variant="contained">{t('products.generateVariants') || 'توليد الخيارات'}</Button>
+          <Button onClick={addVariantRow} variant="outlined">{t('products.addVariant') || 'إضافة سطر'}</Button>
+        </Stack>
 
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="p-2 text-right">SKU</th>
-                <th className="p-2 text-right">{t('products.size') || 'المقاس'}</th>
-                <th className="p-2 text-right">{t('products.color') || 'اللون'}</th>
-                <th className="p-2 text-right">{t('products.costPrice') || 'سعر الكلفة'}</th>
-                <th className="p-2 text-right">{t('products.retailPrice') || 'سعر البيع'}</th>
-                <th className="p-2 text-right">{t('products.barcode') || 'الباركود'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {variants.map((v, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="p-2"><input dir="ltr" className="border rounded px-2 py-1 w-56" value={v.sku} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, sku: e.target.value } : x))} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={v.size || ''} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, size: e.target.value } : x))} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-24" value={v.color || ''} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, color: e.target.value } : x))} /></td>
-                  <td className="p-2"><input type="number" min="0" step="0.01" className="border rounded px-2 py-1 w-28" value={v.costPrice ?? ''} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, costPrice: e.target.value === '' ? undefined : Number(e.target.value) } : x))} /></td>
-                  <td className="p-2"><input type="number" min="0" step="0.01" className="border rounded px-2 py-1 w-28" value={v.retailPrice ?? ''} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, retailPrice: e.target.value === '' ? undefined : Number(e.target.value) } : x))} /></td>
-                  <td className="p-2"><input className="border rounded px-2 py-1 w-40" value={v.barcode || ''} onChange={(e) => setVariants((arr) => arr.map((x, i) => i === idx ? { ...x, barcode: e.target.value } : x))} /></td>
-                </tr>
-              ))}
-              {variants.length === 0 && <tr><td className="p-3 text-center text-gray-500" colSpan={6}>{t('products.noVariants') || 'لا توجد خيارات'}</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <DataTable
+          rows={variants.map((v, i) => ({ id: i, ...v }))}
+          columns={columns}
+          autoHeight
+          editMode="row"
+          processRowUpdate={(newRow, oldRow) => onVariantRowUpdate(newRow, oldRow)}
+        />
+      </Box>
 
-      <div className="flex gap-2">
-        <button onClick={save} className="px-4 py-2 rounded bg-green-600 text-white">{t('common.confirm') || 'تأكيد'}</button>
-      </div>
-    </main>
+      <Stack direction="row" spacing={1}>
+        <Button onClick={save} variant="contained" color="success">{t('common.confirm') || 'تأكيد'}</Button>
+      </Stack>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

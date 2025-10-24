@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { VirtualTable } from '@/components/virtualized/VirtualTable';
+import { Box, Button, MenuItem, Select, Stack, Typography } from '@mui/material';
 
 export default function TransfersPage() {
   const t = useTranslations();
@@ -35,23 +36,21 @@ export default function TransfersPage() {
   ]), []);
 
   return (
-    <main className="p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold">{t('transfers.title') || 'تحويلات المخزون'}</h1>
-        <select value={status} onChange={(e)=> setStatus(e.target.value)} className="border rounded px-2 py-1">
-          <option value="">الكل</option>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography variant="h6" fontWeight={600}>{t('transfers.title') || 'تحويلات المخزون'}</Typography>
+        <Select size="small" value={status} onChange={(e)=> setStatus(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
+          <MenuItem value="">الكل</MenuItem>
           {['draft','requested','approved','picking','dispatched','received','closed','canceled'].map((s)=> (
-            <option key={s} value={s}>{s}</option>
+            <MenuItem key={s} value={s}>{s}</MenuItem>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Stack>
       <VirtualTable rows={list} columns={columns as any} rowKey={(r:any)=> r._id} />
       {hasMore && (
-        <div className="flex justify-center py-2">
-          <button className="px-3 py-1 rounded border" onClick={() => {
-            const c = cursor; // use last captured cursor
-            if (!c) return;
-            // trigger effect by updating status to same value; instead, manual fetch
+        <Stack alignItems="center" sx={{ py: 1 }}>
+          <Button variant="outlined" onClick={() => {
+            const c = cursor; if (!c) return;
             (async () => {
               const params = new URLSearchParams();
               if (status) params.set('status', status);
@@ -64,9 +63,9 @@ export default function TransfersPage() {
                 setCursor(data.nextCursor);
               }
             })();
-          }}>تحميل المزيد</button>
-        </div>
+          }}>تحميل المزيد</Button>
+        </Stack>
       )}
-    </main>
+    </Box>
   );
 }

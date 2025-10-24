@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Box, Paper } from '@mui/material';
 
 export type Column<T> = { key: keyof T | string; header: React.ReactNode; width?: number | string; cell?: (row: T) => React.ReactNode };
 
@@ -19,31 +20,31 @@ export function VirtualTable<T extends { _id?: string }>(props: { rows: T[]; col
   const virtualItems = rowVirtualizer.getVirtualItems();
 
   const header = useMemo(() => (
-    <div className="grid gap-2 p-2 text-xs text-muted-foreground sticky top-0 z-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur" style={{ gridTemplateColumns: props.columns.map(c => c.width || '1fr').join(' ') }} dir="rtl">
+    <Box dir="rtl" sx={{ display: 'grid', gridTemplateColumns: props.columns.map(c => c.width || '1fr').join(' '), gap: 1, p: 1, position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', backdropFilter: 'blur(6px)', fontSize: 12, color: 'text.secondary' }}>
       {props.columns.map((c, i) => (
-        <div key={i} className="px-2 py-1 whitespace-nowrap">{c.header}</div>
+        <Box key={i} sx={{ px: 1, py: 0.5, whiteSpace: 'nowrap' }}>{c.header}</Box>
       ))}
-    </div>
+    </Box>
   ), [props.columns]);
 
   return (
-    <div ref={parentRef} className="overflow-auto border rounded" dir="rtl" style={{ height: '60vh' }}>
+    <Paper ref={parentRef as any} variant="outlined" dir="rtl" sx={{ overflow: 'auto', height: '60vh' }}>
       {header}
-      <div style={{ height: totalSize, position: 'relative' }}>
+      <Box sx={{ height: totalSize, position: 'relative' }}>
         {virtualItems.map((vi) => {
           const row = rows[vi.index];
           const key = props.rowKey ? props.rowKey(row, vi.index) : (row?._id || String(vi.index));
           return (
-            <div key={key} className="grid gap-2 p-2 text-sm border-t absolute left-0 right-0" style={{ transform: `translateY(${vi.start}px)`, gridTemplateColumns: props.columns.map(c => c.width || '1fr').join(' ') }}>
+            <Box key={key} sx={{ display: 'grid', gridTemplateColumns: props.columns.map(c => c.width || '1fr').join(' '), gap: 1, p: 1, fontSize: 14, borderTop: (t)=> `1px solid ${t.palette.divider}`, position: 'absolute', left: 0, right: 0, transform: `translateY(${vi.start}px)` }}>
               {props.columns.map((c, i) => (
-                <div key={i} className="px-2 py-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                <Box key={i} sx={{ px: 1, py: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {c.cell ? c.cell(row) : (row as any)[c.key as string]}
-                </div>
+                </Box>
               ))}
-            </div>
+            </Box>
           );
         })}
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 }

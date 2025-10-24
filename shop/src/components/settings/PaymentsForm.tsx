@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Checkbox, FormControlLabel, Grid, Paper, Snackbar, Alert, TextField, Typography } from '@mui/material';
 
 type PaymentRules = {
   enabledMethods: Array<'cash'|'card'|'transfer'|'store_credit'|'cod'|'partial'>;
@@ -24,6 +25,7 @@ export function PaymentsForm() {
     card: { requireLast4: false, requireRef: false },
     transfer: { requireRef: true }
   });
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -50,97 +52,115 @@ export function PaymentsForm() {
   };
 
   async function save() {
-    if (!online) return alert('يتطلب هذا الإجراء اتصالاً بالإنترنت.');
+    if (!online) { setSnack({ open: true, message: 'يتطلب هذا الإجراء اتصالاً بالإنترنت.', severity: 'warning' }); return; }
     setSaving(true);
     try {
       const idk = Math.random().toString(36).slice(2);
       const res = await fetch('/api/settings/payments', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idk }, body: JSON.stringify(rules) });
       if (res.ok) {
-        // refresh settings cache silently
         try { const { refreshSettingsConfig } = await import('@/lib/tax/cache'); await refreshSettingsConfig(); } catch {}
-        // toast
-        alert('تم الحفظ');
+        setSnack({ open: true, message: 'تم الحفظ', severity: 'success' });
       } else {
         const e = await res.json();
-        alert('فشل الحفظ');
         console.error(e);
+        setSnack({ open: true, message: 'فشل الحفظ', severity: 'error' });
       }
     } finally { setSaving(false); }
   }
 
-  if (loading) return <div>...تحميل</div>;
+  if (loading) return <Box sx={{ p: 1 }}>...تحميل</Box>;
 
   const methodLabel: Record<string, string> = { cash: 'نقدًا', card: 'بطاقة', transfer: 'حوالة', store_credit: 'رصيد المتجر', cod: 'الدفع عند التسليم', partial: 'تقسيط' };
 
   return (
-    <div className="p-3 border rounded space-y-4">
-      <div className="font-semibold">طرق الدفع المسموحة</div>
-      <div className="flex flex-wrap gap-2">
+    <Box sx={{ p: 2 }}>
+      <Typography fontWeight={600} sx={{ mb: 1 }}>طرق الدفع المسموحة</Typography>
+      <Grid container spacing={1}>
         {(['cash','card','transfer','store_credit','cod','partial'] as const).map((m) => (
-          <label key={m} className={`px-3 py-1 rounded border cursor-pointer select-none ${rules.enabledMethods.includes(m)?'bg-emerald-50 border-emerald-300':''}`}>
-            <input className="me-2" type="checkbox" checked={rules.enabledMethods.includes(m)} onChange={() => toggleMethod(m)} />{methodLabel[m]}
-          </label>
+          <Grid item key={m}>
+            <FormControlLabel control={<Checkbox checked={rules.enabledMethods.includes(m)} onChange={() => toggleMethod(m)} />} label={methodLabel[m]} />
+          </Grid>
         ))}
-      </div>
+      </Grid>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">سياسة التقسيط/الحجز</div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!rules.partial?.enabled} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{}), enabled: e.target.checked, minUpfrontPct: r.partial?.minUpfrontPct ?? 10, maxDays: r.partial?.maxDays ?? 30, autoCancel: r.partial?.autoCancel ?? false } }))} />تفعيل التقسيط</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs">الدفعة الأدنى %</div>
-              <input type="number" dir="ltr" value={rules.partial?.minUpfrontPct ?? 10} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, minUpfrontPct: Number(e.target.value) } }))} className="w-full border rounded px-2 py-1" />
-            </div>
-            <div>
-              <div className="text-xs">المدة القصوى (أيام)</div>
-              <input type="number" dir="ltr" value={rules.partial?.maxDays ?? 30} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, maxDays: Number(e.target.value) } }))} className="w-full border rounded px-2 py-1" />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!rules.partial?.autoCancel} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, autoCancel: e.target.checked } }))} />إلغاء تلقائي بعد انتهاء المدة</label>
-        </div>
+      <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>سياسة التقسيط/الحجز</Typography>
+            <FormControlLabel control={<Checkbox checked={!!rules.partial?.enabled} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{}), enabled: e.target.checked, minUpfrontPct: r.partial?.minUpfrontPct ?? 10, maxDays: r.partial?.maxDays ?? 30, autoCancel: r.partial?.autoCancel ?? false } }))} />} label="تفعيل التقسيط" />
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption">الدفعة الأدنى %</Typography>
+                <TextField size="small" type="number" inputProps={{ dir: 'ltr' }} value={rules.partial?.minUpfrontPct ?? 10} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, minUpfrontPct: Number(e.target.value) } }))} fullWidth />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption">المدة القصوى (أيام)</Typography>
+                <TextField size="small" type="number" inputProps={{ dir: 'ltr' }} value={rules.partial?.maxDays ?? 30} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, maxDays: Number(e.target.value) } }))} fullWidth />
+              </Grid>
+            </Grid>
+            <FormControlLabel control={<Checkbox checked={!!rules.partial?.autoCancel} onChange={(e)=> setRules((r)=> ({ ...r, partial: { ...(r.partial||{ enabled: false, minUpfrontPct: 10, maxDays: 30, autoCancel: false }), enabled: r.partial?.enabled ?? false, autoCancel: e.target.checked } }))} />} label="إلغاء تلقائي بعد انتهاء المدة" />
+          </Paper>
+        </Grid>
 
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">حد الخصم اليدوي للكاشير</div>
-          <input type="number" dir="ltr" value={rules.cashierManualDiscountLimitPct} onChange={(e)=> setRules((r)=> ({ ...r, cashierManualDiscountLimitPct: Number(e.target.value) }))} className="w-full border rounded px-2 py-1" />
-          <div className="text-xs text-neutral-600">يتطلب تجاوز الحد موافقة المدير</div>
-        </div>
-      </div>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 1 }}>حد الخصم اليدوي للكاشير</Typography>
+            <TextField size="small" type="number" inputProps={{ dir: 'ltr' }} value={rules.cashierManualDiscountLimitPct} onChange={(e)=> setRules((r)=> ({ ...r, cashierManualDiscountLimitPct: Number(e.target.value) }))} fullWidth />
+            <Typography variant="caption" color="text.secondary">يتطلب تجاوز الحد موافقة المدير</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">درج النقود</div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rules.drawer.openOnCashSale} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, openOnCashSale: e.target.checked } }))} />فتح عند بيع نقدي</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rules.drawer.openOnRefund} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, openOnRefund: e.target.checked } }))} />فتح عند استرداد</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rules.drawer.allowNoSale} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, allowNoSale: e.target.checked } }))} />فتح بدون بيع (يتطلب إذن)</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rules.drawer.requireEndShiftCount} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, requireEndShiftCount: e.target.checked } }))} />إلزام جرد نهاية الوردية</label>
-        </div>
+      <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600}>درج النقود</Typography>
+            <FormControlLabel control={<Checkbox checked={rules.drawer.openOnCashSale} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, openOnCashSale: e.target.checked } }))} />} label="فتح عند بيع نقدي" />
+            <FormControlLabel control={<Checkbox checked={rules.drawer.openOnRefund} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, openOnRefund: e.target.checked } }))} />} label="فتح عند استرداد" />
+            <FormControlLabel control={<Checkbox checked={rules.drawer.allowNoSale} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, allowNoSale: e.target.checked } }))} />} label="فتح بدون بيع (يتطلب إذن)" />
+            <FormControlLabel control={<Checkbox checked={rules.drawer.requireEndShiftCount} onChange={(e)=> setRules((r)=> ({ ...r, drawer: { ...r.drawer, requireEndShiftCount: e.target.checked } }))} />} label="إلزام جرد نهاية الوردية" />
+          </Paper>
+        </Grid>
 
-        <div className="p-3 rounded border space-y-2">
-          <div className="font-semibold">سياسة النقد</div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rules.cash.allowChange} onChange={(e)=> setRules((r)=> ({ ...r, cash: { ...r.cash, allowChange: e.target.checked } }))} />السماح بالباقي</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs">تقريب النقد</div>
-              <select value={String(rules.cash.roundingIncrement ?? '')} onChange={(e)=> setRules((r)=> ({ ...r, cash: { ...r.cash, roundingIncrement: (e.target.value ? Number(e.target.value) : null) as any } }))} className="w-full border rounded px-2 py-1" dir="ltr">
-                <option value="">—</option>
-                <option value="0.05">0.05</option>
-                <option value="0.1">0.10</option>
-              </select>
-            </div>
-          </div>
-          <div className="font-semibold mt-2">بطاقة/حوالة</div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!rules.card?.requireLast4} onChange={(e)=> setRules((r)=> ({ ...r, card: { ...(r.card||{}), requireLast4: e.target.checked } }))} />طلب آخر 4 أرقام</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!rules.card?.requireRef} onChange={(e)=> setRules((r)=> ({ ...r, card: { ...(r.card||{}), requireRef: e.target.checked } }))} />طلب مرجع العملية</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!rules.transfer?.requireRef} onChange={(e)=> setRules((r)=> ({ ...r, transfer: { ...(r.transfer||{}), requireRef: e.target.checked } }))} />طلب مرجع الحوالة</label>
-        </div>
-      </div>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography fontWeight={600}>سياسة النقد</Typography>
+            <FormControlLabel control={<Checkbox checked={rules.cash.allowChange} onChange={(e)=> setRules((r)=> ({ ...r, cash: { ...r.cash, allowChange: e.target.checked } }))} />} label="السماح بالباقي" />
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="caption">تقريب النقد</Typography>
+                <TextField select size="small" fullWidth value={String(rules.cash.roundingIncrement ?? '')} onChange={(e)=> setRules((r)=> ({ ...r, cash: { ...r.cash, roundingIncrement: (e.target.value ? Number(e.target.value) : null) as any } }))} inputProps={{ dir: 'ltr' }}>
+                  <MenuItem value="">—</MenuItem>
+                  <MenuItem value="0.05">0.05</MenuItem>
+                  <MenuItem value="0.1">0.10</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+            <Typography fontWeight={600} sx={{ mt: 2 }}>بطاقة/حوالة</Typography>
+            <FormControlLabel control={<Checkbox checked={!!rules.card?.requireLast4} onChange={(e)=> setRules((r)=> ({ ...r, card: { ...(r.card||{}), requireLast4: e.target.checked } }))} />} label="طلب آخر 4 أرقام" />
+            <FormControlLabel control={<Checkbox checked={!!rules.card?.requireRef} onChange={(e)=> setRules((r)=> ({ ...r, card: { ...(r.card||{}), requireRef: e.target.checked } }))} />} label="طلب مرجع العملية" />
+            <FormControlLabel control={<Checkbox checked={!!rules.transfer?.requireRef} onChange={(e)=> setRules((r)=> ({ ...r, transfer: { ...(r.transfer||{}), requireRef: e.target.checked } }))} />} label="طلب مرجع الحوالة" />
+          </Paper>
+        </Grid>
+      </Grid>
 
-      <div className="flex items-center gap-2">
-        <button disabled={!online || saving} onClick={save} className={`px-4 py-2 rounded ${(!online||saving)?'bg-gray-200 text-gray-500':'bg-blue-600 text-white'}`}>حفظ</button>
-        {!online && <span className="text-xs text-neutral-600">يتطلب هذا الإجراء اتصالاً بالإنترنت.</span>}
-      </div>
-    </div>
+      <Grid container spacing={1} alignItems="center" sx={{ mt: 2 }}>
+        <Grid item>
+          <Button variant="contained" onClick={save} disabled={!online || saving}>حفظ</Button>
+        </Grid>
+        {!online && (
+          <Grid item>
+            <Typography variant="caption" color="text.secondary">يتطلب هذا الإجراء اتصالاً بالإنترنت.</Typography>
+          </Grid>
+        )}
+      </Grid>
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

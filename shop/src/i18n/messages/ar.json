@@ -106,6 +106,9 @@
     "settings": "الإعدادات",
     "notifications": "الإشعارات"
   },
+  "customers": {
+    "select": "اختر العميل"
+  },
   "reports": {
     "title": "التقارير",
     "daily": "اليومي",
@@ -257,7 +260,8 @@
     "discounts": "التخفيضات",
     "totalSavings": "إجمالي التوفير",
     "pendingCoupon": "قيد التحقق من القسيمة",
-    "location": "الموقع"
+    "location": "الموقع",
+    "removeLineConfirm": "هل تريد حذف هذا العنصر من السلة؟"
   },
   "layaway": {
     "title": "تقسيط/الحجوزات",
@@ -286,7 +290,8 @@
   "common": {
     "confirm": "تأكيد",
     "close": "إغلاق",
-    "remove": "حذف"
+    "remove": "حذف",
+    "cancel": "إلغاء"
   },
   "offline": {
     "fallback": {

@@ -2,59 +2,55 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { Box, Button, Stack, Typography, Snackbar, Alert } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import type { GridColDef } from '@mui/x-data-grid';
 
 export default function CouponsPage() {
   const t = useTranslations();
-  const [codes, setCodes] = useState<any[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/coupons');
+        const res = await fetch('/api/coupons', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setCodes(data.coupons || []);
+          setRows(data.coupons || []);
+        } else {
+          setSnack({ open: true, message: 'تعذر تحميل القسائم', severity: 'error' });
         }
+      } catch {
+        setSnack({ open: true, message: 'تعذر تحميل القسائم', severity: 'error' });
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  if (loading) return <div className="p-4">…</div>;
+  const columns: GridColDef[] = [
+    { field: 'code', headerName: 'الكود', width: 200, renderCell: (p) => <bdi dir="ltr">{String(p.value || '')}</bdi> },
+    { field: 'value', headerName: 'القيمة', width: 140 },
+    { field: 'type', headerName: 'النوع', width: 160 },
+    { field: 'active', headerName: 'الحالة', width: 140, valueFormatter: (p) => (p.value ? 'نشط' : 'متوقف') },
+  ];
 
   return (
-    <main className="p-4" dir="rtl">
-      <div className="flex items-center mb-3">
-        <h1 className="text-xl font-semibold">القسائم</h1>
-        <Link href="/coupons/new-batch" className="ms-auto px-3 py-1 rounded bg-emerald-600 text-white">توليد مجموعة</Link>
-      </div>
-      <div className="border rounded overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-start p-2">الكود</th>
-              <th className="text-start p-2">القيمة</th>
-              <th className="text-start p-2">النوع</th>
-              <th className="text-start p-2">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {codes.map((c) => (
-              <tr key={c._id} className="border-t">
-                <td className="p-2"><bdi dir="ltr">{c.code}</bdi></td>
-                <td className="p-2">{c.value}</td>
-                <td className="p-2">{c.type}</td>
-                <td className="p-2">{c.active ? 'نشط' : 'متوقف'}</td>
-              </tr>
-            ))}
-            {codes.length === 0 && (
-              <tr><td colSpan={4} className="p-3 text-center text-muted-foreground">—</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" alignItems="center">
+        <Typography variant="h6" fontWeight={600}>القسائم</Typography>
+        <Button onClick={() => { window.location.href='/coupons/new-batch'; }} variant="contained" color="success" sx={{ ml: 'auto' }}>توليد مجموعة</Button>
+      </Stack>
+
+      <DataTable rows={rows} columns={columns} loading={loading} getRowId={(r) => (r as any)._id} autoHeight />
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }

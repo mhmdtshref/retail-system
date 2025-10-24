@@ -49,7 +49,7 @@ export default function RefundsPage() {
     { field: 'amount', headerName: 'المبلغ', width: 140, valueFormatter: (p) => Number(p.value).toLocaleString('ar-SA') },
     { field: 'status', headerName: 'الحالة', width: 140, renderCell: (p) => (
       <Stack direction="row" spacing={1} alignItems="center">
-        <span>{p.value as string}</span>
+        <Typography component="span">{p.value as string}</Typography>
         {(p.value as string) === 'pending' && (
           <>
             <Button size="small" variant="contained" color="success" onClick={async ()=> { await fetch(`/api/refunds/${(p.row as Refund)._id}/confirm`, { method: 'POST' }); await load(); }}>تأكيد</Button>

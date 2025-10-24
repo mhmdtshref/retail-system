@@ -2,6 +2,7 @@
 import { ReceiptData } from '@/lib/pos/types';
 import { useEffect, useState } from 'react';
 import { getCachedSettings } from '@/lib/offline/settings-cache';
+import { Box, Divider, Stack, Typography } from '@mui/material';
 
 export function Receipt({ data }: { data: ReceiptData }) {
   const [tpl, setTpl] = useState<any | null>(null);
@@ -20,119 +21,110 @@ export function Receipt({ data }: { data: ReceiptData }) {
     })();
   }, []);
   return (
-    <div dir="rtl" className="receipt w-[80mm] mx-auto text-sm">
-      {tpl?.header?.ar && <div className="header text-center mb-2">{tpl.header.ar}</div>}
-      <div className="text-center font-semibold mb-2">الإيصال</div>
-      <div className="space-y-1">
+    <Box dir="rtl" sx={{ width: '80mm', mx: 'auto', fontSize: 14 }}>
+      {tpl?.header?.ar && <Typography align="center" sx={{ mb: 1 }}>{tpl.header.ar}</Typography>}
+      <Typography align="center" fontWeight={600} sx={{ mb: 1 }}>الإيصال</Typography>
+      <Stack spacing={0.5}>
         {data.lines.map((l) => (
-          <div key={l.sku} className="flex items-center justify-between">
-            <div className="truncate">
+          <Stack key={l.sku} direction="row" alignItems="center" justifyContent="space-between">
+            <Typography sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {l.name}{(l.size || l.color) ? ` (${[l.size, l.color].filter(Boolean).join(', ')})` : ''}
-            </div>
-            <div>{l.qty} × {l.price.toFixed(2)}</div>
-          </div>
+            </Typography>
+            <Typography>{l.qty} × {l.price.toFixed(2)}</Typography>
+          </Stack>
         ))}
-      </div>
-      <hr className="my-2" />
-      <div className="space-y-1">
+      </Stack>
+      <Divider sx={{ my: 1 }} />
+      <Stack spacing={0.25}>
         {data.payments.map((p) => (
-          <div key={p.seq} className="flex items-center justify-between text-xs">
-            <div>
+          <Stack key={p.seq} direction="row" alignItems="center" justifyContent="space-between" sx={{ fontSize: 12 }}>
+            <Typography variant="caption">
               {p.method === 'cash' && 'دفع نقدًا'}
               {p.method === 'card' && `طريقة الدفع: بطاقة`}
               {p.method === 'transfer' && `حوالة بنكية`}
               {p.method === 'store_credit' && `تم استخدام رصيد المتجر`}
               {p.meta?.reservationNote ? ` (${p.meta?.reservationNote})` : ''}
-            </div>
-            <div>{p.amount.toFixed(2)}</div>
-          </div>
+            </Typography>
+            <Typography variant="caption">{p.amount.toFixed(2)}</Typography>
+          </Stack>
         ))}
-      </div>
-      <hr className="my-2" />
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <div>المجموع قبل الضريبة</div>
-          <div>{data.totals.subtotal.toFixed(2)}</div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>الضريبة</div>
-          <div>{data.totals.tax.toFixed(2)}</div>
-        </div>
+      </Stack>
+      <Divider sx={{ my: 1 }} />
+      <Stack spacing={0.5}>
+        <Stack direction="row" justifyContent="space-between"><Typography>المجموع قبل الضريبة</Typography><Typography>{data.totals.subtotal.toFixed(2)}</Typography></Stack>
+        <Stack direction="row" justifyContent="space-between"><Typography>الضريبة</Typography><Typography>{data.totals.tax.toFixed(2)}</Typography></Stack>
         {data.appliedDiscounts && data.appliedDiscounts.length > 0 && (
-          <div className="mt-1">
-            <div className="font-medium">التخفيضات</div>
+          <Box sx={{ mt: 0.5 }}>
+            <Typography fontWeight={600}>التخفيضات</Typography>
             {data.appliedDiscounts.map((d) => (
-              <div key={d.traceId} className="flex items-center justify-between text-xs">
-                <div>{d.label}</div>
-                <div>-{Number(d.amount || 0).toFixed(2)}</div>
-              </div>
+              <Stack key={d.traceId} direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+                <Typography variant="caption">{d.label}</Typography>
+                <Typography variant="caption">-{Number(d.amount || 0).toFixed(2)}</Typography>
+              </Stack>
             ))}
-            <div className="flex items-center justify-between text-xs">
-              <div>إجمالي التوفير</div>
-              <div>-{data.appliedDiscounts.reduce((s: number, a: any)=> s + (a.amount || 0), 0).toFixed(2)}</div>
-            </div>
+            <Stack direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+              <Typography variant="caption">إجمالي التوفير</Typography>
+              <Typography variant="caption">-{data.appliedDiscounts.reduce((s: number, a: any)=> s + (a.amount || 0), 0).toFixed(2)}</Typography>
+            </Stack>
             {data.pendingCouponRedemption && (
-              <div className="text-amber-700 text-xs mt-1">قيد التحقق من القسيمة</div>
+              <Typography color="warning.main" sx={{ fontSize: 11, mt: 0.5 }}>قيد التحقق من القسيمة</Typography>
             )}
-          </div>
+          </Box>
         )}
         {typeof data.totals.roundingAdj === 'number' && data.totals.roundingAdj !== 0 && (
-          <div className="flex items-center justify-between text-xs">
-            <div>تعديل التقريب</div>
-            <div>{data.totals.roundingAdj > 0 ? '+' : ''}{data.totals.roundingAdj.toFixed(2)}</div>
-          </div>
+          <Stack direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+            <Typography variant="caption">تعديل التقريب</Typography>
+            <Typography variant="caption">{data.totals.roundingAdj > 0 ? '+' : ''}{data.totals.roundingAdj.toFixed(2)}</Typography>
+          </Stack>
         )}
-        <div className="flex items-center justify-between">
-          <div className="font-medium">الإجمالي النهائي</div>
-          <div className="font-medium">{data.totals.grand.toFixed(2)}</div>
-        </div>
+        <Stack direction="row" justifyContent="space-between"><Typography fontWeight={600}>الإجمالي النهائي</Typography><Typography fontWeight={600}>{data.totals.grand.toFixed(2)}</Typography></Stack>
         {data.totals.taxByRate && data.totals.taxByRate.length > 0 && (
-          <div className="mt-2 text-[11px]">
-            <div className="font-medium">ملخص الضريبة حسب النسبة</div>
+          <Box sx={{ mt: 1, fontSize: 11 }}>
+            <Typography fontWeight={600}>ملخص الضريبة حسب النسبة</Typography>
             {data.totals.taxByRate.map((r)=> (
-              <div key={r.rate} className="flex items-center justify-between">
-                <div>{Math.round(r.rate*100)}%</div>
-                <div>{r.taxable.toFixed(2)} / {r.tax.toFixed(2)}</div>
-              </div>
+              <Stack key={r.rate} direction="row" justifyContent="space-between">
+                <Typography>{Math.round(r.rate*100)}%</Typography>
+                <Typography>{r.taxable.toFixed(2)} / {r.tax.toFixed(2)}</Typography>
+              </Stack>
             ))}
-          </div>
+          </Box>
         )}
         {data.totals.priceMode === 'tax_inclusive' && (
-          <div className="text-[11px] text-neutral-600">الأسعار تشمل الضريبة</div>
+          <Typography sx={{ fontSize: 11 }} color="text.secondary">الأسعار تشمل الضريبة</Typography>
         )}
-      </div>
+      </Stack>
       {data.paymentPlan?.mode === 'partial' && (
-        <div className="mt-2">
-          <div className="font-medium">تفاصيل التقسيط</div>
-          <div className="flex items-center justify-between text-xs">
-            <div>الدفعة المقدمة</div>
-            <div>{data.paymentPlan.downPayment.toFixed(2)}</div>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <div>المتبقي</div>
-            <div>{data.paymentPlan.remaining.toFixed(2)}</div>
-          </div>
+        <Box sx={{ mt: 1 }}>
+          <Typography fontWeight={600}>تفاصيل التقسيط</Typography>
+          <Stack direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+            <Typography variant="caption">الدفعة المقدمة</Typography>
+            <Typography variant="caption">{data.paymentPlan.downPayment.toFixed(2)}</Typography>
+          </Stack>
+          <Stack direction="row" justifyContent="space-between" sx={{ fontSize: 12 }}>
+            <Typography variant="caption">المتبقي</Typography>
+            <Typography variant="caption">{data.paymentPlan.remaining.toFixed(2)}</Typography>
+          </Stack>
           {data.paymentPlan.expiresAt && (
-            <div className="text-xs">البضاعة محجوزة حتى {new Date(data.paymentPlan.expiresAt).toLocaleDateString()}</div>
+            <Typography sx={{ fontSize: 12 }}>البضاعة محجوزة حتى {new Date(data.paymentPlan.expiresAt).toLocaleDateString()}</Typography>
           )}
           {data.paymentPlan.schedule && data.paymentPlan.schedule.length > 0 && (
-            <div className="mt-1 border rounded p-1 text-[11px]">
+            <Box sx={{ mt: 0.5, border: (t)=> `1px solid ${t.palette.divider}`, borderRadius: 1, p: 0.5, fontSize: 11 }}>
               {data.paymentPlan.schedule.map((s) => (
-                <div key={s.seq} className="flex justify-between">
-                  <div>#{s.seq}</div>
-                  <div dir="ltr">{new Date(s.dueDate).toLocaleDateString()}</div>
-                  <div>{s.amount.toFixed(2)}</div>
-                </div>
+                <Stack key={s.seq} direction="row" justifyContent="space-between">
+                  <Typography>#{s.seq}</Typography>
+                  <Typography dir="ltr">{new Date(s.dueDate).toLocaleDateString()}</Typography>
+                  <Typography>{s.amount.toFixed(2)}</Typography>
+                </Stack>
               ))}
-            </div>
+            </Box>
           )}
-        </div>
+        </Box>
       )}
       {data.offlinePending && (
-        <div className="mt-2 text-amber-700">سيتم مزامنة الفاتورة عند توفر الاتصال</div>
+        <Typography color="warning.main" sx={{ mt: 1 }}>سيتم مزامنة الفاتورة عند توفر الاتصال</Typography>
       )}
-      {tpl?.footer?.ar && <div className="footer text-center mt-2">{tpl.footer.ar}</div>}
-    </div>
+      {tpl?.footer?.ar && <Typography align="center" sx={{ mt: 1 }}>{tpl.footer.ar}</Typography>}
+    </Box>
   );
 }
 

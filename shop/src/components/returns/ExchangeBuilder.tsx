@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Search } from '@/components/pos/Search';
 import { enqueueExchangeCreate } from '@/lib/outbox';
 import { uuid } from '@/lib/pos/idempotency';
+import { Box, Button, Stack, Typography, TextField, Select, MenuItem, Paper, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 
 type SaleLine = { sku: string; soldQty: number; returnedQty: number; eligibleQty: number; unitPrice?: number };
 type SaleSummary = { saleId: string; receiptNo: string; date?: number; lines: SaleLine[] };
@@ -31,98 +32,98 @@ export function ExchangeBuilder({ sale }: { sale: SaleSummary }) {
 		});
 	}
 
-	async function finalize() {
+  async function finalize() {
 		const returnLines = sale.lines.filter((l) => (ret[l.sku] || 0) > 0).map((l) => ({ sku: l.sku, qty: ret[l.sku], unitPrice: l.unitPrice || 0, reason: 'استبدال' }));
 		const newLines = cart.map((c) => ({ sku: c.sku, qty: c.qty, unitPrice: c.unitPrice }));
 		if (!returnLines.length || !newLines.length) return;
     const localId = uuid();
     await enqueueExchangeCreate({ localId, originalSaleId: sale.saleId, returnLines, newLines, settlement: { customerOwes, shopOwes, paidMethod: customerOwes > 0 ? (paidMethod as any) : undefined, refundMethod: shopOwes > 0 ? (refundMethod as any) : undefined } });
     try { await fetch('/api/inventory/availability/bulk', { method: 'GET' }); } catch {}
-    alert('تم إنشاء الاستبدال. سيتم المزامنة عند توفر الإنترنت.');
+    // Show success via upstream Snackbar on parent if any; otherwise it's fine to be silent
 	}
 
 	return (
-		<div className="space-y-4">
-			<div className="flex gap-2">
-				<button className={`px-3 py-1 rounded ${step===1?'bg-black text-white':'bg-gray-200'}`} onClick={() => setStep(1)}>1) اختيار عناصر الإرجاع</button>
-				<button className={`px-3 py-1 rounded ${step===2?'bg-black text-white':'bg-gray-200'}`} onClick={() => setStep(2)}>2) اختيار عناصر الاستبدال</button>
-				<button className={`px-3 py-1 rounded ${step===3?'bg-black text-white':'bg-gray-200'}`} onClick={() => setStep(3)}>3) التسوية</button>
-			</div>
+		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+			<Stack direction="row" spacing={1}>
+				<Button variant={step===1? 'contained':'outlined'} onClick={() => setStep(1)}>1) اختيار عناصر الإرجاع</Button>
+				<Button variant={step===2? 'contained':'outlined'} onClick={() => setStep(2)}>2) اختيار عناصر الاستبدال</Button>
+				<Button variant={step===3? 'contained':'outlined'} onClick={() => setStep(3)}>3) التسوية</Button>
+			</Stack>
 			{step === 1 && (
-				<table className="w-full text-right">
-					<thead>
-						<tr className="text-sm text-gray-600">
-							<th className="p-2">الصنف</th>
-							<th className="p-2">المتاح</th>
-							<th className="p-2">السعر</th>
-							<th className="p-2">الكمية</th>
-						</tr>
-					</thead>
-					<tbody>
+				<Table size="small">
+					<TableHead>
+						<TableRow>
+							<TableCell align="right">الصنف</TableCell>
+							<TableCell align="right">المتاح</TableCell>
+							<TableCell align="right">السعر</TableCell>
+							<TableCell align="right">الكمية</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
 						{sale.lines.map((l) => {
 							const q = ret[l.sku] || 0;
 							const max = l.eligibleQty;
 							return (
-								<tr key={l.sku} className="border-t">
-									<td className="p-2"><bdi dir="ltr">{l.sku}</bdi></td>
-									<td className="p-2 text-sm">{max}</td>
-									<td className="p-2 text-sm">{(l.unitPrice || 0).toLocaleString('ar-SA')}</td>
-									<td className="p-2">
-										<input type="number" min={0} max={max} value={q} onChange={(e) => setRet((p) => ({ ...p, [l.sku]: Math.max(0, Math.min(max, Number(e.target.value))) }))} className="w-20 border rounded px-2 py-1" />
-									</td>
-								</tr>
+								<TableRow key={l.sku} hover>
+									<TableCell align="right"><bdi dir="ltr">{l.sku}</bdi></TableCell>
+									<TableCell align="right">{max}</TableCell>
+									<TableCell align="right">{(l.unitPrice || 0).toLocaleString('ar-SA')}</TableCell>
+									<TableCell align="right">
+										<TextField size="small" type="number" inputProps={{ min: 0, max }} value={q} onChange={(e) => setRet((p) => ({ ...p, [l.sku]: Math.max(0, Math.min(max, Number(e.target.value))) }))} sx={{ width: 90 }} />
+									</TableCell>
+								</TableRow>
 							);
 						})}
-					</tbody>
-				</table>
+					</TableBody>
+				</Table>
 			)}
 			{step === 2 && (
-				<div className="space-y-3">
+				<Stack spacing={1}>
 					<Search onAdd={(l) => addToCart(l)} />
-					<div className="border rounded divide-y">
+					<Paper variant="outlined">
 						{cart.map((c) => (
-							<div key={c.sku} className="flex items-center gap-2 p-2">
-								<div className="flex-1 text-right"><bdi dir="ltr">{c.sku}</bdi></div>
-								<input type="number" min={1} value={c.qty} onChange={(e) => setCart((prev) => prev.map((x) => x.sku===c.sku?{...x, qty: Math.max(1, Number(e.target.value))}:x))} className="w-20 border rounded px-2 py-1" />
-								<div>{(c.unitPrice * c.qty).toLocaleString('ar-SA')}</div>
-								<button onClick={() => setCart((prev) => prev.filter((x) => x.sku !== c.sku))} className="px-2 py-1 text-red-600">حذف</button>
-							</div>
+							<Stack key={c.sku} direction="row" alignItems="center" spacing={1} sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+								<Typography sx={{ flex: 1, textAlign: 'right' }}><bdi dir="ltr">{c.sku}</bdi></Typography>
+								<TextField size="small" type="number" inputProps={{ min: 1 }} value={c.qty} onChange={(e) => setCart((prev) => prev.map((x) => x.sku===c.sku?{...x, qty: Math.max(1, Number(e.target.value))}:x))} sx={{ width: 90 }} />
+								<Typography>{(c.unitPrice * c.qty).toLocaleString('ar-SA')}</Typography>
+								<Button color="error" onClick={() => setCart((prev) => prev.filter((x) => x.sku !== c.sku))}>حذف</Button>
+							</Stack>
 						))}
-					</div>
-					<div className="text-right">الإجمالي: {newTotal.toLocaleString('ar-SA')}</div>
-				</div>
+					</Paper>
+					<Typography textAlign="right">الإجمالي: {newTotal.toLocaleString('ar-SA')}</Typography>
+				</Stack>
 			)}
 			{step === 3 && (
-				<div className="space-y-3">
-					<div>إرجاع: {returnedTotal.toLocaleString('ar-SA')} — جديد: {newTotal.toLocaleString('ar-SA')}</div>
+				<Stack spacing={1}>
+					<Typography>إرجاع: {returnedTotal.toLocaleString('ar-SA')} — جديد: {newTotal.toLocaleString('ar-SA')}</Typography>
 					{customerOwes > 0 ? (
-						<div className="flex items-center gap-2">
-							<div>المبلغ المستحق على العميل:</div>
-							<div className="font-semibold">{customerOwes.toLocaleString('ar-SA')}</div>
-							<select value={paidMethod} onChange={(e) => setPaidMethod(e.target.value as any)} className="border rounded px-2 py-1">
-								<option value="">اختر طريقة الدفع</option>
-								<option value="cash">نقدًا</option>
-								<option value="card">بطاقة</option>
-							</select>
-						</div>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<Typography>المبلغ المستحق على العميل:</Typography>
+							<Typography fontWeight={600}>{customerOwes.toLocaleString('ar-SA')}</Typography>
+							<Select size="small" value={paidMethod} onChange={(e) => setPaidMethod(e.target.value as any)} displayEmpty sx={{ minWidth: 180 }}>
+								<MenuItem value="">اختر طريقة الدفع</MenuItem>
+								<MenuItem value="cash">نقدًا</MenuItem>
+								<MenuItem value="card">بطاقة</MenuItem>
+							</Select>
+						</Stack>
 					) : shopOwes > 0 ? (
-						<div className="flex items-center gap-2">
-							<div>المبلغ المسترد للعميل:</div>
-							<div className="font-semibold">{shopOwes.toLocaleString('ar-SA')}</div>
-							<select value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as any)} className="border rounded px-2 py-1">
-								<option value="">اختر طريقة الاسترداد</option>
-								<option value="cash">نقدًا</option>
-								<option value="card">بطاقة</option>
-								<option value="store_credit">رصيد متجر</option>
-							</select>
-						</div>
+						<Stack direction="row" spacing={1} alignItems="center">
+							<Typography>المبلغ المسترد للعميل:</Typography>
+							<Typography fontWeight={600}>{shopOwes.toLocaleString('ar-SA')}</Typography>
+							<Select size="small" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as any)} displayEmpty sx={{ minWidth: 180 }}>
+								<MenuItem value="">اختر طريقة الاسترداد</MenuItem>
+								<MenuItem value="cash">نقدًا</MenuItem>
+								<MenuItem value="card">بطاقة</MenuItem>
+								<MenuItem value="store_credit">رصيد متجر</MenuItem>
+							</Select>
+						</Stack>
 					) : (
-						<div>لا يوجد فرق في المبلغ.</div>
+						<Typography>لا يوجد فرق في المبلغ.</Typography>
 					)}
-					<button onClick={finalize} className="px-4 py-2 bg-green-600 text-white rounded">إنهاء الاستبدال</button>
-				</div>
+					<Button onClick={finalize} variant="contained" color="success">إنهاء الاستبدال</Button>
+				</Stack>
 			)}
-		</div>
+		</Box>
 	);
 }
 

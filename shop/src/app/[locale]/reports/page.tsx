@@ -1,19 +1,21 @@
 "use client";
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Box, Button, Stack, Typography } from '@mui/material';
 
 export default function ReportsHub() {
   const t = useTranslations('reports');
+  const router = useRouter();
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">{t('title')}</h1>
-      <div className="flex gap-2">
-        <Link href="/ar/reports/daily" className="px-3 py-2 border rounded">{t('daily')}</Link>
-        <Link href="/ar/reports/aging" className="px-3 py-2 border rounded">{t('aging')}</Link>
-        <Link href="/ar/reports/valuation" className="px-3 py-2 border rounded">{t('valuation')}</Link>
-        <Link href="/ar/reports/accounting" className="px-3 py-2 border rounded">التقارير المحاسبية</Link>
-      </div>
-    </div>
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography variant="h6" fontWeight={600}>{t('title')}</Typography>
+      <Stack direction="row" spacing={1}>
+        <Button onClick={() => router.push('/ar/reports/daily')} variant="outlined">{t('daily')}</Button>
+        <Button onClick={() => router.push('/ar/reports/aging')} variant="outlined">{t('aging')}</Button>
+        <Button onClick={() => router.push('/ar/reports/valuation')} variant="outlined">{t('valuation')}</Button>
+        <Button onClick={() => router.push('/ar/reports/accounting')} variant="outlined">التقارير المحاسبية</Button>
+      </Stack>
+    </Box>
   );
 }
 

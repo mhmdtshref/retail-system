@@ -56,7 +56,7 @@ export default async function ObservabilityPage() {
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="h6" fontWeight={600} dir="rtl">المراقبة</Typography>
-      <Suspense fallback={<div>...</div>}><Cards data={data} /></Suspense>
+      <Suspense fallback={<Box>...</Box>}><Cards data={data} /></Suspense>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
         <Box>
           <Typography fontWeight={600} mb={1} dir="rtl">أحدث الأخطاء</Typography>

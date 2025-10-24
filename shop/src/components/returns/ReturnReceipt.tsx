@@ -1,32 +1,31 @@
 "use client";
+import { Box, Divider, Table, TableBody, TableRow, TableCell, Typography } from '@mui/material';
 export function ReturnReceipt({ rma, saleId, lines, refund, pending }: { rma: string; saleId: string; lines: Array<{ sku: string; qty: number; unitPrice: number }>; refund?: { method: string; amount: number }; pending?: boolean }) {
 	const total = lines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
 	return (
-		<div className="receipt w-[300px] text-right" dir="rtl">
-			<div className="text-center font-bold text-lg">إيصال الإرجاع</div>
-			{pending && <div className="text-center text-red-600">معلّق للمزامنة</div>}
-			<div>RMA: <bdi dir="ltr">{rma}</bdi></div>
-			<div>الإيصال الأصلي: <bdi dir="ltr">{saleId.slice(-6)}</bdi></div>
-			<hr />
-			<table className="w-full text-sm">
-				<tbody>
+		<Box dir="rtl" sx={{ width: 300, textAlign: 'right' }}>
+			<Typography align="center" fontWeight={700}>إيصال الإرجاع</Typography>
+			{pending && <Typography align="center" color="error">معلّق للمزامنة</Typography>}
+			<Typography>RMA: <bdi dir="ltr">{rma}</bdi></Typography>
+			<Typography>الإيصال الأصلي: <bdi dir="ltr">{saleId.slice(-6)}</bdi></Typography>
+			<Divider sx={{ my: 1 }} />
+			<Table size="small" aria-label="return-lines">
+				<TableBody>
 					{lines.map((l, idx) => (
-						<tr key={idx}>
-							<td><bdi dir="ltr">{l.sku}</bdi></td>
-							<td>x{l.qty}</td>
-							<td>{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</td>
-						</tr>
+						<TableRow key={idx}>
+							<TableCell align="right"><bdi dir="ltr">{l.sku}</bdi></TableCell>
+							<TableCell align="right">x{l.qty}</TableCell>
+							<TableCell align="right">{(l.qty * l.unitPrice).toLocaleString('ar-SA')}</TableCell>
+						</TableRow>
 					))}
-				</tbody>
-			</table>
-			<hr />
-      <div>الإجمالي المسترد: {total.toLocaleString('ar-SA')}</div>
-      {refund && (
-        <div>
-          طريقة الاسترداد: {refund.method === 'store_credit' ? 'رصيد المتجر' : refund.method}
-        </div>
-      )}
-		</div>
+				</TableBody>
+			</Table>
+			<Divider sx={{ my: 1 }} />
+		  <Typography>الإجمالي المسترد: {total.toLocaleString('ar-SA')}</Typography>
+		  {refund && (
+		    <Typography>طريقة الاسترداد: {refund.method === 'store_credit' ? 'رصيد المتجر' : refund.method}</Typography>
+		  )}
+		</Box>
 	);
 }
 

@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { ProductLite } from '@/lib/db/posDexie';
 import { useTranslations } from 'next-intl';
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 
 type Props = {
   productName: string;
@@ -20,40 +21,38 @@ export function VariantPicker({ productName, variants, onClose, onConfirm }: Pro
   const candidate = variants.find(v => (selectedSize ? v.size === selectedSize : true) && (selectedColor ? v.color === selectedColor : true)) || variants[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40">
-      <div className="w-full rounded-t-2xl bg-white dark:bg-neutral-900 p-4 border-t">
-        <div className="flex items-center justify-between mb-3">
-          <div className="font-semibold">{productName}</div>
-          <button onClick={onClose} className="text-sm">{t('common.close') || 'إغلاق'}</button>
-        </div>
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>{productName}</DialogTitle>
+      <DialogContent>
         {sizes.length > 0 && (
-          <div className="mb-3">
-            <div className="text-sm mb-1">{t('pos.size') || 'المقاس'}</div>
-            <div className="flex flex-wrap gap-2">
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ display: 'block', mb: 0.5 }}>{t('pos.size') || 'المقاس'}</Typography>
+            <Stack direction="row" flexWrap="wrap" gap={1}>
               {sizes.map(s => (
-                <button key={s} onClick={() => setSelectedSize(s)} className={`px-3 py-1 rounded border ${selectedSize===s? 'bg-blue-600 text-white border-blue-600':'bg-transparent'}`}>{s}</button>
+                <Chip key={s} label={s} color={selectedSize===s? 'primary': 'default'} onClick={() => setSelectedSize(s)} variant={selectedSize===s? 'filled':'outlined'} />
               ))}
-            </div>
-          </div>
+            </Stack>
+          </Box>
         )}
         {colors.length > 0 && (
-          <div className="mb-3">
-            <div className="text-sm mb-1">{t('pos.color') || 'اللون'}</div>
-            <div className="flex flex-wrap gap-2">
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ display: 'block', mb: 0.5 }}>{t('pos.color') || 'اللون'}</Typography>
+            <Stack direction="row" flexWrap="wrap" gap={1}>
               {colors.map(c => (
-                <button key={c} onClick={() => setSelectedColor(c)} className={`px-3 py-1 rounded border ${selectedColor===c? 'bg-blue-600 text-white border-blue-600':'bg-transparent'}`}>{c}</button>
+                <Chip key={c} label={c} color={selectedColor===c? 'primary': 'default'} onClick={() => setSelectedColor(c)} variant={selectedColor===c? 'filled':'outlined'} />
               ))}
-            </div>
-          </div>
+            </Stack>
+          </Box>
         )}
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-500"><bdi dir="ltr">{candidate?.sku}</bdi></div>
-          <button className="px-4 py-2 rounded bg-emerald-600 text-white" onClick={() => candidate && onConfirm(candidate)}>
-            {t('common.confirm') || 'تأكيد'}
-          </button>
-        </div>
-      </div>
-    </div>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1 }}>
+          <Typography variant="caption" color="text.secondary"><bdi dir="ltr">{candidate?.sku}</bdi></Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.close') || 'إغلاق'}</Button>
+        <Button onClick={() => candidate && onConfirm(candidate)} variant="contained" color="success">{t('common.confirm') || 'تأكيد'}</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

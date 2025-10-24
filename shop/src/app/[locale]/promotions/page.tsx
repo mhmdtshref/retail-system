@@ -2,65 +2,59 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { Box, Button, Stack, Typography, Snackbar, Alert } from '@mui/material';
+import { DataTable } from '@/components/mui/DataTable';
+import type { GridColDef } from '@mui/x-data-grid';
 
 export default function PromotionsPage() {
   const t = useTranslations();
-  const [items, setItems] = useState<any[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success'|'info'|'warning'|'error' }>({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/promotions');
+        const res = await fetch('/api/promotions', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setItems(data.promotions || []);
+          setRows(data.promotions || []);
+        } else {
+          setSnack({ open: true, message: 'تعذر تحميل العروض', severity: 'error' });
         }
+      } catch {
+        setSnack({ open: true, message: 'تعذر تحميل العروض', severity: 'error' });
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  if (loading) return <div className="p-4">…</div>;
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: 'الاسم', flex: 1, minWidth: 160 },
+    { field: 'type', headerName: 'النوع', width: 140 },
+    { field: 'level', headerName: 'المستوى', width: 140 },
+    { field: 'priority', headerName: 'الأولوية', width: 120 },
+    { field: 'active', headerName: 'الحالة', width: 120, valueFormatter: (p) => (p.value ? 'نشط' : 'متوقف') },
+    { field: 'actions', headerName: 'إجراءات', width: 140, sortable: false, filterable: false, renderCell: (p) => (
+      <Button size="small" variant="outlined" onClick={() => { window.location.href = `/promotions/${(p.row as any)._id}`; }}>عرض</Button>
+    ) },
+  ];
 
   return (
-    <main className="p-4" dir="rtl">
-      <div className="flex items-center mb-3">
-        <h1 className="text-xl font-semibold">العروض</h1>
-        <Link href="/promotions/new" className="ms-auto px-3 py-1 rounded bg-emerald-600 text-white">جديد</Link>
-      </div>
-      <div className="border rounded overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-start p-2">الاسم</th>
-              <th className="text-start p-2">النوع</th>
-              <th className="text-start p-2">المستوى</th>
-              <th className="text-start p-2">الأولوية</th>
-              <th className="text-start p-2">الحالة</th>
-              <th className="text-start p-2">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((p) => (
-              <tr key={p._id} className="border-t">
-                <td className="p-2">{p.name}</td>
-                <td className="p-2">{p.type}</td>
-                <td className="p-2">{p.level}</td>
-                <td className="p-2">{p.priority}</td>
-                <td className="p-2">{p.active ? 'نشط' : 'متوقف'}</td>
-                <td className="p-2 flex gap-2">
-                  <Link href={`/promotions/${p._id}`} className="px-2 py-1 rounded border">عرض</Link>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr><td colSpan={6} className="p-3 text-center text-muted-foreground">—</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+    <Box component="main" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }} dir="rtl">
+      <Stack direction="row" alignItems="center">
+        <Typography variant="h6" fontWeight={600}>العروض</Typography>
+        <Button onClick={() => { window.location.href='/promotions/new'; }} variant="contained" color="success" sx={{ ml: 'auto' }}>جديد</Button>
+      </Stack>
+
+      <DataTable rows={rows} columns={columns} loading={loading} getRowId={(r) => (r as any)._id} autoHeight />
+
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack({ ...snack, open: false })}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }

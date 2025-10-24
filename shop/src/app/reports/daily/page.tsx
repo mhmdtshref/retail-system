@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Alert, Box, Grid, Paper, Stack, TextField, Typography } from '@mui/material';
 
 function todayIso() {
   const d = new Date();
@@ -47,25 +48,27 @@ export default function DailyReportPage() {
   }, [data, t]);
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold">{t('daily')}</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1">{t('filters.dateFrom')}<input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="border rounded px-2 py-1" /></label>
-        <label className="flex items-center gap-1">{t('filters.dateTo')}<input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="border rounded px-2 py-1" /></label>
-      </div>
-      {loading && <div>...</div>}
-      {error && <div className="text-rose-600">{error}</div>}
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Typography variant="h6" fontWeight={600}>{t('daily')}</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+        <TextField size="small" type="date" value={from} onChange={(e)=> setFrom(e.target.value)} />
+        <TextField size="small" type="date" value={to} onChange={(e)=> setTo(e.target.value)} />
+      </Stack>
+      {loading && <Typography variant="body2">...</Typography>}
+      {error && <Typography color="error.main" variant="body2">{error}</Typography>}
       {data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Grid container spacing={1}>
           {kpis.map((k) => (
-            <div key={k.label} className="border rounded p-3 bg-white">
-              <div className="text-sm text-gray-500">{k.label}</div>
-              <div className="text-lg font-bold">{Number(k.value || 0).toFixed(2)}</div>
-            </div>
+            <Grid key={k.label} item xs={6} md={3}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary">{k.label}</Typography>
+                <Typography variant="h6" fontWeight={700}>{Number(k.value || 0).toFixed(2)}</Typography>
+              </Paper>
+            </Grid>
           ))}
-        </div>
+        </Grid>
       )}
-    </div>
+    </Box>
   );
 }
 

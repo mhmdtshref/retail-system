@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { normalizeToE164 } from '@/lib/phone';
 import { posDb } from '@/lib/db/posDexie';
 import { enqueueCustomerCreate } from '@/lib/outbox';
+import { Box, Button, Stack, TextField, Typography } from '@mui/material';
 
 type Props = { onCreated: (c: any) => void };
 
@@ -39,13 +40,15 @@ export function QuickCreate({ onCreated }: Props) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="text-sm">إنشاء سريع</div>
-      <input className="w-full border rounded px-2 py-1" placeholder="الاسم الكامل" value={name} onChange={(e)=> setName(e.target.value)} />
-      <input className="w-full border rounded px-2 py-1" placeholder="رقم الجوال" dir="ltr" value={phone} onChange={(e)=> setPhone(e.target.value)} />
-      {error && <div className="text-rose-600 text-xs">{error}</div>}
-      <button className="px-3 py-1.5 rounded bg-emerald-600 text-white disabled:opacity-50" disabled={pending} onClick={submit}>حفظ</button>
-    </div>
+    <Box>
+      <Typography variant="caption">إنشاء سريع</Typography>
+      <Stack spacing={1} sx={{ mt: 1 }}>
+        <TextField size="small" placeholder="الاسم الكامل" value={name} onChange={(e)=> setName(e.target.value)} fullWidth />
+        <TextField size="small" placeholder="رقم الجوال" inputProps={{ dir: 'ltr' }} value={phone} onChange={(e)=> setPhone(e.target.value)} fullWidth />
+        {error && <Typography color="error" variant="caption">{error}</Typography>}
+        <Button disabled={pending} onClick={submit} variant="contained" color="success">حفظ</Button>
+      </Stack>
+    </Box>
   );
 }
 

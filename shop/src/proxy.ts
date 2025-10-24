@@ -12,7 +12,13 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   let res = intl(req);
-  res = applySecurityHeaders(req, res, { cspImgDomains: ['data:', 'blob:'] });
+  res = applySecurityHeaders(req, res, {
+    cspImgDomains: ['data:', 'blob:'],
+    // Allow Clerk assets and connections
+    scriptSrcDomains: ['https://clerk.com', 'https://*.clerk.com', 'https://*.clerk.services'],
+    connectSrcDomains: ['https://*.clerk.com', 'https://*.clerk.services'],
+    frameSrcDomains: ['https://*.clerk.com', 'https://*.clerk.services'],
+  });
   if (isProtectedRoute(req)) {
     const session = await auth();
     if (!session.userId) {
@@ -28,3 +34,5 @@ export const config = {
     '/((?!_next|api|auth|offline|manifest\\.webmanifest|sw\\.js|icons|.*\\..*).*)',
   ],
 };
+
+

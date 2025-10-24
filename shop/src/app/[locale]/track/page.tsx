@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 
 export const metadata = {
   title: 'تتبع الطلب',
@@ -37,35 +38,30 @@ export default function TrackLookupPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto p-4" dir="rtl">
-      <h1 className="text-xl font-semibold mb-4">تتبع الطلب</h1>
+    <Box sx={{ maxWidth: 520, mx: 'auto', p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>تتبع الطلب</Typography>
       {!pendingOtp ? (
-        <form onSubmit={submitLookup} className="space-y-3">
-          <label className="block">
-            <span className="block text-sm mb-1">رقم الطلب</span>
-            <input value={orderCode} onChange={(e)=>setOrderCode(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="مثال: 123456" dir="ltr" required />
-          </label>
-          <label className="block">
-            <span className="block text-sm mb-1">البريد الإلكتروني أو الهاتف</span>
-            <input value={contact} onChange={(e)=>setContact(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="example@email.com أو 05xxxxxxxx" dir="ltr" required />
-          </label>
-          {error && <div className="text-red-600 text-sm">{String(error)}</div>}
-          <button type="submit" className="w-full bg-black text-white rounded py-2">تحقق</button>
-        </form>
+        <Paper component="form" onSubmit={submitLookup} sx={{ p: 2 }}>
+          <Stack spacing={2}>
+            <TextField label="رقم الطلب" value={orderCode} onChange={(e)=>setOrderCode(e.target.value)} inputProps={{ dir: 'ltr' }} placeholder="مثال: 123456" required />
+            <TextField label="البريد الإلكتروني أو الهاتف" value={contact} onChange={(e)=>setContact(e.target.value)} inputProps={{ dir: 'ltr' }} placeholder="example@email.com أو 05xxxxxxxx" required />
+            {error && <Typography color="error" variant="body2">{String(error)}</Typography>}
+            <Button type="submit" variant="contained">تحقق</Button>
+          </Stack>
+        </Paper>
       ) : (
-        <form onSubmit={submitOtp} className="space-y-3">
-          <div className="text-sm text-gray-600">تم إرسال رمز تحقق لمرة واحدة. أدخل الرمز للمتابعة.</div>
-          {debugOtp && <div className="text-xs text-gray-500">رمز تجريبي: {debugOtp}</div>}
-          <label className="block">
-            <span className="block text-sm mb-1">رمز التحقق</span>
-            <input value={otp} onChange={(e)=>setOtp(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="123456" dir="ltr" required />
-          </label>
-          {error && <div className="text-red-600 text-sm">{String(error)}</div>}
-          <button type="submit" className="w-full bg-black text-white rounded py-2">عرض التتبع</button>
-        </form>
+        <Paper component="form" onSubmit={submitOtp} sx={{ p: 2 }}>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">تم إرسال رمز تحقق لمرة واحدة. أدخل الرمز للمتابعة.</Typography>
+            {debugOtp && <Typography variant="caption" color="text.secondary">رمز تجريبي: {debugOtp}</Typography>}
+            <TextField label="رمز التحقق" value={otp} onChange={(e)=>setOtp(e.target.value)} inputProps={{ dir: 'ltr' }} placeholder="123456" required />
+            {error && <Typography color="error" variant="body2">{String(error)}</Typography>}
+            <Button type="submit" variant="contained">عرض التتبع</Button>
+          </Stack>
+        </Paper>
       )}
-      <p className="mt-6 text-xs text-gray-500">لن يتم فهرسة هذه الصفحة من محركات البحث.</p>
-    </div>
+      <Typography sx={{ mt: 3 }} variant="caption" color="text.secondary">لن يتم فهرسة هذه الصفحة من محركات البحث.</Typography>
+    </Box>
   );
 }
 

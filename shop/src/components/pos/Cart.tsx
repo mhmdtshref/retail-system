@@ -1,10 +1,11 @@
 "use client";
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePosStore } from '@/lib/store/posStore';
 import type { PosCartLine } from '@/lib/pos/types';
 import { Box, Chip, IconButton, Paper, Stack, Typography } from '@mui/material';
 import { Add, Remove, DeleteOutline } from '@mui/icons-material';
+import { ConfirmDialog } from '@/components/mui/ConfirmDialog';
 
 export function Cart() {
   const t = useTranslations();
@@ -12,6 +13,7 @@ export function Cart() {
   const updateQty = usePosStore((s: any) => s.updateQty);
   const removeLine = usePosStore((s: any) => s.removeLine);
   const total = useMemo(() => (lines as PosCartLine[]).reduce((sum: number, l: PosCartLine) => sum + l.qty * l.price, 0), [lines]);
+  const [confirmSku, setConfirmSku] = useState<string | null>(null);
 
   return (
     <Stack spacing={1.5}>
@@ -34,7 +36,7 @@ export function Cart() {
               <Typography sx={{ width: 24, textAlign: 'center' }} aria-live="polite">{l.qty}</Typography>
               <IconButton size="small" onClick={() => updateQty(l.sku, l.qty + 1)} aria-label="increment"><Add /></IconButton>
             </Stack>
-            <IconButton color="error" aria-label={t('common.remove') || 'حذف'} onClick={() => { if (confirm(t('common.remove') || 'حذف')) removeLine(l.sku); }}>
+            <IconButton color="error" aria-label={t('common.remove') || 'حذف'} onClick={() => setConfirmSku(l.sku)}>
               <DeleteOutline />
             </IconButton>
           </Stack>
@@ -47,6 +49,17 @@ export function Cart() {
         <Typography fontWeight={600}>{t('pos.subtotal') || 'الإجمالي الفرعي'}</Typography>
         <Typography fontWeight={600}>{total.toFixed(2)}</Typography>
       </Stack>
+
+      <ConfirmDialog
+        open={!!confirmSku}
+        title={t('common.remove') || 'حذف العنصر'}
+        description={t('pos.removeLineConfirm') || 'هل تريد حذف هذا العنصر من السلة؟'}
+        onClose={() => setConfirmSku(null)}
+        onConfirm={() => { if (confirmSku) removeLine(confirmSku); setConfirmSku(null); }}
+        confirmColor="error"
+        confirmLabel={t('common.remove') || 'حذف'}
+        cancelLabel={t('common.cancel') || 'إلغاء'}
+      />
     </Stack>
   );
 }

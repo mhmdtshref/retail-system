@@ -7,7 +7,7 @@ import { requireAuth, requireCan } from '@/lib/policy/api';
 import { getIfExists, saveResult } from '@/lib/idempotency';
 import { normalizeArabicName, normalizeEnglishName, digitsOnly } from '@/lib/arabic/normalize';
 import { detectDuplicates } from '@/lib/customers/duplicates';
-import { withRateLimit } from '@/lib/security/rate-limit';
+import { takeRateLimit, applyRateHeaders } from '@/lib/security/rate-limit';
 import { verifyCsrf } from '@/lib/security/csrf';
 import { writeAudit } from '@/lib/security/audit';
 
@@ -72,17 +72,17 @@ export async function POST(req: NextRequest) {
   const csrf = verifyCsrf(req);
   if (csrf !== true) return csrf;
 
-  // Rate limit sensitive create
-  const limited = await withRateLimit(
+  // Rate limit sensitive create (10 per 5 minutes with burst 5)
+  const uid = String((auth.user as any)?.id || (auth.user as any)?._id || '');
+  const { limited: rlLimited, response: rlResponse, headers: rlHeaders } = await takeRateLimit(
     req,
-    () => new NextResponse(null, { status: 204 }),
     { limit: 10, windowMs: 5 * 60 * 1000, burst: 5 },
     'api:customers:create',
-    String((auth.user as any)?.id || (auth.user as any)?._id || '')
+    uid
   );
-  if (limited && limited.status === 429) {
-    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, req });
-    return limited;
+  if (rlLimited) {
+    await writeAudit({ action: 'notification.send', status: 'denied', actor: { id: uid, role: (auth.user as any)?.role }, req });
+    return rlResponse!;
   }
   const idempotencyKey = req.headers.get('Idempotency-Key') || '';
   const existing = await getIfExists(idempotencyKey);
@@ -104,8 +104,10 @@ export async function POST(req: NextRequest) {
   const doc = await Customer.create(enriched);
   const res = { customer: toClient(doc.toObject()), duplicates: dups };
   await saveResult(idempotencyKey, res);
-  await writeAudit({ action: 'user.create', status: 'success', actor: { id: String((auth.user as any)?.id || (auth.user as any)?._id || ''), role: (auth.user as any)?.role }, entity: { type: 'Customer', id: String(doc._id) }, req });
-  return NextResponse.json(res);
+  await writeAudit({ action: 'user.create', status: 'success', actor: { id: uid, role: (auth.user as any)?.role }, entity: { type: 'Customer', id: String(doc._id) }, req });
+  const json = NextResponse.json(res);
+  if (rlHeaders) applyRateHeaders(json, rlHeaders);
+  return json;
 }
 
 function toClient(c: any) {

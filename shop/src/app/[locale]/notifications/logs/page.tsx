@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import { VirtualTable } from '@/components/virtualized/VirtualTable';
 
 export default function NotificationsLogsPage() {
@@ -34,15 +35,15 @@ export default function NotificationsLogsPage() {
     { key: 'attempt', header: 'المحاولة', width: 100 },
   ]), []);
 
-  if (loading) return <main className="p-4">…</main>;
+  if (loading) return <Box component="main" sx={{ p: 2 }}>…</Box>;
 
   return (
-    <main className="p-4" dir="rtl">
-      <h1 className="text-xl font-semibold mb-4">سجل الإشعارات</h1>
+    <Box component="main" sx={{ p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>سجل الإشعارات</Typography>
       <VirtualTable rows={items} columns={columns as any} rowKey={(r:any)=> r._id} />
       {hasMore && (
-        <div className="flex justify-center py-2">
-          <button className="px-3 py-1 rounded border" onClick={() => {
+        <Stack alignItems="center" sx={{ py: 1 }}>
+          <Button variant="outlined" onClick={() => {
             const c = cursor; if (!c) return;
             (async () => {
               const params = new URLSearchParams();
@@ -56,9 +57,9 @@ export default function NotificationsLogsPage() {
                 setCursor(data.nextCursor);
               }
             })();
-          }}>تحميل المزيد</button>
-        </div>
+          }}>تحميل المزيد</Button>
+        </Stack>
       )}
-    </main>
+    </Box>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 
 export default function ForgotPage() {
   const [email, setEmail] = useState('');
@@ -11,16 +12,15 @@ export default function ForgotPage() {
   }
 
   return (
-    <main className="min-h-screen grid place-items-center" dir="rtl">
-      <form onSubmit={onSubmit} className="w-96 space-y-3 border rounded p-4 bg-white">
-        <h1 className="text-xl font-semibold text-center">نسيت كلمة المرور</h1>
-        <label className="block text-sm">
-          البريد الإلكتروني
-          <input className="mt-1 w-full border rounded px-3 py-2" type="email" dir="ltr" value={email} onChange={(e)=> setEmail(e.target.value)} required />
-        </label>
-        {!sent && <button className="w-full py-2 bg-black text-white rounded">إرسال رابط إعادة التعيين</button>}
-        {sent && <div className="text-green-700 text-sm text-center">تم الإرسال إن وجد الحساب.</div>}
-      </form>
-    </main>
+    <Box component="main" dir="rtl" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+      <Paper component="form" onSubmit={onSubmit} sx={{ width: 420, p: 3 }}>
+        <Typography variant="h6" textAlign="center" sx={{ mb: 2 }}>نسيت كلمة المرور</Typography>
+        <Stack spacing={2}>
+          <TextField type="email" label="البريد الإلكتروني" inputProps={{ dir: 'ltr' }} value={email} onChange={(e)=> setEmail(e.target.value)} required fullWidth />
+          {!sent && <Button type="submit" variant="contained" fullWidth>إرسال رابط إعادة التعيين</Button>}
+          {sent && <Typography color="success.main" variant="body2" textAlign="center">تم الإرسال إن وجد الحساب.</Typography>}
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

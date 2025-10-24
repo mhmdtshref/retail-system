@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { Box, Stack, Typography, Paper, Slider, Checkbox, FormControlLabel, Select, MenuItem, TextField } from '@mui/material';
 
 export default function ObservabilitySettingsPage() {
   const [role, setRole] = useState<string>('viewer');
@@ -30,46 +31,41 @@ export default function ObservabilitySettingsPage() {
     })();
   }, []);
 
-  if (loading) return <main className="p-4">...تحميل</main>;
-  if (!(role === 'owner' || role === 'manager')) return <main className="p-4"><div className="rounded border p-4 text-rose-700">مرفوض: يتطلب صلاحيات مدير</div></main>;
+  if (loading) return <Box component="main" sx={{ p: 2 }}>...تحميل</Box>;
+  if (!(role === 'owner' || role === 'manager')) return <Box component="main" sx={{ p: 2 }}><Paper variant="outlined" sx={{ p: 2, color: 'error.main' }}>مرفوض: يتطلب صلاحيات مدير</Paper></Box>;
 
   return (
-    <main className="p-4 space-y-4" dir="rtl">
-      <h1 className="text-xl font-semibold">إعدادات المراقبة</h1>
-      <div className="rounded border p-4 bg-white space-y-3">
-        <div>
-          <label className="block text-sm text-neutral-600 mb-1">معدل أخذ عينات سجلات المعلومات (%)</label>
-          <input type="range" min={0} max={100} value={samplingInfo} onChange={async (e)=> {
-            const v = Number(e.target.value);
-            setSamplingInfo(v);
-            try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sampling: { info: v/100 } }) }); } catch {}
-          }} />
-          <div className="text-sm">{samplingInfo}%</div>
-        </div>
-        <div className="flex items-center gap-2">
-          <input id="clientLogs" type="checkbox" checked={clientLogsEnabled} onChange={async (e)=> { const c = e.target.checked; setClientLogsEnabled(c); try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientLogsEnabled: c }) }); } catch {} }} />
-          <label htmlFor="clientLogs">تفعيل سجلات العميل (POS/المزامنة)</label>
-        </div>
-        <div className="flex items-center gap-2">
-          <input id="metricsPublic" type="checkbox" checked={metricsPublic} onChange={async (e)=> { const c = e.target.checked; setMetricsPublic(c); try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ metrics: { exposePublic: c } }) }); } catch {} }} />
-          <label htmlFor="metricsPublic">فتح /api/_metrics بدون مصادقة</label>
-        </div>
-        <div>
-          <label className="block text-sm text-neutral-600 mb-1">موفر الأخطاء</label>
-          <select value={provider} onChange={(e)=> setProvider(e.target.value as any)} className="border rounded p-1">
-            <option value="none">بدون</option>
-            <option value="console">Console</option>
-            <option value="sentry-webhook">Sentry Webhook</option>
-          </select>
-        </div>
-        {provider === 'sentry-webhook' && (
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">عنوان Webhook</label>
-            <input className="border rounded p-1 w-full" value={webhookUrl} onChange={(e)=> setWebhookUrl(e.target.value)} placeholder="https://..." />
-          </div>
-        )}
-        <div className="text-sm text-neutral-600">سيتم تطبيق الإعدادات على الفور (تجريبي: إعدادات وقت التشغيل).</div>
-      </div>
-    </main>
+    <Box component="main" sx={{ p: 2 }} dir="rtl">
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>إعدادات المراقبة</Typography>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>معدل أخذ عينات سجلات المعلومات (%)</Typography>
+            <Slider value={samplingInfo} onChange={async (_e, v) => {
+              const val = Array.isArray(v) ? v[0] : v as number;
+              setSamplingInfo(val);
+              try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sampling: { info: val/100 } }) }); } catch {}
+            }} min={0} max={100} valueLabelDisplay="auto" />
+          </Box>
+          <FormControlLabel control={<Checkbox checked={clientLogsEnabled} onChange={async (e)=> { const c = e.target.checked; setClientLogsEnabled(c); try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientLogsEnabled: c }) }); } catch {} }} />} label="تفعيل سجلات العميل (POS/المزامنة)" />
+          <FormControlLabel control={<Checkbox checked={metricsPublic} onChange={async (e)=> { const c = e.target.checked; setMetricsPublic(c); try { await fetch('/api/settings/observability', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ metrics: { exposePublic: c } }) }); } catch {} }} />} label="فتح /api/_metrics بدون مصادقة" />
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>موفر الأخطاء</Typography>
+            <Select size="small" value={provider} onChange={(e)=> setProvider(e.target.value as any)} sx={{ minWidth: 220 }}>
+              <MenuItem value="none">بدون</MenuItem>
+              <MenuItem value="console">Console</MenuItem>
+              <MenuItem value="sentry-webhook">Sentry Webhook</MenuItem>
+            </Select>
+          </Box>
+          {provider === 'sentry-webhook' && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>عنوان Webhook</Typography>
+              <TextField size="small" fullWidth value={webhookUrl} onChange={(e)=> setWebhookUrl(e.target.value)} placeholder="https://..." inputProps={{ dir: 'ltr' }} />
+            </Box>
+          )}
+          <Typography variant="caption" color="text.secondary">سيتم تطبيق الإعدادات على الفور (تجريبي: إعدادات وقت التشغيل).</Typography>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

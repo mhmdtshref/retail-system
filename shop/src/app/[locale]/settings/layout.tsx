@@ -1,8 +1,9 @@
+import { Box } from '@mui/material';
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="p-4" dir="rtl">
+    <Box component="section" sx={{ p: 2 }} dir="rtl">
       {children}
-    </section>
+    </Box>
   );
 }
 

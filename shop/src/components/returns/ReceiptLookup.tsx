@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 
 type SaleLine = { sku: string; soldQty: number; returnedQty: number; eligibleQty: number; unitPrice?: number };
 type SaleSummary = { saleId: string; receiptNo: string; customerId?: string; date?: number; lines: SaleLine[] };
@@ -24,24 +25,26 @@ export function ReceiptLookup({ onPick }: { onPick: (sale: SaleSummary) => void 
 		}
 	}
 
-	return (
-		<div className="space-y-2">
-			<div className="flex gap-2">
-				<input dir="rtl" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="أدخل رقم الإيصال" className="border rounded px-3 py-2 flex-1" />
-				<button onClick={search} disabled={loading} className="px-3 py-2 bg-blue-600 text-white rounded">بحث</button>
-			</div>
-			{results.length > 0 && (
-				<div className="border rounded divide-y bg-white">
-					{results.map((s) => (
-						<button key={s.saleId} onClick={() => onPick(s)} className="w-full text-right p-2 hover:bg-gray-50">
-							<div className="text-sm">الإيصال: <bdi dir="ltr">{s.receiptNo}</bdi> — {new Date(s.date || 0).toLocaleString('ar-SA')}</div>
-							<div className="text-xs text-gray-500">عناصر: {s.lines.length}</div>
-						</button>
-					))}
-				</div>
-			)}
-		</div>
-	);
+  return (
+    <Box>
+      <Stack direction="row" spacing={1}>
+        <TextField size="small" inputProps={{ dir: 'rtl' }} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="أدخل رقم الإيصال" sx={{ flex: 1 }} />
+        <Button onClick={search} disabled={loading} variant="contained">بحث</Button>
+      </Stack>
+      {results.length > 0 && (
+        <Paper variant="outlined" sx={{ mt: 1 }}>
+          {results.map((s) => (
+            <Button key={s.saleId} onClick={() => onPick(s)} sx={{ justifyContent: 'flex-start', width: '100%', textAlign: 'right', borderBottom: (t)=> `1px solid ${t.palette.divider}`, borderRadius: 0, py: 1.25 }}>
+              <Box sx={{ width: '100%' }}>
+                <Typography variant="body2">الإيصال: <bdi dir="ltr">{s.receiptNo}</bdi> — {new Date(s.date || 0).toLocaleString('ar-SA')}</Typography>
+                <Typography variant="caption" color="text.secondary">عناصر: {s.lines.length}</Typography>
+              </Box>
+            </Button>
+          ))}
+        </Paper>
+      )}
+    </Box>
+  );
 }
 
 

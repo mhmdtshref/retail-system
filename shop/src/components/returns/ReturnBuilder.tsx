@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { enqueueReturnCreate } from '@/lib/outbox';
 import { uuid } from '@/lib/pos/idempotency';
+import { Box, Button, Stack, Typography, TextField, Select, MenuItem, Paper, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 
 type SaleLine = { sku: string; soldQty: number; returnedQty: number; eligibleQty: number; unitPrice?: number };
 type SaleSummary = { saleId: string; receiptNo: string; date?: number; lines: SaleLine[] };
@@ -30,63 +31,63 @@ export function ReturnBuilder({ sale }: { sale: SaleSummary }) {
     const localId = uuid();
     await enqueueReturnCreate({ localId, saleId: sale.saleId, lines, refund: { method, amount: total }, notes });
     try { await fetch('/api/inventory/availability/bulk', { method: 'GET' }); } catch {}
-    alert('تم إنشاء طلب إرجاع. سيتم المزامنة عند توفر الإنترنت.');
+    // Show success via upstream Snackbar if present
 	}
 
 	return (
-		<div className="space-y-3">
-			<table className="w-full text-right">
-				<thead>
-					<tr className="text-sm text-gray-600">
-						<th className="p-2">الصنف</th>
-						<th className="p-2">المتاح</th>
-						<th className="p-2">السعر</th>
-						<th className="p-2">الكمية</th>
-						<th className="p-2">السبب</th>
-						<th className="p-2">الحالة</th>
-					</tr>
-				</thead>
-				<tbody>
+		<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+			<Table size="small">
+				<TableHead>
+					<TableRow>
+						<TableCell align="right">الصنف</TableCell>
+						<TableCell align="right">المتاح</TableCell>
+						<TableCell align="right">السعر</TableCell>
+						<TableCell align="right">الكمية</TableCell>
+						<TableCell align="right">السبب</TableCell>
+						<TableCell align="right">الحالة</TableCell>
+					</TableRow>
+				</TableHead>
+				<TableBody>
 					{sale.lines.map((l) => {
 						const q = qtyBySku[l.sku] || 0;
 						const max = l.eligibleQty;
 						return (
-							<tr key={l.sku} className="border-t">
-								<td className="p-2"><bdi dir="ltr">{l.sku}</bdi></td>
-								<td className="p-2 text-sm">{max}</td>
-								<td className="p-2 text-sm">{(l.unitPrice || 0).toLocaleString('ar-SA')}</td>
-								<td className="p-2">
-									<input type="number" min={0} max={max} value={q} onChange={(e) => setQty(l.sku, Number(e.target.value), max)} className="w-20 border rounded px-2 py-1" />
-								</td>
-								<td className="p-2">
-									<select value={reasonBySku[l.sku] || ''} onChange={(e) => setReasonBySku((p) => ({ ...p, [l.sku]: e.target.value }))} className="border rounded px-2 py-1">
-										<option value="" disabled>اختر</option>
-										{reasons.map((r) => <option key={r} value={r}>{r}</option>)}
-									</select>
-								</td>
-								<td className="p-2">
-									<select value={conditionBySku[l.sku] || ''} onChange={(e) => setConditionBySku((p) => ({ ...p, [l.sku]: e.target.value }))} className="border rounded px-2 py-1">
-										<option value="" disabled>اختر</option>
-										{conditions.map((c) => <option key={c} value={c}>{c}</option>)}
-									</select>
-								</td>
-							</tr>
+							<TableRow key={l.sku} hover>
+								<TableCell align="right"><bdi dir="ltr">{l.sku}</bdi></TableCell>
+								<TableCell align="right">{max}</TableCell>
+								<TableCell align="right">{(l.unitPrice || 0).toLocaleString('ar-SA')}</TableCell>
+								<TableCell align="right">
+									<TextField size="small" type="number" inputProps={{ min: 0, max }} value={q} onChange={(e) => setQty(l.sku, Number(e.target.value), max)} sx={{ width: 90 }} />
+								</TableCell>
+								<TableCell align="right">
+									<Select size="small" value={reasonBySku[l.sku] || ''} onChange={(e) => setReasonBySku((p) => ({ ...p, [l.sku]: e.target.value }))} displayEmpty sx={{ minWidth: 160 }}>
+										<MenuItem value="" disabled>اختر</MenuItem>
+										{reasons.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+									</Select>
+								</TableCell>
+								<TableCell align="right">
+									<Select size="small" value={conditionBySku[l.sku] || ''} onChange={(e) => setConditionBySku((p) => ({ ...p, [l.sku]: e.target.value }))} displayEmpty sx={{ minWidth: 160 }}>
+										<MenuItem value="" disabled>اختر</MenuItem>
+										{conditions.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+									</Select>
+								</TableCell>
+							</TableRow>
 						);
 					})}
-				</tbody>
-			</table>
-			<div className="flex items-center gap-3">
-				<div>طريقة الاسترداد:</div>
-				<select value={method} onChange={(e) => setMethod(e.target.value as any)} className="border rounded px-2 py-1">
-					<option value="cash">نقدًا</option>
-					<option value="card">بطاقة</option>
-					<option value="store_credit">رصيد متجر</option>
-				</select>
-				<div className="ml-auto">الإجمالي: {total.toLocaleString('ar-SA')}</div>
-			</div>
-			<textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظات" className="w-full border rounded p-2" />
-			<button onClick={confirm} className="px-4 py-2 bg-green-600 text-white rounded">تأكيد الإرجاع</button>
-		</div>
+				</TableBody>
+			</Table>
+			<Stack direction="row" spacing={1} alignItems="center">
+				<Typography>طريقة الاسترداد:</Typography>
+				<Select size="small" value={method} onChange={(e) => setMethod(e.target.value as any)} sx={{ minWidth: 160 }}>
+					<MenuItem value="cash">نقدًا</MenuItem>
+					<MenuItem value="card">بطاقة</MenuItem>
+					<MenuItem value="store_credit">رصيد متجر</MenuItem>
+				</Select>
+				<Typography sx={{ ml: 'auto' }}>الإجمالي: {total.toLocaleString('ar-SA')}</Typography>
+			</Stack>
+			<TextField multiline minRows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظات" />
+			<Button onClick={confirm} variant="contained" color="success">تأكيد الإرجاع</Button>
+		</Box>
 	);
 }
 

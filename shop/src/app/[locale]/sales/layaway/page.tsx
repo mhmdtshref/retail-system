@@ -35,7 +35,7 @@ export default function LayawayPage() {
     { field: 'customerId', headerName: t('layaway.customer') || 'العميل', flex: 1 },
     { field: 'remaining', headerName: t('layaway.remaining') || 'المتبقي', width: 140, valueFormatter: (p) => (p.value as number)?.toFixed?.(2) },
     { field: 'nextDueDate', headerName: t('layaway.nextDue') || 'الاستحقاق التالي', width: 160, renderCell: (p) => (
-      <span dir="ltr">{p.value ? new Date(p.value as string).toLocaleDateString() : '-'}</span>
+      <Typography component="span" dir="ltr">{p.value ? new Date(p.value as string).toLocaleDateString() : '-'}</Typography>
     ) },
     { field: 'overdueDays', headerName: t('layaway.overdueDays') || 'العمر', width: 120 },
     { field: 'status', headerName: t('layaway.status') || 'الحالة', width: 140 },
