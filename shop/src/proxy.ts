@@ -1,6 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale, localePrefix } from '@/i18n/config';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { applySecurityHeaders } from '@/lib/security/headers';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
@@ -11,7 +11,10 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  let res = intl(req);
+  const pathname = req.nextUrl.pathname || '';
+  const isApiLike = pathname.startsWith('/api') || pathname.startsWith('/trpc');
+  // Run i18n proxy only for web routes, not API-like paths
+  let res = isApiLike ? NextResponse.next() : intl(req);
   res = applySecurityHeaders(req, res, {
     cspImgDomains: ['data:', 'blob:'],
     // Allow Clerk assets and connections
@@ -30,8 +33,10 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
 export const config = {
   matcher: [
-    '/',
-    '/((?!_next|api|auth|offline|manifest\\.webmanifest|sw\\.js|icons|.*\\..*).*)',
+    // All routes except static files and _next
+    '/((?!.*\\..*|_next).*)',
+    // Also run on API/TRPC so Clerk can set auth state
+    '/(api|trpc)(.*)'
   ],
 };
 

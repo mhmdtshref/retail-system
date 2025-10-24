@@ -19,7 +19,9 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning>
       <body>
-        <ClerkProvider>
+        <ClerkProvider
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        >
           <ThemeProvider>
             <Providers>{children}</Providers>
           </ThemeProvider>

@@ -14,17 +14,17 @@ export function applySecurityHeaders(req: NextRequest, res: NextResponse, opts: 
   const self = "'self'";
   const nonce = opts.cspNonce ? `'nonce-${opts.cspNonce}'` : '';
   const imgSrc = [self, 'data:', 'blob:', ...(opts.cspImgDomains || [])].join(' ');
-  const connectSrc = [self, process.env.NEXT_PUBLIC_BASE_URL || '', ...(opts.connectSrcDomains || [])]
+  const connectSrc = [self, process.env.NEXT_PUBLIC_BASE_URL || '', ...(opts.connectSrcDomains || []), (!isProd ? 'https:' : '')]
     .filter(Boolean)
     .join(' ');
   const styleSrc = [self, nonce || "'unsafe-inline'"].join(' ');
-  const scriptSrcParts = [self, nonce || "'unsafe-inline'", ...(opts.scriptSrcDomains || [])];
+  const scriptSrcParts = [self, nonce || "'unsafe-inline'", ...(opts.scriptSrcDomains || []), (!isProd ? 'https:' : '')];
   if (!isProd) scriptSrcParts.push("'unsafe-eval'");
   const scriptSrc = scriptSrcParts.join(' ');
   const frameAncestors = (opts.frameAncestors && opts.frameAncestors.length)
     ? opts.frameAncestors.join(' ')
     : "'none'";
-  const frameSrc = [self, ...(opts.frameSrcDomains || [])].join(' ');
+  const frameSrc = [self, ...(opts.frameSrcDomains || []), (!isProd ? 'https:' : '')].filter(Boolean).join(' ');
 
   const csp = [
     `default-src ${self}`,
